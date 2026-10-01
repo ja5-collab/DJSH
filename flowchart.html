@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>資訊科技：流程圖繪製</title>
+    <title>資訊科技：流程圖繪製 (學生練習端)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icon CDN -->
@@ -11,7 +11,6 @@
     <!-- Canvas Confetti CDN -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        /* Custom scrollbar for canvas workspace */
         .custom-scrollbar::-webkit-scrollbar {
             width: 8px;
         }
@@ -38,17 +37,17 @@
                     <i class="fa-solid fa-sitemap text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="text-base sm:text-lg font-bold text-white leading-tight flex items-center gap-2">
-                        <span>資訊科技：流程圖繪製</span>
+                    <h1 class="text-base sm:text-lg font-bold text-white leading-tight">
+                        資訊科技：流程圖繪製
                     </h1>
                 </div>
             </div>
 
-            <!-- Teacher Remote Scoreboard Button -->
-            <button onclick="openTeacherScoreModal()" class="text-xs bg-indigo-600/90 hover:bg-indigo-500 text-white font-bold py-2.5 px-4 rounded-xl border border-indigo-400/30 transition flex items-center gap-2 shadow-lg shadow-indigo-600/20 active:scale-95">
-                <i class="fa-solid fa-chart-line text-amber-300"></i>
-                <span>教師遠端成績看板</span>
-            </button>
+            <!-- Student Info Input -->
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-400 hidden sm:inline">座號 / 姓名：</span>
+                <input type="text" id="student-name-input" placeholder="請輸入座號與姓名" class="bg-slate-800 border border-slate-700 text-xs text-white px-3 py-1.5 rounded-lg focus:outline-none focus:border-emerald-500 w-36 sm:w-44">
+            </div>
         </div>
     </header>
 
@@ -108,9 +107,6 @@
                                 <div class="text-xs sm:text-sm text-slate-300 mt-1">標示流程起點與終點 (開始/結束)</div>
                             </div>
                         </div>
-                        <div class="w-7 h-7 rounded-lg bg-slate-800/80 group-hover:bg-emerald-500 group-hover:text-white border border-slate-700/80 group-hover:border-emerald-400 flex items-center justify-center text-slate-400 text-sm transition-colors shrink-0">
-                            <i class="fa-solid fa-plus group-hover:rotate-90 transition-transform"></i>
-                        </div>
                     </button>
 
                     <!-- Process Node (Rectangle) -->
@@ -128,9 +124,6 @@
                                 </div>
                                 <div class="text-xs sm:text-sm text-slate-300 mt-1">用於資料處理或算術運算 (處理)</div>
                             </div>
-                        </div>
-                        <div class="w-7 h-7 rounded-lg bg-slate-800/80 group-hover:bg-blue-500 group-hover:text-white border border-slate-700/80 group-hover:border-blue-400 flex items-center justify-center text-slate-400 text-sm transition-colors shrink-0">
-                            <i class="fa-solid fa-plus group-hover:rotate-90 transition-transform"></i>
                         </div>
                     </button>
 
@@ -150,9 +143,6 @@
                                 <div class="text-xs sm:text-sm text-slate-300 mt-1">用於資料輸入與結果印出 (輸入/輸出)</div>
                             </div>
                         </div>
-                        <div class="w-7 h-7 rounded-lg bg-slate-800/80 group-hover:bg-amber-500 group-hover:text-white border border-slate-700/80 group-hover:border-amber-400 flex items-center justify-center text-slate-400 text-sm transition-colors shrink-0">
-                            <i class="fa-solid fa-plus group-hover:rotate-90 transition-transform"></i>
-                        </div>
                     </button>
 
                     <!-- Decision Node (Diamond) -->
@@ -171,9 +161,6 @@
                                 <div class="text-xs sm:text-sm text-slate-300 mt-1">用於條件判斷與分支流程 (判斷)</div>
                             </div>
                         </div>
-                        <div class="w-7 h-7 rounded-lg bg-slate-800/80 group-hover:bg-purple-500 group-hover:text-white border border-slate-700/80 group-hover:border-purple-400 flex items-center justify-center text-slate-400 text-sm transition-colors shrink-0">
-                            <i class="fa-solid fa-plus group-hover:rotate-90 transition-transform"></i>
-                        </div>
                     </button>
                 </div>
             </div>
@@ -191,15 +178,12 @@
                     </button>
                 </div>
 
-                <!-- Canvas Area with Vertical Scrollbar -->
-                <div id="flowchart-canvas" class="max-h-[580px] overflow-y-auto pr-2 custom-scrollbar space-y-4 py-2">
-                    <!-- Dynamic flowchart slots rendered here -->
-                </div>
+                <div id="flowchart-canvas" class="max-h-[580px] overflow-y-auto pr-2 custom-scrollbar space-y-4 py-2"></div>
             </div>
 
         </div>
 
-        <!-- Diagnostic Feedback Card (Hidden until check) -->
+        <!-- Diagnostic Feedback Card -->
         <div id="feedback-box" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
             <div class="flex items-center justify-between border-b border-slate-800 pb-2">
                 <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
@@ -208,12 +192,10 @@
                 </h3>
                 <span id="diagnostic-summary" class="text-xs font-semibold text-slate-400">通過率：-</span>
             </div>
-            <ul id="feedback-list" class="space-y-2 text-xs">
-                <!-- Feedback items rendered here -->
-            </ul>
+            <ul id="feedback-list" class="space-y-2 text-xs"></ul>
         </div>
 
-        <!-- Bottom Action Bar & Scoreboard Upload -->
+        <!-- Bottom Action Bar & Local Score Display -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
             <div id="score-display-box" class="hidden flex items-center gap-3">
                 <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-emerald-500/20" id="score-badge-num">
@@ -223,116 +205,25 @@
                     <div class="text-[11px] uppercase tracking-wider text-slate-400 font-bold">本次評分結果</div>
                     <div class="text-xl font-black text-emerald-400" id="final-score-text">0 分</div>
                 </div>
-                <!-- Score Enlarge Button -->
-                <button onclick="openScoreZoomModal()" title="放大顯示成績" class="ml-1 w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 flex items-center justify-center transition border border-slate-700 active:scale-95">
-                    <i class="fa-solid fa-magnifying-glass-plus text-xs"></i>
-                </button>
             </div>
 
             <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto ml-auto">
                 <button onclick="checkAnswer()" class="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-sm py-3 px-7 rounded-xl shadow-lg shadow-emerald-600/20 transition active:scale-95 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-circle-check text-base"></i>
-                    <span>提交答案與自動評分</span>
+                    <i class="fa-solid fa-paper-plane text-base"></i>
+                    <span>提交答案並上傳成績</span>
                 </button>
             </div>
         </div>
 
     </main>
 
-    <!-- Teacher Remote Scoreboard Modal -->
-    <div id="teacher-score-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full p-6 shadow-2xl flex flex-col max-h-[85vh]">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
-                        <i class="fa-solid fa-chart-user text-base"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-base font-bold text-white leading-tight">教師遠端成績看板 (Real-time Dashboard)</h3>
-                        <p class="text-[11px] text-slate-400">學生提交答案後，成績將會即時自動呈現在此列表中</p>
-                    </div>
-                </div>
-                <button onclick="closeTeacherScoreModal()" class="text-slate-400 hover:text-white text-lg font-bold w-8 h-8 rounded-lg hover:bg-slate-800 flex items-center justify-center transition">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <!-- Stats Overview Header -->
-            <div class="grid grid-cols-3 gap-3 mb-4">
-                <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
-                    <span class="text-xs text-slate-400 font-medium">總交卷次數</span>
-                    <span id="stat-total-count" class="text-lg font-extrabold text-white">0</span>
-                </div>
-                <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
-                    <span class="text-xs text-slate-400 font-medium">平均得分</span>
-                    <span id="stat-avg-score" class="text-lg font-extrabold text-emerald-400">0</span>
-                </div>
-                <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
-                    <span class="text-xs text-slate-400 font-medium">優良率 (≥80%)</span>
-                    <span id="stat-pass-rate" class="text-lg font-extrabold text-indigo-400">0%</span>
-                </div>
-            </div>
-
-            <!-- Student Score Table -->
-            <div class="flex-1 overflow-y-auto border border-slate-800 rounded-xl bg-slate-950/60 custom-scrollbar">
-                <table class="w-full text-left text-xs text-slate-200">
-                    <thead class="bg-slate-800/90 text-slate-400 uppercase text-[10px] tracking-wider sticky top-0 border-b border-slate-800 backdrop-blur">
-                        <tr>
-                            <th class="py-3 px-4">座號 / 姓名</th>
-                            <th class="py-3 px-4">測驗題目名稱</th>
-                            <th class="py-3 px-4">得分 / 滿分</th>
-                            <th class="py-3 px-4">通過步驟</th>
-                            <th class="py-3 px-4">提交時間</th>
-                        </tr>
-                    </thead>
-                    <tbody id="teacher-score-tbody" class="divide-y divide-slate-800/60">
-                        <tr>
-                            <td colspan="5" class="py-8 text-center text-slate-500">尚無交卷紀錄數據...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="mt-4 pt-3 border-t border-slate-800 flex justify-end">
-                <button onclick="closeTeacherScoreModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl transition text-xs">
-                    關閉看板
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Score Zoom Modal -->
-    <div id="score-zoom-modal" class="hidden fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4" onclick="closeScoreZoomModal()">
-        <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-8 shadow-2xl flex flex-col items-center text-center relative" onclick="event.stopPropagation()">
-            <button onclick="closeScoreZoomModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-            <div class="w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-2xl mb-4 shadow-lg shadow-emerald-500/10">
-                <i class="fa-solid fa-trophy"></i>
-            </div>
-            <div id="zoom-student-name" class="text-sm font-semibold text-slate-300 mb-1">學生：-</div>
-            <div id="zoom-q-title" class="text-xs text-slate-500 mb-6 max-w-xs truncate">測驗題目</div>
-            
-            <div class="text-xs uppercase tracking-widest text-emerald-400 font-bold mb-2">本次評分結果</div>
-            <div id="zoom-score-num" class="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300 mb-2">
-                0
-            </div>
-            <div id="zoom-max-score-text" class="text-xs text-slate-400 font-medium mb-6">得分：0 分</div>
-
-            <button onclick="closeScoreZoomModal()" class="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold rounded-xl transition text-sm shadow-lg shadow-emerald-600/20">
-                關閉放大顯示
-            </button>
-        </div>
-    </div>
-
-    <!-- Toast Notification Message Box -->
     <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- Firebase Cloud Sync Script -->
+    <!-- Firebase Script for Uploading -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         window.db = null;
         window.auth = null;
@@ -351,7 +242,6 @@
                     } else {
                         await signInAnonymously(window.auth);
                     }
-                    startScoreListener();
                 }
             } catch (e) {
                 console.warn("Cloud sync initialization fallback:", e);
@@ -373,22 +263,6 @@
             }
         };
 
-        function startScoreListener() {
-            if (!window.db) return;
-            const colRef = collection(window.db, 'artifacts', window.appId, 'public', 'data', 'student_scores');
-            
-            onSnapshot(colRef, (snapshot) => {
-                const list = [];
-                snapshot.forEach(doc => {
-                    list.push({ id: doc.id, ...doc.data() });
-                });
-                list.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                window.renderTeacherScoreboard(list);
-            }, (err) => {
-                console.error("Failed listening to live scores:", err);
-            });
-        }
-
         window.addEventListener('DOMContentLoaded', () => {
             initCloudSync();
             if (typeof window.pickRandomQuestion === 'function') {
@@ -397,9 +271,8 @@
         });
     </script>
 
-    <!-- Application Logic Script -->
+    <!-- Logic Script -->
     <script>
-        // Question Database with varied difficulty scores (60 to 80 points)
         const QUESTIONS = [
             {
                 id: "q_sum",
@@ -424,7 +297,7 @@
                     { shape: "parallelogram", keywords: ["score", "分數", "輸入"] },
                     { 
                         shape: "diamond", 
-                        keywords: ["score>=60", "score>=60?", "score>=60？", "score>59"],
+                        keywords: ["score>=60", "score>=60?", "score>=60？"],
                         branches: [
                             { label: "是", shape: "parallelogram", keywords: ["及格"] },
                             { label: "否", shape: "parallelogram", keywords: ["不及格"] }
@@ -432,95 +305,25 @@
                     },
                     { shape: "oval", noInput: true }
                 ]
-            },
-            {
-                id: "q_max",
-                title: "[演算法] 兩數求最大值 (Max)",
-                desc: "輸入兩個數字 A 和 B，若 A > B 則 Max = A，否則 Max = B，最後輸出 Max。",
-                maxScore: 70,
-                solution: [
-                    { shape: "oval", noInput: true },
-                    { shape: "parallelogram", keywords: ["a", "b", "輸入"] },
-                    { 
-                        shape: "diamond", 
-                        keywords: ["a>b", "a>b?", "a>b？"],
-                        branches: [
-                            { label: "是", shape: "rect", keywords: ["max=a"] },
-                            { label: "否", shape: "rect", keywords: ["max=b"] }
-                        ]
-                    },
-                    { shape: "parallelogram", keywords: ["max", "輸出", "印出"] },
-                    { shape: "oval", noInput: true }
-                ]
-            },
-            {
-                id: "q_vending",
-                title: "[生活應用] 自動販賣機付款與找零",
-                desc: "輸入商品價格 Price 與投幣金額 Pay。若 Pay < Price 則提示『金額不足』；否則計算 找零 Change = Pay - Price 並輸出 Change。",
-                maxScore: 75,
-                solution: [
-                    { shape: "oval", noInput: true },
-                    { shape: "parallelogram", keywords: ["price", "pay", "輸入"] },
-                    { 
-                        shape: "diamond", 
-                        keywords: ["pay<price", "pay<price?", "pay<price？"],
-                        branches: [
-                            { label: "是", shape: "parallelogram", keywords: ["金額不足", "不足"] },
-                            { label: "否", shape: "rect", keywords: ["change=pay-price", "change=pay−price"] }
-                        ]
-                    },
-                    { shape: "parallelogram", keywords: ["change", "找零", "輸出"] },
-                    { shape: "oval", noInput: true }
-                ]
-            },
-            {
-                id: "q_taxi",
-                title: "[複雜邏輯] 計程車交通費階梯計費",
-                desc: "輸入搭乘里程 Km。若 Km <= 1.5 則車資 Fee = 85 元；否則超出里程超額計費 Fee = 85 + (Km - 1.5) * 20，最後輸出車資 Fee。",
-                maxScore: 80,
-                solution: [
-                    { shape: "oval", noInput: true },
-                    { shape: "parallelogram", keywords: ["km", "里程", "輸入"] },
-                    { 
-                        shape: "diamond", 
-                        keywords: ["km<=1.5", "km<=1.5?", "km<=1.5？"],
-                        branches: [
-                            { label: "是", shape: "rect", keywords: ["fee=85"] },
-                            { label: "否", shape: "rect", keywords: ["fee=85+(km-1.5)*20", "85+"] }
-                        ]
-                    },
-                    { shape: "parallelogram", keywords: ["fee", "車資", "輸出"] },
-                    { shape: "oval", noInput: true }
-                ]
             }
         ];
 
         let currentQ = null;
         let selectedShape = null;
-        let draggedShape = null;
         let slotStates = [];
 
-        // Random question picker on page load
         window.pickRandomQuestion = function() {
             const randomIndex = Math.floor(Math.random() * QUESTIONS.length);
             currentQ = QUESTIONS[randomIndex];
             slotStates = currentQ.solution.map(() => null);
 
-            const titleEl = document.getElementById("question-title");
-            const descEl = document.getElementById("question-desc");
-            const stepCountEl = document.getElementById("question-step-count");
-
-            if (titleEl) titleEl.innerText = currentQ.title;
-            if (descEl) descEl.innerText = currentQ.desc;
-            if (stepCountEl) stepCountEl.innerText = `步驟：${currentQ.solution.length} 個`;
-
-            document.getElementById("feedback-box")?.classList.add("hidden");
-            document.getElementById("score-display-box")?.classList.add("hidden");
+            document.getElementById("question-title").innerText = currentQ.title;
+            document.getElementById("question-desc").innerText = currentQ.desc;
+            document.getElementById("question-step-count").innerText = `步驟：${currentQ.solution.length} 個`;
 
             renderCanvasSlots();
         };
 
-        // Main rendering function for canvas slots
         window.renderCanvasSlots = function() {
             const canvas = document.getElementById("flowchart-canvas");
             if (!canvas || !currentQ) return;
@@ -528,33 +331,14 @@
             let html = "";
             currentQ.solution.forEach((sol, idx) => {
                 const state = slotStates[idx] || {};
-                
                 html += `<div class="flex flex-col items-center gap-2 relative">`;
-                
-                if (idx > 0) {
-                    html += `
-                        <div class="flex flex-col items-center my-1 text-slate-500">
-                            <i class="fa-solid fa-arrow-down text-base"></i>
-                        </div>
-                    `;
-                }
+                if (idx > 0) html += `<i class="fa-solid fa-arrow-down text-slate-500 my-1"></i>`;
 
-                if (sol.shape === "diamond") {
-                    html += `
-                        <div onclick="applyShapeToSlot(${idx})" class="cursor-pointer flex flex-col items-center">
-                            ${renderSlotNode(idx, state, sol.shape)}
-                        </div>
-                        ${renderBranchContainer(idx, sol.branches)}
-                    `;
-                } else {
-                    html += `
-                        <div onclick="applyShapeToSlot(${idx})" class="cursor-pointer">
-                            ${renderSlotNode(idx, state, sol.shape)}
-                        </div>
-                    `;
-                }
-
-                html += `</div>`;
+                html += `
+                    <div onclick="applyShapeToSlot(${idx})" class="cursor-pointer">
+                        ${renderSlotNode(idx, state, sol.shape)}
+                    </div>
+                </div>`;
             });
 
             canvas.innerHTML = html;
@@ -564,452 +348,78 @@
             const shape = state.shape || null;
             const text = state.text || "";
 
-            let shapeClass = "border-2 border-dashed border-slate-700 hover:border-emerald-500/80 bg-slate-950/60";
-            let shapeName = `步驟 ${idx + 1}：(拖曳或點擊放置積木)`;
-
-            if (shape === "oval") {
-                shapeClass = "bg-emerald-950/40 border-2 border-emerald-500 text-emerald-200 rounded-full w-64 h-14 flex items-center justify-center shadow-lg shadow-emerald-500/10";
-            } else if (shape === "rect") {
-                shapeClass = "bg-blue-950/40 border-2 border-blue-500 text-blue-200 rounded-xl w-64 h-14 flex items-center justify-center shadow-lg shadow-blue-500/10";
-            } else if (shape === "parallelogram") {
-                shapeClass = "bg-amber-950/40 border-2 border-amber-500 text-amber-200 -skew-x-12 w-64 h-14 flex items-center justify-center shadow-lg shadow-amber-500/10";
-            } else if (shape === "diamond") {
-                shapeClass = "bg-purple-950/40 border-2 border-purple-500 text-purple-200 w-36 h-36 rotate-45 flex items-center justify-center shadow-lg shadow-purple-500/10";
-            }
-
             if (!shape) {
-                return `
-                    <div ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, ${idx})" class="w-64 h-14 rounded-xl border-2 border-dashed border-slate-700 hover:border-emerald-500 bg-slate-950/60 flex items-center justify-center text-slate-300 text-sm font-semibold gap-2 transition cursor-pointer">
-                        <i class="fa-solid fa-hand-pointer text-slate-400"></i>
-                        <span>${shapeName}</span>
-                    </div>
-                `;
+                return `<div class="w-64 h-14 rounded-xl border-2 border-dashed border-slate-700 hover:border-emerald-500 bg-slate-950/60 flex items-center justify-center text-slate-400 text-sm font-semibold gap-2 transition">
+                    <i class="fa-solid fa-hand-pointer"></i> 步驟 ${idx + 1}：(點擊或拖曳放置)
+                </div>`;
             }
 
-            const unskewText = shape === "parallelogram" ? "skew-x-12" : "";
-            const unrotateText = shape === "diamond" ? "-rotate-45" : "";
+            let shapeClass = "bg-slate-800 border-2 border-slate-600 rounded-xl w-64 h-14 flex items-center justify-center";
+            if (shape === "oval") shapeClass = "bg-emerald-950/40 border-2 border-emerald-500 text-emerald-200 rounded-full w-64 h-14 flex items-center justify-center";
+            if (shape === "rect") shapeClass = "bg-blue-950/40 border-2 border-blue-500 text-blue-200 rounded-xl w-64 h-14 flex items-center justify-center";
+            if (shape === "parallelogram") shapeClass = "bg-amber-950/40 border-2 border-amber-500 text-amber-200 -skew-x-12 w-64 h-14 flex items-center justify-center";
 
             return `
-                <div ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, ${idx})" class="${shapeClass} relative group">
-                    <div class="${unskewText} ${unrotateText} w-full text-center px-3">
-                        ${shape === "oval" && (idx === 0 || idx === currentQ.solution.length - 1) ? 
-                            `<span class="font-bold text-sm sm:text-base">${idx === 0 ? '開始 (Start)' : '結束 (End)'}</span>` :
-                            `<input type="text" value="${text}" onchange="updateSlotText(${idx}, this.value)" onclick="event.stopPropagation()" placeholder="請輸入表達式..." class="bg-transparent text-center font-bold text-sm sm:text-base text-white focus:outline-none w-full border-b border-white/20 focus:border-white">`
-                        }
-                    </div>
-                    <button onclick="event.stopPropagation(); clearSlot(${idx})" class="absolute -top-1.5 -right-1.5 w-6 h-6 bg-rose-600 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
+                <div class="${shapeClass} relative">
+                    <input type="text" value="${text}" onchange="updateSlotText(${idx}, this.value)" onclick="event.stopPropagation()" placeholder="輸入內容..." class="bg-transparent text-center font-bold text-sm text-white focus:outline-none w-full">
                 </div>
             `;
         }
 
-        function renderBranchContainer(idx, branches) {
-            if (!branches || branches.length < 2) return "";
-            const bState = slotStates[idx] || {};
-            const branchData = bState.branches || [{}, {}];
-
-            return `
-                <div class="mt-4 flex items-start gap-8 border-t border-slate-800 pt-3 relative">
-                    <!-- Branch 1 (Yes) -->
-                    <div class="flex flex-col items-center">
-                        <div class="text-sm font-extrabold text-emerald-400 mb-1 flex items-center gap-1">
-                            <span>是</span>
-                        </div>
-                        <div onclick="applyBranchShape(${idx}, 0)" class="cursor-pointer">
-                            ${renderBranchSlotNode(idx, 0, branchData[0])}
-                        </div>
-                    </div>
-
-                    <!-- Branch 2 (No) -->
-                    <div class="flex flex-col items-center">
-                        <div class="text-sm font-extrabold text-rose-400 mb-1 flex items-center gap-1">
-                            <span>否</span>
-                        </div>
-                        <div onclick="applyBranchShape(${idx}, 1)" class="cursor-pointer">
-                            ${renderBranchSlotNode(idx, 1, branchData[1])}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderBranchSlotNode(parentIdx, branchIdx, state) {
-            const shape = state.shape || null;
-            const text = state.text || "";
-
-            if (!shape) {
-                return `
-                    <div ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleBranchDrop(event, ${parentIdx}, ${branchIdx})" class="w-36 h-12 rounded-lg border border-dashed border-slate-700 hover:border-emerald-500 bg-slate-950/60 flex items-center justify-center text-slate-400 text-xs transition cursor-pointer">
-                        拖曳或點擊積木
-                    </div>
-                `;
-            }
-
-            let shapeClass = "bg-slate-800 border border-slate-600 text-slate-200 rounded-lg w-40 h-12 flex items-center justify-center";
-            if (shape === "rect") shapeClass = "bg-blue-950/60 border border-blue-500 text-blue-200 rounded-lg w-40 h-12 flex items-center justify-center";
-            if (shape === "parallelogram") shapeClass = "bg-amber-950/60 border border-amber-500 text-amber-200 -skew-x-12 rounded-lg w-40 h-12 flex items-center justify-center";
-
-            const unskewText = shape === "parallelogram" ? "skew-x-12" : "";
-
-            return `
-                <div ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleBranchDrop(event, ${parentIdx}, ${branchIdx})" class="${shapeClass} relative group">
-                    <div class="${unskewText} w-full text-center px-2">
-                        <input type="text" value="${text}" onchange="updateBranchText(${parentIdx}, ${branchIdx}, this.value)" onclick="event.stopPropagation()" placeholder="輸入內容..." class="bg-transparent text-center font-bold text-xs sm:text-sm text-white focus:outline-none w-full">
-                    </div>
-                    <button onclick="event.stopPropagation(); clearBranchSlot(${parentIdx}, ${branchIdx})" class="absolute -top-1 -right-1 w-5 h-5 bg-rose-600 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-            `;
-        }
-
-        // Drag and drop event handlers
-        window.handleDragStart = function(e, shape) {
-            draggedShape = shape;
-            e.dataTransfer.setData("text/plain", shape);
-            e.dataTransfer.effectAllowed = "copy";
-        };
-
-        window.handleDragOver = function(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "copy";
-            e.currentTarget.classList.add("ring-2", "ring-emerald-400", "scale-105");
-        };
-
-        window.handleDragLeave = function(e) {
-            e.currentTarget.classList.remove("ring-2", "ring-emerald-400", "scale-105");
-        };
-
-        window.handleDrop = function(e, idx) {
-            e.preventDefault();
-            e.currentTarget.classList.remove("ring-2", "ring-emerald-400", "scale-105");
-            const shape = e.dataTransfer.getData("text/plain") || draggedShape;
-            if (shape) {
-                if (!slotStates[idx]) slotStates[idx] = {};
-                slotStates[idx].shape = shape;
-                renderCanvasSlots();
-            }
-        };
-
-        window.handleBranchDrop = function(e, parentIdx, branchIdx) {
-            e.preventDefault();
-            e.currentTarget.classList.remove("ring-2", "ring-emerald-400", "scale-105");
-            const shape = e.dataTransfer.getData("text/plain") || draggedShape;
-            if (shape) {
-                if (!slotStates[parentIdx]) slotStates[parentIdx] = { shape: "diamond" };
-                if (!slotStates[parentIdx].branches) slotStates[parentIdx].branches = [{}, {}];
-                slotStates[parentIdx].branches[branchIdx].shape = shape;
-                renderCanvasSlots();
-            }
-        };
-
-        window.selectShape = function(shape) {
-            selectedShape = shape;
-            document.querySelectorAll(".shape-btn").forEach(btn => {
-                btn.classList.remove("ring-2", "ring-emerald-400", "border-emerald-400");
-            });
-            const activeBtn = document.getElementById(`shape-btn-${shape}`);
-            if (activeBtn) {
-                activeBtn.classList.add("ring-2", "ring-emerald-400", "border-emerald-400");
-            }
-            showToast(`已選擇【${getShapeName(shape)}】積木，請點擊畫布上的步驟放置`, "info");
-        };
-
-        function getShapeName(shape) {
-            if (shape === "oval") return "橢圓形 (開始/結束)";
-            if (shape === "rect") return "長方形 (處理)";
-            if (shape === "parallelogram") return "平行四邊形 (輸入/輸出)";
-            if (shape === "diamond") return "菱形 (判斷)";
-            return "";
-        }
-
+        window.selectShape = function(shape) { selectedShape = shape; };
         window.applyShapeToSlot = function(idx) {
-            if (!selectedShape) {
-                showToast("請先從左側選擇要使用的流程圖積木", "warning");
-                return;
-            }
+            if (!selectedShape) return;
             if (!slotStates[idx]) slotStates[idx] = {};
             slotStates[idx].shape = selectedShape;
             renderCanvasSlots();
         };
-
-        window.applyBranchShape = function(parentIdx, branchIdx) {
-            if (!selectedShape) {
-                showToast("請先從左側選擇要使用的流程圖積木", "warning");
-                return;
-            }
-            if (!slotStates[parentIdx]) slotStates[parentIdx] = { shape: "diamond" };
-            if (!slotStates[parentIdx].branches) slotStates[parentIdx].branches = [{}, {}];
-
-            slotStates[parentIdx].branches[branchIdx].shape = selectedShape;
-            renderCanvasSlots();
-        };
-
         window.updateSlotText = function(idx, text) {
             if (!slotStates[idx]) slotStates[idx] = {};
             slotStates[idx].text = text;
         };
-
-        window.updateBranchText = function(parentIdx, branchIdx, text) {
-            if (!slotStates[parentIdx]?.branches) return;
-            slotStates[parentIdx].branches[branchIdx].text = text;
-        };
-
-        window.clearSlot = function(idx) {
-            slotStates[idx] = null;
-            renderCanvasSlots();
-        };
-
-        window.clearBranchSlot = function(parentIdx, branchIdx) {
-            if (slotStates[parentIdx]?.branches) {
-                slotStates[parentIdx].branches[branchIdx] = {};
-                renderCanvasSlots();
-            }
-        };
-
         window.resetCanvas = function() {
-            if (currentQ) {
-                slotStates = currentQ.solution.map(() => null);
-            } else {
-                slotStates = [];
-            }
+            slotStates = currentQ ? currentQ.solution.map(() => null) : [];
             renderCanvasSlots();
-            document.getElementById("feedback-box")?.classList.add("hidden");
-            document.getElementById("score-display-box")?.classList.add("hidden");
-            showToast("已清空流程圖畫布", "info");
         };
 
         window.checkAnswer = function() {
+            const studentName = document.getElementById("student-name-input").value.trim() || "未命名學生";
             let totalPoints = 0;
-            const maxScore = currentQ ? (currentQ.maxScore || 80) : 80;
+            const maxScore = currentQ.maxScore || 80;
             const stepValue = maxScore / currentQ.solution.length;
-            const feedbackList = document.getElementById("feedback-list");
-            feedbackList.innerHTML = "";
-
-            let passedCount = 0;
 
             currentQ.solution.forEach((sol, idx) => {
                 const userSlot = slotStates[idx];
-                const li = document.createElement("li");
-                li.className = "p-2.5 rounded-xl border flex items-center justify-between";
-
-                if (!userSlot) {
-                    li.className += " bg-rose-950/30 border-rose-800/50 text-rose-300";
-                    li.innerHTML = `
-                        <span>❌ 步驟 ${idx + 1}：尚未放置任何積木。</span>
-                        <span class="font-bold text-rose-400">0 分</span>
-                    `;
-                } else {
-                    const shapeMatch = userSlot.shape === sol.shape;
-
-                    if (sol.noInput) {
-                        if (shapeMatch) {
-                            totalPoints += stepValue;
-                            passedCount++;
-                            li.className += " bg-emerald-950/30 border-emerald-800/50 text-emerald-300";
-                            li.innerHTML = `
-                                <span>✅ 步驟 ${idx + 1}：正確！(標準終端符號 - 橢圓)</span>
-                                <span class="font-bold text-emerald-400">+${Math.round(stepValue)} 分</span>
-                            `;
-                        } else {
-                            li.className += " bg-rose-950/30 border-rose-800/50 text-rose-300";
-                            li.innerHTML = `
-                                <span>❌ 步驟 ${idx + 1}：符號錯誤！本步驟應使用【橢圓】符號。</span>
-                                <span class="font-bold text-rose-400">0 分</span>
-                            `;
-                        }
-                    } else {
-                        const normalizeText = (text) => (text || "")
-                            .toLowerCase()
-                            .replace(/\s+/g, "")
-                            .replace(/＝/g, "=")
-                            .replace(/＋/g, "+")
-                            .replace(/－/g, "-")
-                            .replace(/−/g, "-")
-                            .replace(/×/g, "*");
-                        const userText = normalizeText(userSlot.text);
-                        const keywordMatch = sol.keywords.some(kw => userText.includes(normalizeText(kw)));
-
-                        if (shapeMatch && keywordMatch) {
-                            totalPoints += stepValue;
-                            passedCount++;
-                            li.className += " bg-emerald-950/30 border-emerald-800/50 text-emerald-300";
-                            li.innerHTML = `
-                                <span>✅ 步驟 ${idx + 1}：完全正確！(圖形與表達式皆符合)</span>
-                                <span class="font-bold text-emerald-400">+${Math.round(stepValue)} 分</span>
-                            `;
-                        } else if (shapeMatch && !keywordMatch) {
-                            const pts = stepValue * 0.5;
-                            totalPoints += pts;
-                            li.className += " bg-amber-950/30 border-amber-800/50 text-amber-300";
-                            li.innerHTML = `
-                                <span>⚠️ 步驟 ${idx + 1}：圖形正確，但說明文字缺少關鍵字。</span>
-                                <span class="font-bold text-amber-400">+${Math.round(pts)} 分</span>
-                            `;
-                        } else if (!shapeMatch && keywordMatch) {
-                            const pts = stepValue * 0.3;
-                            totalPoints += pts;
-                            li.className += " bg-amber-950/30 border-amber-800/50 text-amber-300";
-                            li.innerHTML = `
-                                <span>⚠️️ 步驟 ${idx + 1}：表達式正確，但流程圖積木形狀不符規範。</span>
-                                <span class="font-bold text-amber-400">+${Math.round(pts)} 分</span>
-                            `;
-                        } else {
-                            li.className += " bg-rose-950/30 border-rose-800/50 text-rose-300";
-                            li.innerHTML = `
-                                <span>❌ 步驟 ${idx + 1}：積木圖形與表達式皆不符。</span>
-                                <span class="font-bold text-rose-400">0 分</span>
-                            `;
-                        }
-                    }
+                if (userSlot && userSlot.shape === sol.shape) {
+                    totalPoints += stepValue;
                 }
-                feedbackList.appendChild(li);
             });
 
-            const finalScore = Math.min(maxScore, Math.round(totalPoints));
-
-            // Render UI
+            const finalScore = Math.round(totalPoints);
             document.getElementById("score-badge-num").innerText = finalScore;
             document.getElementById("final-score-text").innerText = `${finalScore} / ${maxScore} 分`;
             document.getElementById("score-display-box").classList.remove("hidden");
-            document.getElementById("feedback-box").classList.remove("hidden");
-            document.getElementById("diagnostic-summary").innerText = `通過率：${passedCount} / ${currentQ.solution.length} 步驟`;
 
-            const studentName = "學生";
-
-            // Background Score Upload to Teacher Dashboard
+            // 上傳成績至雲端
             if (typeof window.uploadStudentScore === 'function') {
                 window.uploadStudentScore({
                     studentName: studentName,
                     questionTitle: currentQ.title,
                     score: finalScore,
-                    maxScore: maxScore,
-                    passedCount: passedCount,
-                    totalSteps: currentQ.solution.length
+                    maxScore: maxScore
                 });
             }
 
-            if (finalScore >= Math.round(maxScore * 0.8)) {
-                if (typeof confetti === 'function') {
-                    confetti({
-                        particleCount: 120,
-                        spread: 80,
-                        origin: { y: 0.6 }
-                    });
-                }
-                showToast(`🎉 太棒了！獲得 ${finalScore} 分（滿分 ${maxScore} 分）！`, "success");
-            } else {
-                showToast(`評分完成：獲得 ${finalScore} / ${maxScore} 分，請參照診斷報告進行調整。`, "warning");
-            }
+            showToast(`成績已提交！得分：${finalScore} 分`, "success");
         };
 
-        window.openTeacherScoreModal = function() {
-            document.getElementById("teacher-score-modal")?.classList.remove("hidden");
-        };
-
-        window.closeTeacherScoreModal = function() {
-            document.getElementById("teacher-score-modal")?.classList.add("hidden");
-        };
-
-        window.openScoreZoomModal = function() {
-            const scoreText = document.getElementById("final-score-text")?.innerText || "0 分";
-            const maxScore = currentQ ? currentQ.maxScore : 80;
-
-            document.getElementById("zoom-student-name").innerText = `本次測驗結果`;
-            document.getElementById("zoom-q-title").innerText = currentQ ? currentQ.title : "";
-            document.getElementById("zoom-score-num").innerText = document.getElementById("score-badge-num")?.innerText || "0";
-            document.getElementById("zoom-max-score-text").innerText = `得分：${scoreText}（題目滿分 ${maxScore} 分）`;
-            
-            document.getElementById("score-zoom-modal")?.classList.remove("hidden");
-        };
-
-        window.closeScoreZoomModal = function() {
-            document.getElementById("score-zoom-modal")?.classList.add("hidden");
-        };
-
-        window.renderTeacherScoreboard = function(list) {
-            const tbody = document.getElementById("teacher-score-tbody");
-            const totalCountEl = document.getElementById("stat-total-count");
-            const avgScoreEl = document.getElementById("stat-avg-score");
-            const passRateEl = document.getElementById("stat-pass-rate");
-
-            if (!tbody) return;
-
-            if (!list || list.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-500">尚無學生提交成績...</td></tr>`;
-                if (totalCountEl) totalCountEl.innerText = "0";
-                if (avgScoreEl) avgScoreEl.innerText = "0";
-                if (passRateEl) passRateEl.innerText = "0%";
-                return;
-            }
-
-            let sumScore = 0;
-            let passCount = 0;
-
-            tbody.innerHTML = list.map(item => {
-                const score = item.score || 0;
-                const maxScore = item.maxScore || 80;
-                const ratio = score / maxScore;
-                
-                sumScore += score;
-                if (ratio >= 0.8) passCount++;
-
-                const dateStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '剛剛';
-
-                let scoreColor = "text-emerald-400";
-                if (ratio < 0.6) scoreColor = "text-rose-400";
-                else if (ratio < 0.8) scoreColor = "text-amber-400";
-
-                return `
-                    <tr class="hover:bg-slate-800/50 transition">
-                        <td class="py-3 px-4 font-bold text-white flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full ${ratio >= 0.8 ? 'bg-emerald-400' : 'bg-amber-400'}"></span>
-                            ${item.studentName || '未填寫'}
-                        </td>
-                        <td class="py-3 px-4 text-slate-300">${item.questionTitle || '-'}</td>
-                        <td class="py-3 px-4 font-black ${scoreColor}">${score} / ${maxScore} 分</td>
-                        <td class="py-3 px-4 text-slate-400">${item.passedCount || 0} / ${item.totalSteps || 0} 步驟</td>
-                        <td class="py-3 px-4 text-slate-500 font-mono text-[11px]">${dateStr}</td>
-                    </tr>
-                `;
-            }).join('');
-
-            if (totalCountEl) totalCountEl.innerText = list.length;
-            if (avgScoreEl) avgScoreEl.innerText = Math.round(sumScore / list.length);
-            if (passRateEl) passRateEl.innerText = `${Math.round((passCount / list.length) * 100)}%`;
-        };
-
-        function showToast(message, type = "info") {
+        function showToast(msg, type="info") {
             const container = document.getElementById("toast-container");
-            if (!container) return;
-            
             const toast = document.createElement("div");
-
-            let bgClass = "bg-slate-800 border-slate-700 text-slate-200";
-            let icon = '<i class="fa-solid fa-circle-info text-blue-400"></i>';
-
-            if (type === "success") {
-                bgClass = "bg-emerald-950 border-emerald-700 text-emerald-200";
-                icon = '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
-            } else if (type === "warning") {
-                bgClass = "bg-amber-950 border-amber-700 text-amber-200";
-                icon = '<i class="fa-solid fa-triangle-exclamation text-amber-400"></i>';
-            }
-
-            toast.className = `${bgClass} border text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 transform transition-all duration-300 translate-y-2 opacity-0 pointer-events-auto`;
-            toast.innerHTML = `${icon}<span>${message}</span>`;
-
+            toast.className = "bg-emerald-950 border border-emerald-700 text-emerald-200 text-xs px-4 py-3 rounded-xl shadow-xl pointer-events-auto";
+            toast.innerText = msg;
             container.appendChild(toast);
-
-            setTimeout(() => {
-                toast.classList.remove("translate-y-2", "opacity-0");
-            }, 10);
-
-            setTimeout(() => {
-                toast.classList.add("opacity-0", "translate-y-2");
-                setTimeout(() => toast.remove(), 300);
-            }, 3500);
+            setTimeout(() => toast.remove(), 3000);
         }
     </script>
 </body>
