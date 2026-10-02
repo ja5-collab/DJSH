@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scratch 繪圖作業繳交系統</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- JSZip for extracting .sb3 (zip) files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Microsoft JhengHei', 'sans-serif'],
+                    },
+                    colors: {
+                        scratch: {
+                            orange: '#FFAB19',
+                            blue: '#4C97FF',
+                            purple: '#9966FF',
+                            green: '#59C059',
+                            yellow: '#FFBF00',
+                            dark: '#1e293b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+            border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen pb-12 flex flex-col">
+
+    <header class="bg-gradient-to-r from-amber-500 via-scratch-orange to-orange-500 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3.5 sm:px-6 lg:px-8 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white p-2.5 rounded-xl text-scratch-orange text-2xl font-black shadow-md">
+                    <span class="" aria-hidden="true">✎</span>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold tracking-wide">Scratch 繪圖作業繳交系統</h1>
+                    <p class="text-xs text-orange-100 font-medium">中學資訊科技課 - 專題課堂作業</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <input type="text" id="student-name-input" placeholder="請輸入座號與姓名" maxlength="30" class="bg-white/25 placeholder-orange-100 text-white text-sm font-semibold px-3 py-2 rounded-xl border border-white/30 focus:outline-none focus:bg-white/35 w-40 sm:w-52">
+                <div class="hidden lg:flex items-center space-x-2 bg-orange-600/50 px-3 py-1.5 rounded-xl border border-white/20 text-xs text-white font-semibold">
+                <span class="" aria-hidden="true">▤</span>
+                <span>系統已啟用「獨立繳交 (Per-Task Submission)」與順序檢測</span>
+            </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 flex-grow w-full">
+
+        <!-- Task Selector Tabs -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+            
+            <!-- Task 1 Card -->
+            <button onclick="switchTask(1)" id="tab-btn-1" class="task-tab text-left p-3.5 rounded-2xl bg-white border-2 border-scratch-blue shadow-sm hover:shadow-md transition relative overflow-hidden group focus:outline-none">
+                <div class="flex items-center space-x-2 mb-1">
+                    <span class="w-5 h-5 rounded-full bg-blue-100 text-scratch-blue font-black flex items-center justify-center text-xs">1</span>
+                    <h3 id="tab-title-1" class="font-bold text-xs text-slate-800 truncate">直線與回到原點</h3>
+                </div>
+                <p id="tab-desc-1" class="text-[11px] text-slate-500 mb-2 line-clamp-2">長度 100，完成後回到指定位置</p>
+                <div class="flex justify-between items-center text-[10px] pt-1.5 border-t border-slate-100">
+                    <span class="text-slate-400">狀態：<strong id="task-status-1" class="text-slate-500">未繳交</strong></span>
+                </div>
+            </button>
+
+            <!-- Task 2 Card -->
+            <button onclick="switchTask(2)" id="tab-btn-2" class="task-tab text-left p-3.5 rounded-2xl bg-white border-2 border-transparent shadow-sm hover:shadow-md transition relative overflow-hidden group focus:outline-none">
+                <div class="flex items-center space-x-2 mb-1">
+                    <span class="w-5 h-5 rounded-full bg-purple-100 text-scratch-purple font-black flex items-center justify-center text-xs">2</span>
+                    <h3 id="tab-title-2" class="font-bold text-xs text-slate-800 truncate">畫正方形</h3>
+                </div>
+                <p id="tab-desc-2" class="text-[11px] text-slate-500 mb-2 line-clamp-2">邊長 80 的正方形</p>
+                <div class="flex justify-between items-center text-[10px] pt-1.5 border-t border-slate-100">
+                    <span class="text-slate-400">狀態：<strong id="task-status-2" class="text-slate-500">未繳交</strong></span>
+                </div>
+            </button>
+
+            <!-- Task 3 Card -->
+            <button onclick="switchTask(3)" id="tab-btn-3" class="task-tab text-left p-3.5 rounded-2xl bg-white border-2 border-transparent shadow-sm hover:shadow-md transition relative overflow-hidden group focus:outline-none">
+                <div class="flex items-center space-x-2 mb-1">
+                    <span class="w-5 h-5 rounded-full bg-green-100 text-scratch-green font-black flex items-center justify-center text-xs">3</span>
+                    <h3 id="tab-title-3" class="font-bold text-xs text-slate-800 truncate">畫正五邊形</h3>
+                </div>
+                <p id="tab-desc-3" class="text-[11px] text-slate-500 mb-2 line-clamp-2">邊長 70 的正五邊形</p>
+                <div class="flex justify-between items-center text-[10px] pt-1.5 border-t border-slate-100">
+                    <span class="text-slate-400">狀態：<strong id="task-status-3" class="text-slate-500">未繳交</strong></span>
+                </div>
+            </button>
+
+            <!-- Task 4 Card -->
+            <button onclick="switchTask(4)" id="tab-btn-4" class="task-tab text-left p-3.5 rounded-2xl bg-white border-2 border-transparent shadow-sm hover:shadow-md transition relative overflow-hidden group focus:outline-none">
+                <div class="flex items-center space-x-2 mb-1">
+                    <span class="w-5 h-5 rounded-full bg-amber-100 text-amber-600 font-black flex items-center justify-center text-xs">4</span>
+                    <h3 id="tab-title-4" class="font-bold text-xs text-slate-800 truncate">迴圈畫正八邊形</h3>
+                </div>
+                <p id="tab-desc-4" class="text-[11px] text-slate-500 mb-2 line-clamp-2">使用迴圈，邊長 60</p>
+                <div class="flex justify-between items-center text-[10px] pt-1.5 border-t border-slate-100">
+                    <span class="text-slate-400">狀態：<strong id="task-status-4" class="text-slate-500">未繳交</strong></span>
+                </div>
+            </button>
+
+            <!-- Task 5 Card -->
+            <button onclick="switchTask(5)" id="tab-btn-5" class="task-tab text-left p-3.5 rounded-2xl bg-white border-2 border-transparent shadow-sm hover:shadow-md transition relative overflow-hidden group focus:outline-none">
+                <div class="flex items-center space-x-2 mb-1">
+                    <span class="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 font-black flex items-center justify-center text-xs">5</span>
+                    <h3 id="tab-title-5" class="font-bold text-xs text-slate-800 truncate">輸入邊數畫正N邊形</h3>
+                </div>
+                <p id="tab-desc-5" class="text-[11px] text-slate-500 mb-2 line-clamp-2">自動計算轉角 (360/N)</p>
+                <div class="flex justify-between items-center text-[10px] pt-1.5 border-t border-slate-100">
+                    <span class="text-slate-400">狀態：<strong id="task-status-5" class="text-slate-500">未繳交</strong></span>
+                </div>
+            </button>
+
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Left Column: Task details, Upload & Inspection (7 cols) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- Requirement Box & Individual Task Submission -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <h2 id="current-task-title" class="text-lg font-bold text-slate-800 flex items-center">
+                            <span class="text-scratch-blue mr-2" aria-hidden="true">✔</span> 任務加載中...
+                        </h2>
+                        <span id="current-task-submission-badge" class="text-xs px-2.5 py-1 rounded-full font-bold bg-slate-100 text-slate-500">
+                            未繳交
+                        </span>
+                    </div>
+
+                    <div id="current-task-desc" class="text-sm text-slate-600 space-y-2 mb-5 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <!-- Dynamic requirement text -->
+                    </div>
+
+                    <!-- Upload Zone -->
+                    <div id="drop-zone" class="border-2 border-dashed border-slate-300 hover:border-scratch-blue transition rounded-2xl p-6 text-center bg-slate-50/80 hover:bg-blue-50/40 cursor-pointer relative group">
+                        <input type="file" id="file-input" accept=".sb3" class="hidden" onchange="handleFileSelect(event)">
+                        <div class="space-y-3">
+                            <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mx-auto text-scratch-blue shadow-sm group-hover:scale-110 transition border border-slate-100">
+                                <span class="text-2xl" aria-hidden="true">⬆</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-slate-800" id="upload-zone-label">點擊上傳或拖曳任務 <span id="upload-task-num-text">1</span> 的 Scratch 專案檔 (<span class="text-scratch-blue">.sb3</span>)</p>
+                                <p class="text-xs text-slate-400 mt-1" id="uploaded-filename-text">尚未選擇檔案</p>
+                            </div>
+                            <div class="pt-1 flex justify-center gap-2">
+                                <button type="button" id="select-file-btn" onclick="document.getElementById('file-input').click()" class="bg-scratch-blue hover:bg-blue-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow active:scale-95">
+                                    <span class="mr-1.5" aria-hidden="true">📂</span> 選擇本題 .sb3 檔案
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Per-Task Submission Control Box -->
+                    <div class="mt-4 p-4 rounded-xl bg-slate-900 text-white flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+                        <div class="flex items-center space-x-3">
+                            <div class="p-2.5 bg-slate-800 rounded-xl text-amber-400 text-lg">
+                                <span class="" aria-hidden="true">⇪</span>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-200">本題單獨繳交控制</h4>
+                                <p id="per-task-sub-hint" class="text-[11px] text-slate-400 mt-0.5">每題皆可獨立上傳並單獨鎖定繳交。</p>
+                            </div>
+                        </div>
+                        <button id="task-single-submit-btn" onclick="openTaskSubmissionModal()" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-900 font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow active:scale-95 flex items-center justify-center space-x-1.5 shrink-0">
+                            <span class="" aria-hidden="true">✔</span>
+                            <span id="task-submit-btn-text">確認單獨繳交本題</span>
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- Checklist Criteria List -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-800 mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
+                        <span class="flex items-center"><span class="text-emerald-500 mr-2" aria-hidden="true">✔</span> 順序與邏輯檢測結果</span>
+                    </h3>
+
+                    <div id="checklist-container" class="space-y-3">
+                        <!-- Dynamic items -->
+                    </div>
+                </div>
+
+                <!-- Parsed Scratch Code Blocks Inspector (Sequence Walk) -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-bold text-slate-800 flex items-center">
+                            <span class="text-scratch-purple mr-2" aria-hidden="true">↓</span> 程式碼執行順序解析 (Top-to-Bottom)
+                        </h3>
+                        <span class="text-[11px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded">依積木連接順序</span>
+                    </div>
+                    <div id="parsed-blocks-container" class="bg-slate-900 text-slate-200 p-4 rounded-xl text-xs font-mono max-h-56 overflow-y-auto custom-scrollbar border border-slate-800">
+                        <p class="text-slate-500 italic">尚未上傳 .sb3 檔案...</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Canvas Simulator & Feedback (5 cols) -->
+            <div class="lg:col-span-5 space-y-6">
+
+                <!-- Stage Canvas Simulation -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 sticky top-20">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-slate-800 flex items-center">
+                            <span class="text-scratch-orange mr-2" aria-hidden="true">▣</span> Scratch 舞台畫筆順序模擬器
+                        </h3>
+                        <button onclick="reRunSimulation()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg transition flex items-center">
+                            <span class="mr-1" aria-hidden="true">↻</span> 重新模擬
+                        </button>
+                    </div>
+
+                    <!-- Canvas Container -->
+                    <div class="relative aspect-[4/3] bg-slate-950 rounded-2xl overflow-hidden shadow-inner flex items-center justify-center border border-slate-800">
+                        <canvas id="stage-canvas" width="480" height="360" class="w-full h-full object-contain bg-slate-950"></canvas>
+                        <div id="canvas-overlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-xs flex flex-col items-center justify-center text-white text-center p-6">
+                            <span class="text-4xl text-scratch-orange mb-3 animate-bounce" aria-hidden="true">✎</span>
+                            <p class="text-sm font-bold">等待繳交作業 .sb3 檔案...</p>
+                            <p class="text-xs text-slate-400 mt-1.5 max-w-xs">上傳後，將依照積木的實際執行順序繪製軌跡</p>
+                        </div>
+                    </div>
+
+                    <!-- Evaluation Feedback Callout -->
+                    <div id="feedback-card" class="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 transition">
+                        <div class="flex items-start space-x-3">
+                            <div id="feedback-icon" class="text-slate-400 text-xl mt-0.5">
+                                <span class="" aria-hidden="true">ℹ</span>
+                            </div>
+                            <div>
+                                <h4 id="feedback-title" class="text-sm font-bold text-slate-700">準備就緒</h4>
+                                <p id="feedback-text" class="text-xs text-slate-500 mt-1">請上傳此任務對應的 `.sb3` 專案檔案進行檢測。</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Demo Load Buttons for Teacher Demo/Test -->
+                    <div class="mt-5 pt-4 border-t border-slate-100">
+                        <p class="text-xs text-slate-400 mb-2.5 font-bold flex items-center">
+                            <span class="text-slate-400 mr-1.5" aria-hidden="true">✔</span> 快速測試範例（測試順序與錯誤）：
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="loadDemoData('correct')" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg transition font-bold flex items-center">
+                                <span class="text-emerald-500 mr-1.5" aria-hidden="true">✔</span> 順序正確範例
+                            </button>
+                            <button onclick="loadDemoData('wrong_sequence')" class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-lg transition font-bold flex items-center">
+                                <span class="text-amber-500 mr-1.5" aria-hidden="true">⇄</span> 順序錯誤範例 (未先下筆)
+                            </button>
+                            <button onclick="loadDemoData('erase_at_end')" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-lg transition font-bold flex items-center">
+                                <span class="text-rose-500 mr-1.5" aria-hidden="true">✕</span> 清除放最後 (擦掉圖形)
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Modal Dialog for Individual Task Submission Confirmation -->
+    <div id="single-task-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto text-xl">
+                <span class="" aria-hidden="true">✔</span>
+            </div>
+            <div class="text-center">
+                <h3 id="modal-task-heading" class="text-lg font-bold text-slate-800">確定要單獨繳交任務 1 嗎？</h3>
+                <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+                    單獨繳交後，本題專案檔將會<strong class="text-amber-600">鎖定並完成登記</strong>。<br>
+                    您仍可繼續切換完成其他未繳交的任務。
+                </p>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-xl text-xs text-slate-600 space-y-1 border border-slate-200">
+                <div class="flex justify-between">
+                    <span>當前檔案：</span>
+                    <strong id="modal-task-filename" class="text-slate-800 truncate max-w-[200px]">my_scratch.sb3</strong>
+                </div>
+                <div class="flex justify-between">
+                    <span>順序檢測狀態：</span>
+                    <strong id="modal-task-check-status" class="text-emerald-600">完全符合</strong>
+                </div>
+            </div>
+            <div class="flex space-x-3 pt-2">
+                <button onclick="closeTaskModal()" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition">
+                    取消，暫不繳交
+                </button>
+                <button onclick="executeSingleTaskLock()" class="w-1/2 bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold py-2.5 rounded-xl text-xs shadow transition active:scale-95 flex items-center justify-center">
+                    <span class="mr-1.5" aria-hidden="true">🔒</span> 確認鎖定繳交本題
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTaskId = 1;
+
+        // Task Configuration
+        const taskConfigs = {
+            1: {
+                id: 1,
+                title: "任務 1：畫一條長度 100 的直線，完成後回到指定位置",
+                desc: `
+                    <p class="font-bold text-slate-700 mb-1">題目與順序要求：</p>
+                    <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+                        <li><b>初始化</b>：開頭應先包含「全部清除 (eraseAll)」。</li>
+                        <li><b>畫線順序</b>：必須先執行 <span class="text-scratch-blue font-bold">「下筆 (penDown)」</span>，後才執行 <span class="text-scratch-blue font-bold">「移動 100 步」</span>。</li>
+                        <li><b>返回順序</b>：畫完線後，必須先 <span class="text-scratch-blue font-bold">「停筆 (penUp)」</span>，後才執行 <span class="text-scratch-blue font-bold">「定位 (go to x: y:)」</span> 返回指定位置（避免移動過程多畫出一條返回線）。</li>
+                        <li><b>特別注意</b>：「全部清除」若放在程式最末端，會將剛畫好的圖形擦掉！</li>
+                    </ul>
+                `,
+                criteria: [
+                    { 
+                        id: 'c1', 
+                        name: '包含下筆與全部清除初始化積木', 
+                        check: (p) => p.hasPenDown && p.hasEraseAll 
+                    },
+                    { 
+                        id: 'c2', 
+                        name: '順序正確：先「下筆 (penDown)」才「移動 (move 100)」', 
+                        check: (p) => p.isPenDownBeforeMove 
+                    },
+                    { 
+                        id: 'c3', 
+                        name: '順序正確：移動後先「停筆 (penUp)」才「定位回到指定位置」', 
+                        check: (p) => p.isPenUpBeforeGoto 
+                    },
+                    { 
+                        id: 'c4', 
+                        name: '初始化順序：「全部清除」未放在程式最後（避免擦掉畫好的圖形）', 
+                        check: (p) => !p.isEraseAllAtEnd 
+                    }
+                ],
+                drawType: 'line_return'
+            },
+            2: {
+                id: 2,
+                title: "任務 2：畫一個邊長 80 的正方形",
+                desc: `
+                    <p class="font-bold text-slate-700 mb-1">題目與順序要求：</p>
+                    <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+                        <li><b>順序要求</b>：進入「重複執行 4 次」迴圈<b>之前</b>必須先執行 <span class="text-scratch-purple font-bold">「下筆」</span>。</li>
+                        <li><b>迴圈內部</b>：每次先「移動 80 步」再「旋轉 90 度」（或旋轉後移動）。</li>
+                        <li><b>初始化</b>：開頭包含「全部清除」，且不能放在程式最末端。</li>
+                    </ul>
+                `,
+                criteria: [
+                    { id: 'c1', name: '包含下筆與全部清除積木', check: (p) => p.hasPenDown && p.hasEraseAll },
+                    { id: 'c2', name: '順序正確：「下筆」位於「重複執行迴圈」之前', check: (p) => p.isPenDownBeforeLoop },
+                    { id: 'c3', name: '迴圈設定：重複執行 4 次，包含移動 80 步與旋轉 90 度', check: (p) => p.repeatCount === 4 && p.moveValues.includes(80) && p.turnValues.includes(90) },
+                    { id: 'c4', name: '順序正確：全部清除放在繪圖前（非最末端）', check: (p) => !p.isEraseAllAtEnd }
+                ],
+                drawType: 'polygon',
+                poly: { sides: 4, sideLength: 80, turnAngle: 90 }
+            },
+            3: {
+                id: 3,
+                title: "任務 3：畫一個邊長 70 的正五邊形",
+                desc: `
+                    <p class="font-bold text-slate-700 mb-1">題目與順序要求：</p>
+                    <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+                        <li><b>順序要求</b>：在重複執行迴圈<b>前</b>完成 <span class="text-scratch-green font-bold">「下筆」</span>。</li>
+                        <li><b>迴圈內部</b>：重複執行 5 次，包含「移動 70 步」與「旋轉 72 度」。</li>
+                        <li><b>初始化</b>：開頭包含「全部清除」。</li>
+                    </ul>
+                `,
+                criteria: [
+                    { id: 'c1', name: '包含下筆與全部清除積木', check: (p) => p.hasPenDown && p.hasEraseAll },
+                    { id: 'c2', name: '順序正確：「下筆」位於「重複執行迴圈」之前', check: (p) => p.isPenDownBeforeLoop },
+                    { id: 'c3', name: '迴圈設定：重複執行 5 次，包含移動 70 步與旋轉 72 度', check: (p) => p.repeatCount === 5 && p.moveValues.includes(70) && p.turnValues.includes(72) },
+                    { id: 'c4', name: '順序正確：全部清除放在繪圖前（非最末端）', check: (p) => !p.isEraseAllAtEnd }
+                ],
+                drawType: 'polygon',
+                poly: { sides: 5, sideLength: 70, turnAngle: 72 }
+            },
+            4: {
+                id: 4,
+                title: "任務 4：使用迴圈畫一個邊長 60 的正八邊形",
+                desc: `
+                    <p class="font-bold text-slate-700 mb-1">題目與順序要求：</p>
+                    <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+                        <li><b>順序要求</b>：先 <span class="text-amber-600 font-bold">「下筆」</span> 再進入迴圈。</li>
+                        <li><b>迴圈內部</b>：重複執行 8 次，包含「移動 60 步」與「旋轉 45 度」。</li>
+                        <li><b>初始化</b>：開頭包含「全部清除」。</li>
+                    </ul>
+                `,
+                criteria: [
+                    { id: 'c1', name: '包含下筆與全部清除積木', check: (p) => p.hasPenDown && p.hasEraseAll },
+                    { id: 'c2', name: '順序正確：「下筆」位於「重複執行迴圈」之前', check: (p) => p.isPenDownBeforeLoop },
+                    { id: 'c3', name: '迴圈設定：重複執行 8 次，包含移動 60 步與旋轉 45 度', check: (p) => p.repeatCount === 8 && p.moveValues.includes(60) && p.turnValues.includes(45) },
+                    { id: 'c4', name: '順序正確：全部清除放在繪圖前（非最末端）', check: (p) => !p.isEraseAllAtEnd }
+                ],
+                drawType: 'polygon',
+                poly: { sides: 8, sideLength: 60, turnAngle: 45 }
+            },
+            5: {
+                id: 5,
+                title: "任務 5：使用者輸入邊數，程式自動計算轉角並畫出正N邊形",
+                desc: `
+                    <p class="font-bold text-slate-700 mb-1">題目與順序要求：</p>
+                    <ul class="list-disc list-inside space-y-1 text-xs text-slate-600">
+                        <li><b>順序要求 1</b>：必須先執行 <span class="text-indigo-600 font-bold">「詢問邊數...並等待」</span> 取得答案，<b>之後</b>才進入迴圈。</li>
+                        <li><b>順序要求 2</b>：繪圖迴圈執行前需已「下筆」。</li>
+                        <li><b>運算式</b>：旋轉角度包含除法算式 <span class="text-indigo-600 font-bold">( 360 / 邊數 )</span>。</li>
+                    </ul>
+                `,
+                criteria: [
+                    { id: 'c1', name: '順序正確：先「詢問邊數...並等待」後進入繪圖迴圈', check: (p) => p.isAskBeforeLoop && p.askCount >= 1 },
+                    { id: 'c2', name: '順序正確：「下筆」在繪圖迴圈之前', check: (p) => p.isPenDownBeforeLoop || p.hasPenDown },
+                    { id: 'c3', name: '包含除法運算算式 (360 / 邊數)', check: (p) => p.hasDivideOp || p.turnUsesAnswer },
+                    { id: 'c4', name: '包含下筆與全部清除初始化（且全部清除不在最後）', check: (p) => p.hasPenDown && p.hasEraseAll && !p.isEraseAllAtEnd }
+                ],
+                drawType: 'polygon',
+                poly: { sides: 6, sideLength: 55, turnAngle: 60 }
+            }
+        };
+
+        // Per-task submission state store
+        let taskResults = { 
+            1: { parsed: null, fileName: '', submitted: false }, 
+            2: { parsed: null, fileName: '', submitted: false }, 
+            3: { parsed: null, fileName: '', submitted: false }, 
+            4: { parsed: null, fileName: '', submitted: false }, 
+            5: { parsed: null, fileName: '', submitted: false } 
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initDropZone();
+            switchTask(1);
+            updateOverallCompletion();
+        });
+
+        function switchTask(taskId) {
+            currentTaskId = taskId;
+            const task = taskConfigs[taskId];
+
+            [1, 2, 3, 4, 5].forEach(id => {
+                const btn = document.getElementById(`tab-btn-${id}`);
+                if (id === taskId) {
+                    btn.classList.add('border-scratch-blue', 'ring-2', 'ring-scratch-blue/20', 'bg-blue-50/20');
+                    btn.classList.remove('border-transparent');
+                } else {
+                    btn.classList.remove('border-scratch-blue', 'ring-2', 'ring-scratch-blue/20', 'bg-blue-50/20');
+                    btn.classList.add('border-transparent');
+                }
+            });
+
+            document.getElementById('current-task-title').innerHTML = `<span class="text-scratch-blue mr-2" aria-hidden="true">✔</span> ${task.title}`;
+            document.getElementById('current-task-desc').innerHTML = task.desc;
+            document.getElementById('upload-task-num-text').innerText = taskId;
+
+            updateTaskUIState();
+            renderChecklist();
+            renderParsedBlocks();
+            reRunSimulation();
+        }
+
+        function updateTaskUIState() {
+            const taskRes = taskResults[currentTaskId];
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+            const selectBtn = document.getElementById('select-file-btn');
+            const fileNameText = document.getElementById('uploaded-filename-text');
+            const submitBtn = document.getElementById('task-single-submit-btn');
+            const submitBtnText = document.getElementById('task-submit-btn-text');
+            const badge = document.getElementById('current-task-submission-badge');
+            const hintText = document.getElementById('per-task-sub-hint');
+
+            if (taskRes.fileName) {
+                fileNameText.innerText = `已載入：${taskRes.fileName}`;
+                fileNameText.className = "text-xs font-bold text-scratch-blue mt-1";
+            } else {
+                fileNameText.innerText = "尚未選擇檔案";
+                fileNameText.className = "text-xs text-slate-400 mt-1";
+            }
+
+            if (taskRes.submitted) {
+                // Task is locked and submitted
+                dropZone.classList.add('opacity-60', 'pointer-events-none');
+                fileInput.disabled = true;
+                selectBtn.disabled = true;
+                selectBtn.className = 'bg-slate-300 text-slate-500 text-xs font-bold px-4 py-2.5 rounded-xl cursor-not-allowed';
+                
+                submitBtn.disabled = true;
+                submitBtn.className = 'w-full sm:w-auto bg-emerald-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl cursor-not-allowed flex items-center justify-center space-x-1.5 shrink-0 opacity-90';
+                submitBtnText.innerText = '本題已單獨繳交 (已鎖定)';
+
+                badge.className = "text-xs px-2.5 py-1 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-300";
+                badge.innerHTML = `<span class="text-xs mr-1" aria-hidden="true">🔒</span> 已單獨繳交`;
+
+                hintText.innerText = "本題已完成鎖定繳交。若需修正，您仍可自由完成其他未繳交任務。";
+            } else {
+                // Unsubmitted task
+                dropZone.classList.remove('opacity-60', 'pointer-events-none');
+                fileInput.disabled = false;
+                selectBtn.disabled = false;
+                selectBtn.className = 'bg-scratch-blue hover:bg-blue-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow active:scale-95';
+
+                submitBtn.disabled = !taskRes.parsed;
+                if (!taskRes.parsed) {
+                    submitBtn.className = 'w-full sm:w-auto bg-slate-700 text-slate-400 font-bold text-xs px-4 py-2.5 rounded-xl cursor-not-allowed flex items-center justify-center space-x-1.5 shrink-0';
+                    submitBtnText.innerText = '請先上傳 .sb3 檔案';
+                } else {
+                    submitBtn.className = 'w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold text-xs px-4 py-2.5 rounded-xl transition shadow active:scale-95 flex items-center justify-center space-x-1.5 shrink-0';
+                    submitBtnText.innerText = '確認單獨繳交本題';
+                }
+
+                if (taskRes.parsed) {
+                    badge.className = "text-xs px-2.5 py-1 rounded-full font-bold bg-amber-100 text-amber-800 border border-amber-300";
+                    badge.innerHTML = `<span class="text-xs mr-1" aria-hidden="true">✎</span> 草稿測試中`;
+                } else {
+                    badge.className = "text-xs px-2.5 py-1 rounded-full font-bold bg-slate-100 text-slate-500";
+                    badge.innerText = "未繳交";
+                }
+
+                hintText.innerText = "每題皆可獨立上傳並單獨鎖定繳交。";
+            }
+        }
+
+        function renderChecklist() {
+            const container = document.getElementById('checklist-container');
+            const task = taskConfigs[currentTaskId];
+            const taskRes = taskResults[currentTaskId];
+            const parsed = taskRes ? taskRes.parsed : null;
+
+            if (!container) return;
+
+            container.innerHTML = task.criteria.map((criterion) => {
+                let statusIcon = '<span class="text-slate-300" aria-hidden="true">○</span>';
+                let statusBg = 'bg-slate-50 border-slate-200 text-slate-600';
+                let statusBadge = '<span class="text-[11px] text-slate-400 font-normal">待檢測</span>';
+
+                if (parsed) {
+                    const passed = criterion.check(parsed);
+                    if (passed) {
+                        statusIcon = '<span class="text-emerald-500" aria-hidden="true">✔</span>';
+                        statusBg = 'bg-emerald-50/60 border-emerald-200 text-emerald-900';
+                        statusBadge = '<span class="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">符合規範</span>';
+                    } else {
+                        statusIcon = '<span class="text-rose-500" aria-hidden="true">✕</span>';
+                        statusBg = 'bg-rose-50/60 border-rose-200 text-rose-900';
+                        statusBadge = '<span class="text-[11px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full">未符合</span>';
+                    }
+                }
+
+                return `
+                    <div class="p-3 rounded-xl border flex items-center justify-between transition ${statusBg}">
+                        <div class="flex items-center space-x-3">
+                            <div class="text-lg flex shrink-0 items-center justify-center">${statusIcon}</div>
+                            <span class="text-xs font-semibold">${criterion.name}</span>
+                        </div>
+                        <div>${statusBadge}</div>
+                    </div>
+                `;
+            }).join('');
+
+            updateFeedbackCard(parsed, task);
+        }
+
+        function updateFeedbackCard(parsed, task) {
+            const title = document.getElementById('feedback-title');
+            const text = document.getElementById('feedback-text');
+            const icon = document.getElementById('feedback-icon');
+
+            if (!title || !text || !icon) return;
+
+            if (!parsed) {
+                title.innerText = '準備就緒';
+                title.className = 'text-sm font-bold text-slate-700';
+                text.innerText = '請上傳此任務對應的 `.sb3` 專案檔案進行檢測。';
+                icon.className = 'text-slate-400 text-xl mt-0.5';
+                icon.innerHTML = '<span class="" aria-hidden="true">ℹ</span>';
+                return;
+            }
+
+            const allPassed = task.criteria.every(c => c.check(parsed));
+            if (allPassed) {
+                title.innerText = '恭喜！順序與邏輯完全符合要求';
+                title.className = 'text-sm font-bold text-emerald-700';
+                text.innerText = '此 Scratch 程式之積木擺放順序與語法邏輯皆通過檢測，隨時可以點擊單獨繳交。';
+                icon.className = 'text-emerald-500 text-xl mt-0.5';
+                icon.innerHTML = '<span class="" aria-hidden="true">✔</span>';
+            } else {
+                title.innerText = '部分條件未符合要求';
+                title.className = 'text-sm font-bold text-amber-700';
+                text.innerText = '請參考左側檢測項目與積木順序解析，調整 Scratch 中的積木排列順序。';
+                icon.className = 'text-amber-500 text-xl mt-0.5';
+                icon.innerHTML = '<span class="" aria-hidden="true">⚠</span>';
+            }
+        }
+
+        function openTaskSubmissionModal() {
+            const taskRes = taskResults[currentTaskId];
+            if (!taskRes.parsed || taskRes.submitted) return;
+
+            if (taskRes.isDemo) {
+                showModalAlert('快速測試範例只供練習，不能繳交。請上傳你自己的 .sb3 檔案。', '無法繳交');
+                return;
+            }
+            if (!getStudentName()) {
+                showModalAlert('請先在右上角輸入「座號與姓名」，才能繳交作業。', '請先輸入座號與姓名');
+                const nameInput = document.getElementById('student-name-input');
+                if (nameInput) nameInput.focus();
+                return;
+            }
+
+            const task = taskConfigs[currentTaskId];
+            const isAllPassed = task.criteria.every(c => c.check(taskRes.parsed));
+
+            document.getElementById('modal-task-heading').innerText = `確定要單獨繳交 任務 ${currentTaskId} 嗎？`;
+            document.getElementById('modal-task-filename').innerText = taskRes.fileName || 'project.sb3';
+            
+            const checkStatusElem = document.getElementById('modal-task-check-status');
+            if (isAllPassed) {
+                checkStatusElem.className = 'text-emerald-600 font-bold';
+                checkStatusElem.innerText = '完全符合規範';
+            } else {
+                checkStatusElem.className = 'text-amber-600 font-bold';
+                checkStatusElem.innerText = '部分規則未符合（仍可選擇繳交）';
+            }
+
+            document.getElementById('single-task-modal').classList.remove('hidden');
+        }
+
+        function closeTaskModal() {
+            document.getElementById('single-task-modal').classList.add('hidden');
+        }
+
+        let isSubmitting = false;
+
+        // ★ 請貼上 Apps Script 部署後取得的「網頁應用程式網址」
+        const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbx4SoQfpd6zhVbd42xesc8Hl1FIJg4m12_LfMsvgFoUx8zm17Qlv9BreC2KrNTXeKBx/exec";
+
+        function getStudentName() {
+            const el = document.getElementById('student-name-input');
+            return el ? el.value.trim() : '';
+        }
+
+        async function executeSingleTaskLock() {
+            if (isSubmitting) return;
+            const taskRes = taskResults[currentTaskId];
+            const task = taskConfigs[currentTaskId];
+            if (!taskRes.parsed || taskRes.isDemo) return;
+
+            if (!SHEET_API_URL) {
+                closeTaskModal();
+                showModalAlert('尚未設定成績試算表網址，請通知老師。', '無法繳交');
+                return;
+            }
+
+            const results = task.criteria.map(c => ({ name: c.name, ok: !!c.check(taskRes.parsed) }));
+            const record = {
+                studentName: getStudentName(),
+                taskId: currentTaskId,
+                taskTitle: task.title,
+                fileName: taskRes.fileName,
+                passed: results.filter(r => r.ok).length,
+                total: results.length,
+                failed: results.filter(r => !r.ok).map(r => r.name)
+            };
+
+            isSubmitting = true;
+            try {
+                await fetch(SHEET_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(record)
+                });
+            } catch (err) {
+                console.warn('Sheet upload failed:', err);
+                isSubmitting = false;
+                closeTaskModal();
+                showModalAlert('成績傳送失敗，請檢查網路後再按一次繳交。', '傳送失敗');
+                return;
+            }
+            isSubmitting = false;
+
+            taskRes.submitted = true;
+            closeTaskModal();
+
+            updateTaskUIState();
+            renderChecklist();
+            updateOverallCompletion();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const el = document.getElementById('student-name-input');
+            if (!el) return;
+            try { el.value = localStorage.getItem('scratch_student_name') || ''; } catch (e) {}
+            el.addEventListener('input', () => {
+                try { localStorage.setItem('scratch_student_name', el.value); } catch (e) {}
+            });
+        });
+
+        function submitAllCompletedTasks() {
+            let newlySubmitted = 0;
+            [1, 2, 3, 4, 5].forEach(id => {
+                const task = taskConfigs[id];
+                const res = taskResults[id];
+                if (res && res.parsed && !res.submitted && task.criteria.every(c => c.check(res.parsed))) {
+                    res.submitted = true;
+                    newlySubmitted++;
+                }
+            });
+
+            if (newlySubmitted > 0) {
+                updateTaskUIState();
+                renderChecklist();
+                updateOverallCompletion();
+            } else {
+                showModalAlert('目前沒有新通過測試且未繳交的任務。請先上傳並通過檢測再行繳交！');
+            }
+        }
+
+        function updateOverallCompletion() {
+            let submittedCount = 0;
+
+            [1, 2, 3, 4, 5].forEach(id => {
+                const task = taskConfigs[id];
+                const res = taskResults[id];
+                const cardBadge = document.getElementById(`task-status-${id}`);
+                const summaryBadge = document.getElementById(`summary-task-${id}`);
+
+                let isPassed = res && res.parsed ? task.criteria.every(c => c.check(res.parsed)) : false;
+
+                if (res && res.submitted) {
+                    submittedCount++;
+                    if (cardBadge) {
+                        cardBadge.className = 'text-emerald-600 font-bold';
+                        cardBadge.innerText = '已單獨繳交';
+                    }
+                    if (summaryBadge) {
+                        summaryBadge.className = 'text-center p-2 rounded-xl bg-emerald-50 text-emerald-800 font-bold border border-emerald-300 flex flex-col items-center justify-center text-[11px] shadow-xs';
+                        summaryBadge.innerHTML = `<span class="text-emerald-600 mb-0.5 text-xs" aria-hidden="true">🔒</span> 任務 ${id} (已繳交)`;
+                    }
+                } else if (res && res.parsed) {
+                    if (cardBadge) {
+                        cardBadge.className = 'text-amber-600 font-bold';
+                        cardBadge.innerText = isPassed ? '草稿(通過)' : '草稿(需修正)';
+                    }
+                    if (summaryBadge) {
+                        summaryBadge.className = 'text-center p-2 rounded-xl bg-amber-50 text-amber-700 font-bold border border-amber-300 flex flex-col items-center justify-center text-[11px]';
+                        summaryBadge.innerHTML = `<span class="text-amber-500 mb-0.5 text-xs" aria-hidden="true">✎</span> 任務 ${id} (草稿)`;
+                    }
+                } else {
+                    if (cardBadge) {
+                        cardBadge.className = 'text-slate-500 font-normal';
+                        cardBadge.innerText = '未繳交';
+                    }
+                    if (summaryBadge) {
+                        summaryBadge.className = 'text-center p-2 rounded-xl bg-slate-100 text-slate-400 font-bold border border-slate-200 flex flex-col items-center justify-center text-[11px]';
+                        summaryBadge.innerHTML = `<span class="text-slate-300 mb-0.5 text-xs" aria-hidden="true">○</span> 任務 ${id}`;
+                    }
+                }
+            });
+
+            const percent = Math.round((submittedCount / 5) * 100);
+            const percentElem = document.getElementById('overall-completion-percentage');
+            const progressBar = document.getElementById('overall-progress-bar');
+
+            if (percentElem) percentElem.innerText = `${percent}% (${submittedCount} / 5 題已單獨繳交)`;
+            if (progressBar) progressBar.style.width = `${percent}%`;
+        }
+
+        function parseScratchData(data) {
+            let sequence = [];
+            let hasPenDown = false;
+            let hasPenUp = false;
+            let hasEraseAll = false;
+            let hasGoto = false;
+            let moveValues = [];
+            let turnValues = [];
+            let repeatCount = 0;
+            let askCount = 0;
+            let hasDivideOp = false;
+            let turnUsesAnswer = false;
+
+            if (!data || !data.targets) return getEmptyParsed();
+
+            let target = data.targets.find(t => !t.isStage && t.blocks && Object.keys(t.blocks).length > 0);
+            if (!target) {
+                target = data.targets.find(t => t.blocks && Object.keys(t.blocks).length > 0);
+            }
+            if (!target || !target.blocks) return getEmptyParsed();
+
+            const blocks = target.blocks;
+
+            let startBlockId = null;
+            for (let id in blocks) {
+                if (typeof blocks[id] === 'object' && blocks[id].opcode && blocks[id].opcode.startsWith('event_when')) {
+                    startBlockId = id;
+                    break;
+                }
+            }
+            if (!startBlockId) {
+                for (let id in blocks) {
+                    if (typeof blocks[id] === 'object' && blocks[id].topLevel) {
+                        startBlockId = id;
+                        break;
+                    }
+                }
+            }
+
+            function traverse(blockId) {
+                let currentId = blockId;
+                while (currentId && blocks[currentId]) {
+                    const block = blocks[currentId];
+                    if (typeof block !== 'object') break;
+
+                    const op = block.opcode;
+
+                    if (op === 'pen_clear' || op === 'pen_eraseAll') {
+                        hasEraseAll = true;
+                        sequence.push({ type: 'eraseAll', desc: '【畫筆】全部清除 (eraseAll)' });
+                    } else if (op === 'pen_penDown') {
+                        hasPenDown = true;
+                        sequence.push({ type: 'penDown', desc: '【畫筆】下筆 (penDown)' });
+                    } else if (op === 'pen_penUp') {
+                        hasPenUp = true;
+                        sequence.push({ type: 'penUp', desc: '【畫筆】停筆 (penUp)' });
+                    } else if (op === 'motion_movesteps') {
+                        let val = extractInputValue(block, 'STEPS', blocks) || 100;
+                        moveValues.push(val);
+                        sequence.push({ type: 'move', val: val, desc: `【動作】移動 ${val} 步` });
+                    } else if (op === 'motion_turnright' || op === 'motion_turnleft') {
+                        let val = extractInputValue(block, 'DEGREES', blocks) || 90;
+                        turnValues.push(val);
+                        if (hasInputValueOp(block, 'DEGREES', blocks, 'operator_divide')) hasDivideOp = true;
+                        if (hasInputAnswer(block, 'DEGREES', blocks)) turnUsesAnswer = true;
+                        sequence.push({ type: 'turn', val: val, desc: `【動作】旋轉 ${val} 度` });
+                    } else if (op === 'motion_gotoxy' || op === 'motion_glideto' || op === 'motion_setx' || op === 'motion_sety') {
+                        hasGoto = true;
+                        sequence.push({ type: 'goto', desc: '【動作】定位至指定位置' });
+                    } else if (op === 'sensing_askandwait') {
+                        askCount++;
+                        sequence.push({ type: 'ask', desc: '【偵測】詢問邊數...並等待' });
+                    } else if (op === 'control_repeat') {
+                        let times = extractInputValue(block, 'TIMES', blocks) || 4;
+                        repeatCount = times;
+                        sequence.push({ type: 'loop_start', count: times, desc: `【控制】重複執行 ${times} 次` });
+                        if (block.inputs && block.inputs.SUBSTACK) {
+                            let subId = getBlockIdFromInput(block.inputs.SUBSTACK);
+                            if (subId) traverse(subId);
+                        }
+                        sequence.push({ type: 'loop_end', desc: '【控制】重複執行結束' });
+                    }
+
+                    currentId = block.next;
+                }
+            }
+
+            if (startBlockId) traverse(startBlockId);
+
+            let penDownIndex = sequence.findIndex(s => s.type === 'penDown');
+            let firstMoveIndex = sequence.findIndex(s => s.type === 'move');
+            let penUpIndex = sequence.findIndex(s => s.type === 'penUp');
+            let gotoIndex = sequence.findIndex(s => s.type === 'goto');
+            let loopStartIndex = sequence.findIndex(s => s.type === 'loop_start');
+            let eraseAllIndices = sequence.map((s, i) => s.type === 'eraseAll' ? i : -1).filter(i => i !== -1);
+            let lastEraseIndex = eraseAllIndices.length > 0 ? Math.max(...eraseAllIndices) : -1;
+            let askIndex = sequence.findIndex(s => s.type === 'ask');
+
+            let isPenDownBeforeMove = penDownIndex !== -1 && firstMoveIndex !== -1 && penDownIndex < firstMoveIndex;
+            let isPenUpBeforeGoto = penUpIndex !== -1 && gotoIndex !== -1 && penUpIndex < gotoIndex;
+            let isPenDownBeforeLoop = penDownIndex !== -1 && loopStartIndex !== -1 && penDownIndex < loopStartIndex;
+            let isEraseAllAtEnd = lastEraseIndex !== -1 && lastEraseIndex === sequence.length - 1;
+            let isAskBeforeLoop = askIndex !== -1 && loopStartIndex !== -1 && askIndex < loopStartIndex;
+
+            return {
+                hasPenDown,
+                hasPenUp,
+                hasEraseAll,
+                hasGoto,
+                moveValues,
+                turnValues,
+                repeatCount,
+                askCount,
+                hasDivideOp,
+                turnUsesAnswer,
+                isPenDownBeforeMove,
+                isPenUpBeforeGoto,
+                isPenDownBeforeLoop,
+                isEraseAllAtEnd,
+                isAskBeforeLoop,
+                sequence
+            };
+        }
+
+        function extractInputValue(block, inputName, blocks) {
+            if (!block.inputs || !block.inputs[inputName]) return null;
+            let inp = block.inputs[inputName];
+            if (Array.isArray(inp[1])) {
+                return parseFloat(inp[1][1]);
+            } else if (typeof inp[1] === 'string' && blocks[inp[1]]) {
+                let subBlock = blocks[inp[1]];
+                if (subBlock.opcode === 'operator_divide') return 60;
+            }
+            return null;
+        }
+
+        function getBlockIdFromInput(inputVal) {
+            if (Array.isArray(inputVal) && inputVal.length > 1) {
+                return typeof inputVal[1] === 'string' ? inputVal[1] : null;
+            }
+            return null;
+        }
+
+        function hasInputValueOp(block, inputName, blocks, opcode) {
+            if (!block.inputs || !block.inputs[inputName]) return false;
+            let inp = block.inputs[inputName];
+            if (typeof inp[1] === 'string' && blocks[inp[1]]) {
+                return blocks[inp[1]].opcode === opcode;
+            }
+            return false;
+        }
+
+        function hasInputAnswer(block, inputName, blocks) {
+            if (!block.inputs || !block.inputs[inputName]) return false;
+            let inp = block.inputs[inputName];
+            if (typeof inp[1] === 'string' && blocks[inp[1]]) {
+                let b = blocks[inp[1]];
+                return b.opcode === 'sensing_answer' || JSON.stringify(b).includes('sensing_answer');
+            }
+            return false;
+        }
+
+        function getEmptyParsed() {
+            return {
+                hasPenDown: false, hasPenUp: false, hasEraseAll: false, hasGoto: false,
+                moveValues: [], turnValues: [], repeatCount: 0, askCount: 0,
+                hasDivideOp: false, turnUsesAnswer: false,
+                isPenDownBeforeMove: false, isPenUpBeforeGoto: false,
+                isPenDownBeforeLoop: false, isEraseAllAtEnd: false, isAskBeforeLoop: false,
+                sequence: []
+            };
+        }
+
+        function processSb3File(file) {
+            const taskRes = taskResults[currentTaskId];
+            if (taskRes.submitted) {
+                showModalAlert(`任務 ${currentTaskId} 已單獨繳交並鎖定，無法再次修改本題！您仍可切換至其他未繳交任務上傳檔案。`);
+                return;
+            }
+
+            if (!file.name.endsWith('.sb3')) {
+                showModalAlert('請上傳副檔名為 .sb3 的 Scratch 專案檔案！');
+                return;
+            }
+
+            JSZip.loadAsync(file).then(zip => {
+                const projectFile = zip.file('project.json');
+                if (!projectFile) {
+                    showModalAlert('無效的 .sb3 檔案格式 (找不到 project.json)。');
+                    return;
+                }
+                return projectFile.async('text');
+            }).then(jsonText => {
+                try {
+                    const data = JSON.parse(jsonText);
+                    const parsed = parseScratchData(data);
+                    
+                    taskResults[currentTaskId].parsed = parsed;
+                    taskResults[currentTaskId].isDemo = false;
+                    taskResults[currentTaskId].fileName = file.name;
+                    
+                    updateTaskUIState();
+                    renderChecklist();
+                    renderParsedBlocks();
+                    reRunSimulation();
+                    updateOverallCompletion();
+                } catch (err) {
+                    console.error(err);
+                    showModalAlert('解析 project.json 失敗，請確認檔案是否損壞。');
+                }
+            }).catch(err => {
+                console.error(err);
+                showModalAlert('解壓縮 .sb3 檔案失敗。');
+            });
+        }
+
+        function loadDemoData(type) {
+            const taskRes = taskResults[currentTaskId];
+            if (taskRes.submitted) {
+                showModalAlert(`任務 ${currentTaskId} 已單獨繳交，無法重載示範資料。`);
+                return;
+            }
+
+            let mockParsed = null;
+
+            if (type === 'correct') {
+                if (currentTaskId === 1) {
+                    mockParsed = {
+                        hasPenDown: true, hasPenUp: true, hasEraseAll: true, hasGoto: true,
+                        moveValues: [100], turnValues: [],
+                        isPenDownBeforeMove: true, isPenUpBeforeGoto: true, isEraseAllAtEnd: false,
+                        sequence: [
+                            { type: 'eraseAll', desc: '【畫筆】全部清除 (eraseAll)' },
+                            { type: 'penDown', desc: '【畫筆】下筆 (penDown)' },
+                            { type: 'move', val: 100, desc: '【動作】移動 100 步' },
+                            { type: 'penUp', desc: '【畫筆】停筆 (penUp)' },
+                            { type: 'goto', desc: '【動作】定位至指定位置 (go to x: 0 y: 0)' }
+                        ]
+                    };
+                } else if (currentTaskId === 2) {
+                    mockParsed = {
+                        hasPenDown: true, hasEraseAll: true, repeatCount: 4, moveValues: [80], turnValues: [90],
+                        isPenDownBeforeLoop: true, isEraseAllAtEnd: false,
+                        sequence: [
+                            { type: 'eraseAll', desc: '【畫筆】全部清除 (eraseAll)' },
+                            { type: 'penDown', desc: '【畫筆】下筆 (penDown)' },
+                            { type: 'loop_start', desc: '【控制】重複執行 4 次' },
+                            { type: 'move', val: 80, desc: '  └【動作】移動 80 步' },
+                            { type: 'turn', val: 90, desc: '  └【動作】旋轉 90 度' },
+                            { type: 'loop_end', desc: '【控制】重複執行結束' }
+                        ]
+                    };
+                } else {
+                    mockParsed = {
+                        hasPenDown: true, hasEraseAll: true, askCount: 1, repeatCount: 5, moveValues: [70], turnValues: [72],
+                        isPenDownBeforeLoop: true, isAskBeforeLoop: true, isEraseAllAtEnd: false,
+                        sequence: [
+                            { type: 'eraseAll', desc: '【畫筆】全部清除 (eraseAll)' },
+                            { type: 'ask', desc: '【偵測】詢問邊數...並等待' },
+                            { type: 'penDown', desc: '【畫筆】下筆 (penDown)' },
+                            { type: 'loop_start', desc: '【控制】重複執行 5 次' },
+                            { type: 'move', val: 70, desc: '  └【動作】移動 70 步' },
+                            { type: 'turn', val: 72, desc: '  └【動作】旋轉 72 度' },
+                            { type: 'loop_end', desc: '【控制】重複執行結束' }
+                        ]
+                    };
+                }
+            } else if (type === 'wrong_sequence') {
+                if (currentTaskId === 1) {
+                    mockParsed = {
+                        hasPenDown: true, hasPenUp: false, hasEraseAll: true, hasGoto: true,
+                        moveValues: [100], turnValues: [],
+                        isPenDownBeforeMove: false, isPenUpBeforeGoto: false, isEraseAllAtEnd: false,
+                        sequence: [
+                            { type: 'eraseAll', desc: '【畫筆】全部清除 (eraseAll)' },
+                            { type: 'move', val: 100, desc: '【動作】移動 100 步 (未先下筆!)' },
+                            { type: 'penDown', desc: '【畫筆】下筆 (penDown)' },
+                            { type: 'goto', desc: '【動作】定位至指定位置 (未停筆即移動!)' }
+                        ]
+                    };
+                } else {
+                    mockParsed = {
+                        hasPenDown: true, hasEraseAll: true, repeatCount: 4, moveValues: [80], turnValues: [90],
+                        isPenDownBeforeLoop: false, isEraseAllAtEnd: false,
+                        sequence: [
+                            { type: 'eraseAll', desc: '【畫筆】全部清除 (eraseAll)' },
+                            { type: 'loop_start', desc: '【控制】重複執行 4 次' },
+                            { type: 'move', val: 80, desc: '  └【動作】移動 80 步 (未先下筆!)' },
+                            { type: 'penDown', desc: '  └【畫筆】下筆 (penDown)' },
+                            { type: 'turn', val: 90, desc: '  └【動作】旋轉 90 度' }
+                        ]
+                    };
+                }
+            } else if (type === 'erase_at_end') {
+                mockParsed = {
+                    hasPenDown: true, hasPenUp: true, hasEraseAll: true, hasGoto: true,
+                    moveValues: [100], turnValues: [],
+                    isPenDownBeforeMove: true, isPenUpBeforeGoto: true, isEraseAllAtEnd: true,
+                    sequence: [
+                        { type: 'penDown', desc: '【畫筆】下筆 (penDown)' },
+                        { type: 'move', val: 100, desc: '【動作】移動 100 步' },
+                        { type: 'penUp', desc: '【畫筆】停筆 (penUp)' },
+                        { type: 'goto', desc: '【動作】定位至指定位置' },
+                        { type: 'eraseAll', desc: '【畫筆】全部清除 (eraseAll) ⚠️ 放在最後擦掉畫好的圖!' }
+                    ]
+                };
+            }
+
+            taskResults[currentTaskId].parsed = mockParsed;
+            taskResults[currentTaskId].isDemo = true;
+            taskResults[currentTaskId].fileName = `demo_task_${currentTaskId}.sb3`;
+
+            updateTaskUIState();
+            renderChecklist();
+            renderParsedBlocks();
+            reRunSimulation();
+            updateOverallCompletion();
+        }
+
+        function renderParsedBlocks() {
+            const container = document.getElementById('parsed-blocks-container');
+            const result = taskResults[currentTaskId];
+
+            if (!result.parsed) {
+                container.innerHTML = `<p class="text-slate-500 italic">尚未上傳 .sb3 檔案...</p>`;
+                return;
+            }
+
+            const seq = result.parsed.sequence;
+            if (!seq || seq.length === 0) {
+                container.innerHTML = `<p class="text-slate-400">專案中未偵測到繪圖或動作相關積木。</p>`;
+                return;
+            }
+
+            container.innerHTML = seq.map((item, idx) => `
+                <div class="py-1 border-b border-slate-800/80 flex items-center space-x-2">
+                    <span class="text-slate-500 text-[10px] w-6">#${idx + 1}</span>
+                    <span class="${item.type === 'penDown' ? 'text-scratch-blue font-bold' : item.type === 'eraseAll' ? 'text-amber-400 font-bold' : item.type === 'loop_start' ? 'text-scratch-purple font-bold' : 'text-emerald-400'}">
+                        ${item.desc}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        function reRunSimulation() {
+            const canvas = document.getElementById('stage-canvas');
+            const ctx = canvas.getContext('2d');
+            const overlay = document.getElementById('canvas-overlay');
+            const result = taskResults[currentTaskId];
+
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Scratch Grid Background
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 40) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 40) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+
+            if (!result.parsed) {
+                overlay.classList.remove('hidden');
+                return;
+            }
+
+            overlay.classList.add('hidden');
+
+            const parsed = result.parsed;
+            const task = taskConfigs[currentTaskId];
+
+            if (task.drawType === 'line_return') {
+                simulateLineReturnSequence(ctx, parsed);
+            } else {
+                simulatePolygonSequence(ctx, parsed, task);
+            }
+        }
+
+        function simulateLineReturnSequence(ctx, parsed) {
+            let startX = 140, startY = 180;
+            let curX = startX, curY = startY;
+            let penDown = false;
+
+            parsed.sequence.forEach(step => {
+                if (step.type === 'eraseAll') {
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(0, 0, 480, 360);
+                } else if (step.type === 'penDown') {
+                    penDown = true;
+                    drawDot(ctx, curX, curY, '#59C059', '下筆位置');
+                } else if (step.type === 'penUp') {
+                    penDown = false;
+                    drawDot(ctx, curX, curY, '#FFAB19', '停筆');
+                } else if (step.type === 'move') {
+                    let len = step.val || 100;
+                    let nextX = curX + len;
+                    if (penDown) {
+                        ctx.beginPath();
+                        ctx.moveTo(curX, curY);
+                        ctx.lineTo(nextX, curY);
+                        ctx.strokeStyle = '#4C97FF';
+                        ctx.lineWidth = 4;
+                        ctx.lineCap = 'round';
+                        ctx.stroke();
+                    }
+                    curX = nextX;
+                } else if (step.type === 'goto') {
+                    let targetX = startX, targetY = startY;
+                    if (penDown) {
+                        ctx.beginPath();
+                        ctx.moveTo(curX, curY);
+                        ctx.lineTo(targetX, targetY);
+                        ctx.strokeStyle = '#f43f5e';
+                        ctx.lineWidth = 3;
+                        ctx.setLineDash([3, 3]);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                        drawDot(ctx, targetX, targetY, '#f43f5e', '未停筆拖曳線!');
+                    } else {
+                        ctx.beginPath();
+                        ctx.setLineDash([4, 4]);
+                        ctx.moveTo(curX, curY + 10);
+                        ctx.lineTo(targetX, targetY + 10);
+                        ctx.strokeStyle = '#9966FF';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                        drawDot(ctx, targetX, targetY, '#9966FF', '回到原點');
+                    }
+                    curX = targetX; curY = targetY;
+                }
+            });
+
+            drawDot(ctx, startX, startY, '#FFAB19', '起點 (0,0)');
+        }
+
+        function simulatePolygonSequence(ctx, parsed, task) {
+            const centerX = 240;
+            const centerY = 180;
+            const sideLen = (task.poly && task.poly.sideLength) ? task.poly.sideLength : 60;
+            const turnAngle = (task.poly && task.poly.turnAngle) ? task.poly.turnAngle : 90;
+
+            let curX = centerX - sideLen / 2;
+            let curY = centerY + 30;
+            let angleRad = 0;
+            let penDown = false;
+
+            parsed.sequence.forEach(step => {
+                if (step.type === 'eraseAll') {
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(0, 0, 480, 360);
+                } else if (step.type === 'penDown') {
+                    penDown = true;
+                    drawDot(ctx, curX, curY, '#FFAB19', '起點');
+                } else if (step.type === 'move') {
+                    let moveDist = step.val || sideLen;
+                    let nextX = curX + moveDist * Math.cos(angleRad);
+                    let nextY = curY - moveDist * Math.sin(angleRad);
+
+                    if (penDown) {
+                        ctx.beginPath();
+                        ctx.moveTo(curX, curY);
+                        ctx.lineTo(nextX, nextY);
+                        ctx.strokeStyle = '#4C97FF';
+                        ctx.lineWidth = 4;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        ctx.stroke();
+                    }
+                    curX = nextX; curY = nextY;
+                } else if (step.type === 'turn') {
+                    let deg = step.val || turnAngle;
+                    angleRad -= (deg * Math.PI) / 180;
+                }
+            });
+
+            drawDot(ctx, curX, curY, '#59C059', '終點');
+        }
+
+        function drawDot(ctx, x, y, color, label) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            if (label) {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '10px Inter, sans-serif';
+                ctx.fillText(label, x - 10, y - 10);
+            }
+        }
+
+        function initDropZone() {
+            const dropZone = document.getElementById('drop-zone');
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-scratch-blue', 'bg-blue-50');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('border-scratch-blue', 'bg-blue-50');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-scratch-blue', 'bg-blue-50');
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    processSb3File(e.dataTransfer.files[0]);
+                }
+            });
+        }
+
+        function handleFileSelect(e) {
+            if (e.target.files && e.target.files[0]) {
+                processSb3File(e.target.files[0]);
+            }
+        }
+
+        function showModalAlert(msg, title = "檔案格式警告") {
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackText = document.getElementById('feedback-text');
+            const feedbackIcon = document.getElementById('feedback-icon');
+
+            if (!feedbackTitle) return;
+
+            feedbackTitle.innerText = title;
+            feedbackTitle.className = "text-sm font-bold text-rose-700";
+            feedbackText.innerText = msg;
+            feedbackIcon.className = "text-rose-500 text-xl mt-0.5";
+            feedbackIcon.innerHTML = `<span class="" aria-hidden="true">！</span>`;
+        }
+    </script>
+</body>
+</html>
