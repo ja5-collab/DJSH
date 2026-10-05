@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>認識演算法與程式語言</title>
+<style>
+:root{--bg:#f4f8f5;--card:#fff;--tx:#1d2b22;--mu:#5d6e63;--ac:#2f9e63;--bd:#d6e4da;--ok:#1f8a4c;--no:#c0392b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111a15;--card:#1a251e;--tx:#e6efe9;--mu:#9bb0a3;--bd:#2c3d33;--ac:#4cc283;--ok:#4cc283;--no:#ff7b6b}}
+:root[data-theme="dark"]{--bg:#111a15;--card:#1a251e;--tx:#e6efe9;--mu:#9bb0a3;--bd:#2c3d33;--ac:#4cc283;--ok:#4cc283;--no:#ff7b6b}
+*{box-sizing:border-box}html{scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.6 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+.w{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:.4em 0}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin:12px 0}
+#bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;padding:8px 16px}
+#tm{font-size:1.3rem;font-weight:700;color:var(--ac);font-variant-numeric:tabular-nums}#tm.lo{color:var(--no)}
+button{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:10px 20px;font-size:1rem;cursor:pointer}
+.tag{display:inline-block;font-size:.75rem;background:var(--bd);color:var(--mu);border-radius:6px;padding:1px 8px;margin-right:6px}
+input[type=radio]{position:absolute;opacity:0;pointer-events:none}
+label{display:block;position:relative;padding:10px 14px;border:2px solid var(--bd);border-radius:10px;margin:8px 0;cursor:pointer;transition:border-color .15s,background .15s,transform .1s}
+label:hover{border-color:var(--ac)}label:active{transform:scale(.99)}
+label:has(input:checked){border-color:var(--ac);background:color-mix(in srgb,var(--ac) 14%,transparent);font-weight:600}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.g2 label{margin:0}
+.fc{width:100%;max-width:300px;height:auto}
+@media(max-width:600px){.g2.fg{grid-template-columns:1fr}}
+.tf{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tf label{text-align:center;font-size:1.7rem;line-height:1.3;padding:8px;margin:4px 0}
+.card{box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.qt{font-size:1.05rem;margin-bottom:6px}
+button:hover{filter:brightness(1.08)}
+#sub{width:100%;padding:14px;font-size:1.1rem;margin:8px 0 24px}
+.c label:hover{border-color:var(--bd)}
+.svg{display:inline-block;margin:4px 10px 4px 0;vertical-align:middle}
+svg{stroke:var(--tx);fill:none;stroke-width:1.5}
+.fc text{fill:var(--tx);stroke:none;font-size:12px;text-anchor:middle}
+label:has(.fc){display:flex;gap:10px;align-items:center}
+.fl{font-size:.9rem;color:var(--mu);display:block}
+.ok{color:var(--ok);font-weight:700}.no{color:var(--no);font-weight:700}
+.sc{font-size:2.4rem;font-weight:700;color:var(--ac)}
+.c label{cursor:default}.c label.r{border-color:var(--ok)}.c label.w{border-color:var(--no)}
+ul{padding-left:1.2em}
+#nav{display:flex;justify-content:space-between;gap:12px;margin:8px 0 16px}
+#nav button{flex:1;padding:14px;font-size:1.05rem}
+button:disabled{opacity:.4;cursor:default;filter:none}
+.sc-row{display:flex;align-items:center;gap:12px}
+#zoom{background:transparent;color:var(--ac);border:2px solid var(--ac);padding:6px 10px;font-size:1.3rem;line-height:1}
+#ov{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;cursor:pointer}
+#ov b{font-size:clamp(6rem,30vw,16rem);line-height:1;color:var(--ac)}
+#ov span{font-size:1.1rem;margin-top:12px}
+</style></head><body>
+<div id="bar" hidden><span id="pg"></span><span id="tm">15:00</span></div>
+<div class="w" id="app"></div>
+<script>
+const KEY="quiz_ch2_v2",LIM=900;
+const S={
+ para:'<svg class="svg" width="90" height="34"><path d="M20 3H88L70 31H2Z"/></svg>',
+ dia:'<svg class="svg" width="80" height="40"><path d="M40 2L78 20L40 38L2 20Z"/></svg>',
+ rr:'<svg class="svg" width="80" height="34"><rect x="2" y="3" width="76" height="28" rx="14"/></svg>',
+ arr:'<svg class="svg" width="80" height="20"><path d="M2 10H74M66 4L76 10L66 16"/></svg>'};
+const TF=["○","✕"];
+const tf=(q,a,extra="")=>({t:"是非題",q,o:TF,a,x:extra});
+const mc=(q,o,a,extra="")=>({t:"選擇題",q,o,a,x:extra});
+const fl=s=>`<span class="fl">${s}</span>`;
+const base=[
+ tf("有邏輯性解決問題的方法，稱為演算法。",0),
+ tf("流程圖的符號有制訂標準，無法依個人喜好來繪製。",0),
+ tf("在流程圖中，下方的符號是程式流程圖的決策或條件判斷的符號。",1,S.para),
+ tf("在流程圖中，使用下方的符號時，結果只能為「是」或「否」。",0,S.dia),
+ tf("繪製流程圖的好處是簡單易懂，方便判讀與相互交流。",0),
+ tf("電腦發展的歷史比程式語言早。",0),
+ tf("使用不同指令集的中央處理器，所對應的組合語言語法也會不同。",0),
+ tf("以高階語言所設計的程式，不用再轉譯成機器語言，就能被硬體執行。",1),
+ tf("為完成某項工作而依其邏輯順序寫成的一連串指令，就稱為程式。",0),
+ tf("程式設計的訓練中，無法培養我們解決事情的能力。",1),
+ mc("請問下列符號中，哪一個圖例在流程圖中代表開始／結束？",[S.para,S.arr,S.rr,S.dia],2),
+ mc("下列哪一項是繪製流程圖的好處？",["幫助我們思考動作的過程","以圖形表現，簡單易懂","符號統一，方便流通","以上皆是"],3),
+ mc("小智致力成為程式語言撰寫大師，請大家幫他看看下列觀念中，何者錯誤？",["在撰寫程式語言之前，可以先利用流程圖來輔助","機器語言不須轉譯，就可以跟電腦溝通","機器語言是由二進位組成，可以直接在電腦中執行，但是效能不高","不同的程式語法不一樣，但基本邏輯是類似的"],2),
+ mc("程式語言的首要功能為下列何者？",["讓電腦按照指令的邏輯順序來完成工作","讓人們再學一種不同的語言","把數學方程式變成一種語言","一級方程式賽車專用的語言"],0),
+ mc("若想寫一個程式，依據使用者輸入的月分顯示季節，則使用哪一種控制流程結構較適合？",["循序結構","選擇結構","重複結構","跳躍結構"],1),
+ {t:"素養題",q:"（蛋炒飯流程：開始→放入適量的油至鍋中→〔A部分：油熱了嗎？否→加熱，回到判斷；是→往下〕→開中火，加入蛋→蛋凝固了嗎？…→結束）拜特將油放入鍋中後，等了很久都不知道油熱了沒，覺得流程圖中可以再增加一些動作協助確認。下列哪個圖形適合替代 A 部分，讓拜特更清楚知道什麼時候可以加入蛋？",
+  o:["量溫度 → 油熱了嗎？"+fl("否→加熱（回到判斷）；是→往下"),"油熱了嗎？"+fl("否→加熱→量溫度（回到判斷）；是→往下"),"油溫到150度了嗎？"+fl("否→加熱（回到判斷）；是→往下"),"量溫度 → 油溫到150度了嗎？"+fl("否→加熱（回到判斷）；是→往下")],a:1,x:""},
+ {t:"素養題",q:"承上題，拜特完成蛋炒飯後，發現鍋底仍殘留許多油，若想使用剛好的油量，下列哪個選項最符合流程圖中「放入適量的油至鍋中」的油量？",o:["放入鋪滿鍋底薄薄一層的油","放入 50 毫升的油","放入米飯重量 5％的油","放入兩匙油"],a:1,x:""},
+ {t:"素養題",q:"拜特希望在蛋炒飯中加入火腿，網路建議米飯炒開之後，再放入火腿翻炒即可，請問哪項流程較符合建議？",
+  o:["加入米飯 → 米飯散開了嗎？"+fl("否→翻炒（回判斷）；是→加入火腿→翻炒1分鐘→加入調味料拌勻"),"加入米飯 → 米飯散開了嗎？"+fl("否→翻炒（回判斷）；是→加入火腿→加入調味料拌勻"),"加入米飯 → 米飯散開了嗎？"+fl("否→翻炒→加入火腿（回判斷）；是→加入調味料拌勻"),"加入米飯 → 加入火腿 → 米飯散開了嗎？"+fl("否→翻炒（回判斷）；是→加入調味料拌勻")],a:0,x:""}
+];
+function flow(list,full){
+ const cx=150,A=(x1,y1,x2,y2)=>`<path d="M${x1} ${y1}L${x2} ${y2}" marker-end="url(#ar)"/>`;
+ let y=0,o='',skip=true;
+ const box=(s,r)=>{o+=`<rect x="${cx-65}" y="${y}" width="130" height="26" rx="${r?13:2}"/><text x="${cx}" y="${y+17}">${s}</text>`;y+=26};
+ if(!full){o+=A(cx,0,cx,14);y=14}
+ list.forEach(n=>{
+  if(!skip){o+=A(cx,y,cx,y+16);y+=16}
+  skip=false;
+  if(typeof n=="string")box(n);
+  else if(n.r)box(n.r,1);
+  else{
+   const cy=y+23;
+   o+=`<path d="M${cx-85} ${cy}L${cx} ${y}L${cx+85} ${cy}L${cx} ${y+46}Z"/><text x="${cx}" y="${cy+4}">${n[0]}</text>`;
+   y+=46;o+=`<text x="${cx+8}" y="${y+12}">否</text><text x="${cx+92}" y="${cy-4}">是</text>`;
+   let mid=0;
+   n.slice(1).forEach(b=>{o+=A(cx,y,cx,y+16);y+=16;box(b);mid=y-13});
+   o+=`<path d="M${cx-65} ${mid}H45V${cy}" /><path d="M45 ${cy}H${cx-85}" marker-end="url(#ar)"/>`;
+   const yn=y+16;
+   o+=`<path d="M${cx} ${y}V${yn}M${cx+85} ${cy}H255V${yn}H${cx}"/>`;
+   y=yn;o+=A(cx,y,cx,y+10);y+=10;skip=true;
+  }
+ });
+ if(!full&&!skip){o+=A(cx,y,cx,y+14);y+=14}
+ if(!full&&skip&&typeof list[list.length-1]!="string"){}
+ return `<svg class="fc" viewBox="0 0 300 ${y+2}" width="300" style="max-width:100%"><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" style="fill:var(--tx);stroke:none"/></marker></defs>${o}</svg>`;
+}
+const chk=["米飯散開了嗎？","翻炒"];
+base[5].a=1;base[15].a=3;base[16].a=2;base[17].a=0;
+base[15].q="拜特將油放入鍋中後，等了很久都不知道油熱了沒，所以他覺得流程圖中可以再增加一些動作協助確認，下列哪個圖形適合替代 A 部分（「油熱了嗎？」與其加熱迴圈），讓拜特更清楚知道什麼時候可以加入蛋？";
+base[15].x=flow([{r:"開始"},"放入適量的油至鍋中",["油熱了嗎？","加熱"],"開中火，加入蛋",["蛋凝固了嗎？","在鍋中快速攪拌"],"加入米飯",["米飯散開了嗎？","翻炒"],"加入調味料拌勻",{r:"結束"}],1);
+base[15].o=[flow(["量溫度",["油熱了嗎？","加熱"]]),flow([["油熱了嗎？","加熱","量溫度"]]),flow([["油溫到150度了嗎？","加熱"]]),flow(["量溫度",["油溫到150度了嗎？","加熱"]])];
+base[17].o=[flow(["加入米飯",chk,"加入火腿","翻炒 1 分鐘","加入調味料拌勻"]),flow(["加入米飯",chk,"加入火腿","加入調味料拌勻"]),flow(["加入米飯",chk.concat("加入火腿"),"加入調味料拌勻"]),flow(["加入米飯","加入火腿",chk,"加入調味料拌勻"])];
+const pool=[
+ tf("程式語言是人類向電腦下達指令時必要的溝通工具。",0),
+ tf("人類對高階語言較易了解，而電腦對低階語言較易了解。",0),
+ tf("繪製流程圖的好處是簡單而且容易懂以及能理解電腦的思考邏輯，有助於跟電腦溝通。",0),
+ tf("變數是沒有固定的值，通常用來作為程式的暫時紀錄的保留器。",0),
+ tf("電腦的程式設計概念之一，就是希望電腦能取代人類做一些繁瑣重複性工作。迴圈指令正是用來協助我們執行重複性的動作以解決問題。",0),
+ mc("通常設計程式時需考慮哪些要素？",["使用何種程式語言","將複雜任務切割成簡單工作","任務執行的作業順序","以上皆是"],3),
+ mc("可以直接被電腦接受的語言是？",["Java","C++","機器語言","組合語言"],2),
+ mc("指揮電腦工作時，會使用到一連串的指令和敘述，這些指令和敘述稱做什麼？",["訊息","程式","命令","口令"],1)];
+const $=id=>document.getElementById(id),app=$("app");
+let st=load(),Q=[],tick;
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||null}catch(e){return null}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
+function build(){const all=base.concat(st.pick.map(i=>pool[i]));Q=["是非題","選擇題","素養題"].flatMap(t=>all.filter(q=>q.t===t))}
+const cls=q=>q.t==="是非題"?"tf":"g2"+(q.o.some(o=>o.includes('class="fc"'))?" fg":"");
+if(location.hash==="#reset"){try{localStorage.removeItem(KEY)}catch(e){}st=null;history.replaceState(null,"",location.pathname+location.search)}
+onhashchange=()=>location.reload();
+function intro(){
+ app.innerHTML=`<h1>認識演算法與程式語言</h1><div class="card"><ul><li>共 20 題，每題 5 分</li><li>限時 <b>15 分鐘</b>，時間到自動交卷</li><li>只能作答<b>一次</b>，開始後重新整理頁面，計時不會重置</li></ul><p>座號：<input id="seat" type="text" inputmode="numeric" placeholder="請輸入座號" style="font-size:1rem;padding:8px;width:8em;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx)"></p><button id="go">開始測驗</button></div>`;
+ $("go").onclick=()=>{const seat=parseInt($("seat").value,10);if(!(seat>0)){alert("請先輸入座號（數字）");return}
+ const a=[...pool.keys()].sort(()=>Math.random()-.5).slice(0,2);st={seat,start:Date.now(),pick:a,ans:{},done:false};save();run()};
+}
+function run(){
+ build();$("bar").hidden=false;
+ app.innerHTML=Q.map((q,i)=>`<div class="card"><span class="tag">${q.t}</span><b>${i+1}.</b> ${q.q}<div>${q.x||""}</div><div class="${cls(q)}">${q.o.map((o,j)=>`<label><input type="radio" name="q${i}" value="${j}" ${st.ans[i]==j?"checked":""}> ${q.t==="選擇題"||q.t==="素養題"?"("+"ABCD"[j]+") ":""}${o}</label>`).join("")}</div></div>`).join("")+`<button id="sub">交卷</button>`;
+ app.onchange=e=>{const m=e.target.name&&e.target.name.match(/^q(\d+)$/);if(m){st.ans[m[1]]=+e.target.value;save();cnt()}};
+ $("sub").onclick=()=>{const n=Q.length-Object.keys(st.ans).length;if(!n||confirm("尚有 "+n+" 題未作答，確定交卷？"))finish()};
+ const cs=[...app.querySelectorAll(".card")],sb=$("sub"),nav=document.createElement("div");
+ nav.id="nav";nav.innerHTML='<button id="pv">← 上一題</button><button id="nx">下一題 →</button>';
+ app.insertBefore(nav,sb);
+ let pi=Math.min(st.page||0,cs.length-1);
+ const show=()=>{cs.forEach((c,i)=>c.hidden=i!=pi);$("pv").disabled=pi==0;$("nx").hidden=pi==cs.length-1;sb.hidden=pi!=cs.length-1;st.page=pi;save();cnt();scrollTo(0,0)};
+ $("pv").onclick=()=>{pi--;show()};$("nx").onclick=()=>{pi++;show()};show();
+ cnt();tick=setInterval(clock,500);clock();
+}
+function cnt(){$("pg").textContent="第 "+((st.page||0)+1)+" / "+Q.length+" 題・已答 "+Object.keys(st.ans).length}
+function clock(){const r=LIM-Math.floor((Date.now()-st.start)/1000);if(r<=0){finish(true);return}
+ $("tm").textContent=String(Math.floor(r/60)).padStart(2,"0")+":"+String(r%60).padStart(2,"0");$("tm").classList.toggle("lo",r<60)}
+function finish(auto){clearInterval(tick);build();
+ if(!st.done){st.done=true;st.auto=!!auto;st.fin=Date.now();st.score=Q.reduce((s,q,i)=>s+(st.ans[i]==q.a?5:0),0);save();send()}
+ $("bar").hidden=true;app.onchange=null;
+ app.innerHTML=`<h1>測驗結果</h1><div class="card"><div class="sc-row"><div class="sc">${st.score} 分</div><button id="zoom" aria-label="放大成績">🔍</button></div>答對 ${st.score/5} / ${Q.length} 題${auto?"（時間到，自動交卷）":""}<br><span class="fl">此測驗只能作答一次。</span></div>`+
+ Q.map((q,i)=>{const u=st.ans[i],ok=u==q.a;return `<div class="card c"><span class="tag">${q.t}</span><b>${i+1}.</b> ${q.q} <span class="${ok?"ok":"no"}">${ok?"✔ 正確":"✘ 錯誤"}</span><div>${q.x||""}</div><div class="${cls(q)}">${q.o.map((o,j)=>`<label class="${j==q.a?"r":j==u?"w":""}">${q.t!=="是非題"?"("+"ABCD"[j]+") ":""}${o}${j==q.a?" ✔":""}${j==u&&!ok?" ← 你的答案":""}</label>`).join("")}</div>${u===undefined?'<span class="no">未作答</span>':""}</div>`}).join("");
+ $("zoom").onclick=()=>{const o=document.createElement("div");o.id="ov";o.innerHTML=`<b>${st.score}</b><span>分（點一下任意處關閉）</span>`;o.onclick=()=>o.remove();document.body.appendChild(o)};
+ scrollTo(0,0)}
+const API='https://script.google.com/macros/s/AKfycbzGExHkFEjTvOXMuelPnHmw87v0EhpNkMEfZwup9DoawEhnotOGB8d7EJVtiihhgL53ig/exec';  // 貼上 Apps Script 部署後的 /exec 網址
+function send(){if(!API||st.seat===undefined)return;
+ fetch(API,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({seat:st.seat,score:st.score,right:st.score/5,sec:Math.min(LIM,Math.round(((st.fin||Date.now())-st.start)/1000)),auto:!!st.auto})}).then(()=>{st.sent=1;save()}).catch(()=>{})}
+async function teacher(){
+ if(!API){app.innerHTML='<div class="card">尚未設定 API 網址</div>';return}
+ const k=window.tk||prompt('請輸入教師密碼');if(!k)return;
+ app.innerHTML='<p class="fl">載入中…</p>';
+ try{const r=await(await fetch(API+'?key='+encodeURIComponent(k))).json();
+  if(r.error){window.tk=null;app.innerHTML='<div class="card">密碼錯誤</div>';return}
+  window.tk=k;
+  const m={};r.rows.forEach(x=>{if(!m[x.seat]||x.time<m[x.seat].time)m[x.seat]=x});
+  const a=Object.values(m).sort((p,q)=>p.seat-q.seat),avg=a.length?Math.round(a.reduce((s,x)=>s+x.score,0)/a.length):0;
+  app.innerHTML=`<h1>全班成績</h1><div class="card">已繳交 ${a.length} 人｜平均 ${avg} 分 <button id="rf" style="margin-left:12px;padding:6px 14px">重新整理</button></div><div class="card"><table style="width:100%;border-collapse:collapse;text-align:center"><tr><th style="border-bottom:1px solid var(--bd);padding:6px">座號</th><th style="border-bottom:1px solid var(--bd);padding:6px">分數</th></tr>${a.map(x=>`<tr><td style="padding:6px">${x.seat}</td><td style="padding:6px"><b>${x.score}</b></td></tr>`).join('')}</table></div>`;
+  $("rf").onclick=teacher;
+ }catch(e){app.innerHTML='<div class="card">讀取失敗，請確認 API 網址與部署設定</div>'}}
+if(location.hash==="#teacher")teacher();
+else if(!st)intro();else if(st.done){finish();if(!st.sent)send()}else run();
+</script></body></html>
