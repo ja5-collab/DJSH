@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>資訊科技：流程圖繪製 (學生練習端)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(16, 185, 129, 0.8);
+        }
+        .parallelogram-shape {
+            transform: skewX(-12deg);
+        }
+        .parallelogram-content {
+            transform: skewX(12deg);
+        }
+        .diamond-shape {
+            transform: rotate(45deg);
+        }
+        .diamond-content {
+            transform: rotate(-45deg);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
+
+    <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-40 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+                    <span class="text-lg" aria-hidden="true">◇</span>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold text-white leading-tight">
+                        資訊科技：流程圖繪製學習網
+                    </h1>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <input type="text" id="student-seat-input" inputmode="numeric" placeholder="座號" class="bg-slate-800 border border-slate-700 text-xs text-white px-3 py-1.5 rounded-lg focus:outline-none focus:border-emerald-500 w-16 transition">
+                    <input type="text" id="student-name-input" placeholder="姓名" class="bg-slate-800 border border-slate-700 text-xs text-white px-3 py-1.5 rounded-lg focus:outline-none focus:border-emerald-500 w-28 sm:w-36 transition">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full flex flex-col gap-6">
+        
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2 text-xs text-emerald-400 font-semibold mb-1">
+                        <span class="" aria-hidden="true">◎</span>
+                        <span>題目挑戰</span>
+                    </div>
+                    <h2 id="question-title" class="text-lg sm:text-xl font-bold text-white leading-snug">
+                        載入中...
+                    </h2>
+                    <p id="question-desc" class="text-xs sm:text-sm text-slate-400 mt-1">
+                        請稍候，系統正在為您載入題目...
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="question-step-count" class="bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold px-3 py-2 rounded-xl">
+                        步驟：- 個
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- Left Side: Flowchart Symbols Palette -->
+            <div class="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                <div class="border-b border-slate-800 pb-3 flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                        <span class="text-emerald-400" aria-hidden="true">▣</span>
+                        <span>流程圖元件庫 (點擊選擇或拖曳)</span>
+                    </h3>
+                </div>
+
+                <div class="grid grid-cols-1 gap-3.5" id="blocks-palette">
+                    <!-- Start / End Node (Oval) -->
+                    <button onclick="selectShape('oval')" draggable="true" ondragstart="handleDragStart(event, 'oval')" id="shape-btn-oval" class="shape-btn group relative p-3.5 bg-gradient-to-r from-slate-800/90 to-slate-800/40 hover:from-emerald-950/40 hover:to-slate-800/80 border border-slate-700/80 hover:border-emerald-500/60 rounded-xl transition-all duration-200 text-left flex items-center justify-between shadow-md hover:shadow-emerald-500/10 hover:-translate-y-0.5 cursor-grab active:cursor-grabbing">
+                        <div class="flex items-center gap-3.5">
+                            <div class="w-12 h-10 rounded-xl bg-emerald-500/15 border border-emerald-400/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                                <svg class="w-7 h-4 text-emerald-400" viewBox="0 0 40 20" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <rect x="2" y="2" width="36" height="16" rx="8" class="fill-emerald-500/20" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-slate-100 group-hover:text-emerald-300 transition flex items-center gap-2">
+                                    <span>橢圓形</span>
+                                    <span class="text-[10px] font-mono font-medium text-emerald-400/90 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Terminal</span>
+                                </div>
+                                <div class="text-xs text-slate-400 mt-0.5">標示流程起點與終點 (開始/結束)</div>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Process Node (Rectangle) -->
+                    <button onclick="selectShape('rect')" draggable="true" ondragstart="handleDragStart(event, 'rect')" id="shape-btn-rect" class="shape-btn group relative p-3.5 bg-gradient-to-r from-slate-800/90 to-slate-800/40 hover:from-blue-950/40 hover:to-slate-800/80 border border-slate-700/80 hover:border-blue-500/60 rounded-xl transition-all duration-200 text-left flex items-center justify-between shadow-md hover:shadow-blue-500/10 hover:-translate-y-0.5 cursor-grab active:cursor-grabbing">
+                        <div class="flex items-center gap-3.5">
+                            <div class="w-12 h-10 rounded-xl bg-blue-500/15 border border-blue-400/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                                <svg class="w-7 h-5 text-blue-400" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <rect x="2" y="2" width="36" height="20" rx="3" class="fill-blue-500/20" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-slate-100 group-hover:text-blue-300 transition flex items-center gap-2">
+                                    <span>長方形</span>
+                                    <span class="text-[10px] font-mono font-medium text-blue-400/90 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">Process</span>
+                                </div>
+                                <div class="text-xs text-slate-400 mt-0.5">用於資料處理或算術運算 (處理)</div>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Input / Output Node (Parallelogram) -->
+                    <button onclick="selectShape('parallelogram')" draggable="true" ondragstart="handleDragStart(event, 'parallelogram')" id="shape-btn-parallelogram" class="shape-btn group relative p-3.5 bg-gradient-to-r from-slate-800/90 to-slate-800/40 hover:from-amber-950/40 hover:to-slate-800/80 border border-slate-700/80 hover:border-amber-500/60 rounded-xl transition-all duration-200 text-left flex items-center justify-between shadow-md hover:shadow-amber-500/10 hover:-translate-y-0.5 cursor-grab active:cursor-grabbing">
+                        <div class="flex items-center gap-3.5">
+                            <div class="w-12 h-10 rounded-xl bg-amber-500/15 border border-amber-400/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                                <svg class="w-7 h-5 text-amber-400" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polygon points="8,2 38,2 32,22 2,22" class="fill-amber-500/20" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-slate-100 group-hover:text-amber-300 transition flex items-center gap-2">
+                                    <span>平行四邊形</span>
+                                    <span class="text-[10px] font-mono font-medium text-amber-400/90 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">I / O</span>
+                                </div>
+                                <div class="text-xs text-slate-400 mt-0.5">用於資料輸入與結果印出 (輸入/輸出)</div>
+                            </div>
+                        </div>
+                    </button>
+
+                    <!-- Decision Node (Diamond) -->
+                    <button onclick="selectShape('diamond')" draggable="true" ondragstart="handleDragStart(event, 'diamond')" id="shape-btn-diamond" class="shape-btn group relative p-3.5 bg-gradient-to-r from-slate-800/90 to-slate-800/40 hover:from-purple-950/40 hover:to-slate-800/80 border border-slate-700/80 hover:border-purple-500/60 rounded-xl transition-all duration-200 text-left flex items-center justify-between shadow-md hover:shadow-purple-500/10 hover:-translate-y-0.5 cursor-grab active:cursor-grabbing">
+                        <div class="flex items-center gap-3.5">
+                            <div class="w-12 h-10 rounded-xl bg-purple-500/15 border border-purple-400/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                                <svg class="w-6 h-6 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                                    <polygon points="12,2 22,12 12,22 2,12" class="fill-purple-500/20" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-slate-100 group-hover:text-purple-300 transition flex items-center gap-2">
+                                    <span>菱形</span>
+                                    <span class="text-[10px] font-mono font-medium text-purple-400/90 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/20">Decision</span>
+                                </div>
+                                <div class="text-xs text-slate-400 mt-0.5">用於條件判斷與分支流程 (判斷)</div>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+
+                <div id="active-selection-indicator" class="text-xs text-slate-400 bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+                    <span>當前選擇圖形：</span>
+                    <span id="selected-shape-name" class="font-bold text-emerald-400">尚未選擇</span>
+                </div>
+            </div>
+
+            <!-- Right Side: Flowchart Construction Canvas -->
+            <div class="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col min-h-[480px]">
+                <div class="border-b border-slate-800 pb-3 mb-4 flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                        <span class="text-emerald-400" aria-hidden="true">⇢</span>
+                        <span>流程圖組合畫布</span>
+                    </h3>
+                    <button onclick="resetCanvas()" class="text-xs text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1 transition">
+                        <span class="" aria-hidden="true">↺</span>
+                        <span>清空重繪</span>
+                    </button>
+                </div>
+
+                <div id="flowchart-canvas" class="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4 py-4 flex flex-col items-center justify-start"></div>
+            </div>
+
+        </div>
+
+        <div id="feedback-box" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                    <span class="text-amber-400" aria-hidden="true">✔</span>
+                    <span>步驟診斷報告</span>
+                </h3>
+                <span id="diagnostic-summary" class="text-xs font-semibold text-slate-400">得分：-</span>
+            </div>
+            <ul id="feedback-list" class="space-y-2 text-xs"></ul>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div id="score-display-box" class="hidden flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xl font-black shadow-lg shadow-emerald-500/20" id="score-badge-num">
+                    0
+                </div>
+                <div>
+                    <div class="text-[11px] uppercase tracking-wider text-slate-400 font-bold">本次評分結果</div>
+                    <div class="text-xl font-black text-emerald-400" id="final-score-text">0 分</div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto ml-auto">
+                <button onclick="checkAnswer()" class="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-sm py-3 px-7 rounded-xl shadow-lg shadow-emerald-600/20 transition active:scale-95 flex items-center justify-center gap-2">
+                    <span class="text-base" aria-hidden="true">➤</span>
+                    <span>提交答案並上傳成績</span>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        // ★ 請貼上 Apps Script 部署後取得的「網頁應用程式網址」
+        const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbxy2ZidUWqody-4myKKssqwlwWaTAwcJit75stVr1GoEwa3ZG5DVCfm7djk0eH3rFtY/exec";
+
+        window.uploadStudentScore = async function(record) {
+            // 本機備份（同一台電腦上也查得到）
+            try {
+                const existing = JSON.parse(localStorage.getItem('flowchart_student_scores') || '[]');
+                existing.push({ id: 'local_' + Date.now(), ...record, timestamp: Date.now() });
+                localStorage.setItem('flowchart_student_scores', JSON.stringify(existing));
+            } catch (e) {
+                console.warn("LocalStorage save error:", e);
+            }
+
+            if (!SHEET_API_URL) return false;
+            try {
+                await fetch(SHEET_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(record)
+                });
+                return true;
+            } catch (err) {
+                console.warn("Sheet upload failed:", err);
+                return false;
+            }
+        };
+    </script>
+
+    <script>
+        const QUESTIONS = [
+            {
+                id: "q_sum",
+                title: "[基礎算術題] 兩個數字的和（兩數加總）",
+                desc: "請建立一個流程圖：輸入兩個數字 甲、乙，計算兩數之和，並輸出結果。",
+                maxScore: 70,
+                layout: [0,1,2,3,4],
+                solution: [
+                    { shape: "oval", label: "開始", keywords: ["開始", "start"] },
+                    { shape: "parallelogram", label: "輸入 甲、乙", keywords: ["甲", "乙", "輸入", "a", "b"] },
+                    { shape: "rect", label: "和 = 甲 + 乙", keywords: ["和", "+", "加", "sum"] },
+                    { shape: "parallelogram", label: "輸出 和", keywords: ["和", "輸出", "印出", "sum"] },
+                    { shape: "oval", label: "結束", keywords: ["結束", "end"] }
+                ]
+            },
+            {
+                id: "q_pass",
+                title: "[基礎單條件選擇] 判斷成績是否及格",
+                desc: "請建立流程圖：輸入成績，判斷成績是否大於等於 60。請將「是」的分支放在左邊、「否」的分支放在右邊，兩邊完成後再往下合流。",
+                maxScore: 72,
+                layout: [0,1,{d:2,y:[3],n:[4]},5],
+                solution: [
+                    { shape: "oval", label: "開始", keywords: ["開始", "start"] },
+                    { shape: "parallelogram", label: "輸入 成績", keywords: ["成績", "分數", "輸入", "score"] },
+                    { shape: "diamond", label: "成績 ≥ 60 ？", keywords: ["成績", "分數", "score", "≥", ">=", "大於等於", "≧", "60"] },
+                    { shape: "parallelogram", label: "輸出「及格」", keywords: ["及格", "輸出", "印出", "pass"] },
+                    { shape: "parallelogram", label: "輸出「不及格」", keywords: ["不及格", "輸出", "印出", "fail"] },
+                    { shape: "oval", label: "結束", keywords: ["結束", "end"] }
+                ]
+            },
+            {
+                id: "q_vending",
+                title: "[分支與算式運算] 自動販賣機付款與找零",
+                desc: "請建立流程圖：輸入商品價格與付款金額，若付款金額足夠，計算並輸出找零；若不足，輸出「金額不足」。請將「是」的分支放在左邊、「否」的分支放在右邊，兩邊完成後再往下合流。",
+                maxScore: 98,
+                layout: [0,1,{d:2,y:[3,4],n:[5]},6],
+                solution: [
+                    { shape: "oval", label: "開始", keywords: ["開始", "start"] },
+                    { shape: "parallelogram", label: "輸入 價格、付款金額", keywords: ["價格", "付款", "金額", "輸入", "price", "paid"] },
+                    { shape: "diamond", label: "付款金額 ≥ 價格 ？", keywords: ["付款", "金額", "價格", "≥", ">=", "大於等於", "≧", "paid", "price"] },
+                    { shape: "rect", label: "找零 = 付款金額 − 價格", keywords: ["找零", "−", "-", "減", "change"] },
+                    { shape: "parallelogram", label: "輸出 找零", keywords: ["找零", "輸出", "印出", "change"] },
+                    { shape: "parallelogram", label: "輸出「金額不足」", keywords: ["不足", "輸出", "印出"] },
+                    { shape: "oval", label: "結束", keywords: ["結束", "end"] }
+                ]
+            }
+        ];
+
+        let currentQ = null;
+        let selectedShape = null;
+        let slotStates = [];
+
+        const SHAPE_NAMES = {
+            'oval': '橢圓形 (Terminal)',
+            'rect': '長方形 (Process)',
+            'parallelogram': '平行四邊形 (I/O)',
+            'diamond': '菱形 (Decision)'
+        };
+
+        window.pickRandomQuestion = function() {
+            const randomIndex = Math.floor(Math.random() * QUESTIONS.length);
+            currentQ = QUESTIONS[randomIndex];
+            slotStates = currentQ.solution.map(() => ({ shape: null, text: "" }));
+
+            document.getElementById("question-title").innerText = currentQ.title;
+            document.getElementById("question-desc").innerText = currentQ.desc;
+            document.getElementById("question-step-count").innerText = `步驟：${currentQ.solution.length} 個`;
+
+            document.getElementById("feedback-box").classList.add("hidden");
+            document.getElementById("score-display-box").classList.add("hidden");
+
+            renderCanvasSlots();
+        };
+
+        window.selectShape = function(shape) {
+            selectedShape = shape;
+            document.getElementById("selected-shape-name").innerText = SHAPE_NAMES[shape] || shape;
+            
+            // Visual highlight on sidebar buttons
+            document.querySelectorAll(".shape-btn").forEach(btn => btn.classList.remove("ring-2", "ring-emerald-500"));
+            const activeBtn = document.getElementById(`shape-btn-${shape}`);
+            if (activeBtn) activeBtn.classList.add("ring-2", "ring-emerald-500");
+        };
+
+        window.handleDragStart = function(event, shape) {
+            selectShape(shape);
+            event.dataTransfer.setData("text/plain", shape);
+        };
+
+        window.handleDragOver = function(event) {
+            event.preventDefault();
+        };
+
+        window.handleDrop = function(event, idx) {
+            event.preventDefault();
+            const shape = event.dataTransfer.getData("text/plain") || selectedShape;
+            if (shape) {
+                applyShapeToSlot(idx, shape);
+            }
+        };
+
+        window.applyShapeToSlot = function(idx, shapeOverride = null) {
+            const shape = shapeOverride || selectedShape;
+            if (!shape) {
+                showToast("請先點擊左側選擇一個流程圖圖形！", "warning");
+                return;
+            }
+            if (!slotStates[idx]) slotStates[idx] = { shape: null, text: "" };
+            slotStates[idx].shape = shape;
+            renderCanvasSlots();
+        };
+
+        window.updateSlotText = function(idx, text) {
+            if (!slotStates[idx]) slotStates[idx] = { shape: null, text: "" };
+            slotStates[idx].text = text;
+        };
+
+        window.resetCanvas = function() {
+            if (!currentQ) return;
+            slotStates = currentQ.solution.map(() => ({ shape: null, text: "" }));
+            document.getElementById("feedback-box").classList.add("hidden");
+            document.getElementById("score-display-box").classList.add("hidden");
+            renderCanvasSlots();
+            showToast("畫布已清空", "info");
+        };
+
+        window.renderCanvasSlots = function() {
+            const canvas = document.getElementById("flowchart-canvas");
+            if (!canvas || !currentQ) return;
+
+            const arrow = `<div class="text-emerald-500/80 text-lg leading-none my-1 select-none">↓</div>`;
+            const slotHtml = (idx) => `
+                <div ondragover="handleDragOver(event)" ondrop="handleDrop(event, ${idx})" onclick="applyShapeToSlot(${idx})" class="w-full flex justify-center cursor-pointer group">
+                    ${renderSlotNode(idx, slotStates[idx] || { shape: null, text: "" }, currentQ.solution[idx])}
+                </div>`;
+            const column = (list, chip) => `
+                <div class="flex flex-col items-center min-w-0">
+                    ${chip}
+                    ${list.map(idx => arrow + `<div class="w-full">${slotHtml(idx)}</div>`).join("")}
+                </div>`;
+            const yesChip = `<span class="text-[11px] font-bold px-3 py-0.5 rounded-full border border-emerald-500/60 bg-emerald-950/60 text-emerald-300">是 (Yes)</span>`;
+            const noChip = `<span class="text-[11px] font-bold px-3 py-0.5 rounded-full border border-rose-500/60 bg-rose-950/60 text-rose-300">否 (No)</span>`;
+
+            let html = `<div class="flex flex-col items-center w-full">`;
+            currentQ.layout.forEach((item, i) => {
+                if (i > 0) html += arrow;
+                if (typeof item === "number") {
+                    html += `<div class="w-full max-w-md">${slotHtml(item)}</div>`;
+                } else {
+                    html += `<div class="w-full max-w-md">${slotHtml(item.d)}</div>`;
+                    html += `<div class="grid grid-cols-2 gap-4 w-full max-w-2xl mt-1">${column(item.y, yesChip)}${column(item.n, noChip)}</div>`;
+                }
+            });
+            html += `</div>`;
+            canvas.innerHTML = html;
+        };
+
+        function renderSlotNode(idx, state, expectedSol) {
+            const shape = state.shape;
+            const text = state.text || "";
+
+            if (!shape) {
+                return `
+                    <div class="w-full h-16 rounded-2xl border-2 border-dashed border-slate-700 hover:border-emerald-500/80 bg-slate-950/60 flex items-center justify-between px-4 text-slate-400 text-xs sm:text-sm font-semibold transition group-hover:bg-slate-800/40">
+                        <span class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-slate-800 text-slate-300 text-xs flex items-center justify-center font-mono font-bold">${idx + 1}</span>
+                            <span>步驟 ${idx + 1}：點擊或放置圖形</span>
+                        </span>
+                        <span class="text-slate-500 group-hover:text-emerald-400" aria-hidden="true">＋</span>
+                    </div>
+                `;
+            }
+
+            if (shape === "oval") {
+                return `
+                    <div class="relative w-full h-14 bg-emerald-950/50 border-2 border-emerald-500/80 text-emerald-200 rounded-full flex items-center justify-between px-6 shadow-lg shadow-emerald-950/40">
+                        <div class="w-6"></div>
+                        <input type="text" value="${text}" onchange="updateSlotText(${idx}, this.value)" onclick="event.stopPropagation()" placeholder="" class="bg-transparent text-center font-bold text-sm text-white focus:outline-none w-3/4 border-b border-emerald-500/30 focus:border-emerald-400">
+                        <button onclick="event.stopPropagation(); removeShapeFromSlot(${idx})" class="text-slate-400 hover:text-rose-400 text-xs w-6 text-right"><span class="" aria-hidden="true">✕</span></button>
+                    </div>
+                `;
+            }
+
+            if (shape === "rect") {
+                return `
+                    <div class="relative w-full h-14 bg-blue-950/50 border-2 border-blue-500/80 text-blue-200 rounded-xl flex items-center justify-between px-6 shadow-lg shadow-blue-950/40">
+                        <div class="w-6"></div>
+                        <input type="text" value="${text}" onchange="updateSlotText(${idx}, this.value)" onclick="event.stopPropagation()" placeholder="" class="bg-transparent text-center font-bold text-sm text-white focus:outline-none w-3/4 border-b border-blue-500/30 focus:border-blue-400">
+                        <button onclick="event.stopPropagation(); removeShapeFromSlot(${idx})" class="text-slate-400 hover:text-rose-400 text-xs w-6 text-right"><span class="" aria-hidden="true">✕</span></button>
+                    </div>
+                `;
+            }
+
+            if (shape === "parallelogram") {
+                return `
+                    <div class="relative w-full h-14 bg-amber-950/50 border-2 border-amber-500/80 text-amber-200 parallelogram-shape rounded-lg flex items-center justify-between px-8 shadow-lg shadow-amber-950/40">
+                        <div class="parallelogram-content w-full flex items-center justify-between">
+                            <div class="w-6"></div>
+                            <input type="text" value="${text}" onchange="updateSlotText(${idx}, this.value)" onclick="event.stopPropagation()" placeholder="" class="bg-transparent text-center font-bold text-sm text-white focus:outline-none w-3/4 border-b border-amber-500/30 focus:border-amber-400">
+                            <button onclick="event.stopPropagation(); removeShapeFromSlot(${idx})" class="text-slate-400 hover:text-rose-400 text-xs w-6 text-right"><span class="" aria-hidden="true">✕</span></button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (shape === "diamond") {
+                const clip = "clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)";
+                return `
+                    <div class="relative w-full h-24">
+                        <div class="absolute inset-0 bg-purple-500" style="${clip}"></div>
+                        <div class="absolute inset-[2px] bg-purple-950" style="${clip}"></div>
+                        <div class="absolute inset-0 flex items-center justify-center gap-1">
+                            <input type="text" value="${text}" onchange="updateSlotText(${idx}, this.value)" onclick="event.stopPropagation()" placeholder="" class="bg-transparent text-center font-bold text-sm text-white focus:outline-none w-1/2 border-b border-purple-500/40 focus:border-purple-400">
+                            <button onclick="event.stopPropagation(); removeShapeFromSlot(${idx})" class="text-slate-400 hover:text-rose-400 text-xs w-5">✕</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        window.removeShapeFromSlot = function(idx) {
+            if (slotStates[idx]) {
+                slotStates[idx] = { shape: null, text: "" };
+                renderCanvasSlots();
+            }
+        };
+
+        window.checkAnswer = function() {
+            const seat = parseInt(document.getElementById("student-seat-input").value.trim(), 10);
+            const nameOnly = document.getElementById("student-name-input").value.trim();
+            if (!(seat > 0) || !nameOnly) { showToast("請先填寫座號（數字）與姓名", "warning"); return; }
+            const studentName = seat + " " + nameOnly;
+            const submitKey = 'flowchart_submitted_' + seat;
+            let already = false;
+            try { already = !!localStorage.getItem(submitKey); } catch (e) {}
+            if (already) { showToast("座號 " + seat + " 已經繳交過了，不能重複繳交", "warning"); return; }
+            try { localStorage.setItem(submitKey, '1'); } catch (e) {}
+            if (!currentQ) return;
+
+            let earnedPoints = 0;
+            const maxScore = currentQ.maxScore || 70;   // 每題滿分不同（70 / 72 / 85）
+            const perStepScore = maxScore / currentQ.solution.length;
+            const feedbackItems = [];
+
+            currentQ.solution.forEach((sol, idx) => {
+                const userSlot = slotStates[idx] || {};
+                const shapeCorrect = userSlot.shape === sol.shape;
+                
+                let textCorrect = true;
+                if (sol.keywords && sol.keywords.length > 0) {
+                    const userText = (userSlot.text || "").toLowerCase();
+                    textCorrect = sol.keywords.some(kw => userText.includes(kw.toLowerCase()));
+                }
+
+                if (shapeCorrect) {
+                    earnedPoints += perStepScore * 0.7; // 70% for shape
+                    if (textCorrect) earnedPoints += perStepScore * 0.3; // 30% for text
+                    
+                    feedbackItems.push(`
+                        <li class="flex items-center gap-2 text-emerald-400 bg-emerald-950/30 p-2 rounded-lg border border-emerald-900">
+                            <span class="" aria-hidden="true">✔</span>
+                            <span>步驟 ${idx + 1}: 圖形正確 (${SHAPE_NAMES[sol.shape]})</span>
+                        </li>
+                    `);
+                } else {
+                    feedbackItems.push(`
+                        <li class="flex items-center gap-2 text-rose-400 bg-rose-950/30 p-2 rounded-lg border border-rose-900">
+                            <span class="" aria-hidden="true">✕</span>
+                            <span>步驟 ${idx + 1}: 圖形需調整，建議為：${SHAPE_NAMES[sol.shape]}</span>
+                        </li>
+                    `);
+                }
+            });
+
+            const finalScore = Math.round(earnedPoints);
+            const correctRatio = finalScore / maxScore;
+            
+            document.getElementById("score-badge-num").innerText = finalScore;
+            document.getElementById("final-score-text").innerText = `${finalScore} / ${maxScore} 分`;
+            document.getElementById("score-display-box").classList.remove("hidden");
+
+            document.getElementById("diagnostic-summary").innerText = `得分率：${Math.round(correctRatio * 100)}%`;
+            document.getElementById("feedback-list").innerHTML = feedbackItems.join("");
+            document.getElementById("feedback-box").classList.remove("hidden");
+
+            // Confetti celebration if high score
+            if (correctRatio >= 0.8 && typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+
+            // Upload score to Google Sheet
+            const tone = correctRatio >= 0.6 ? "success" : "warning";
+            window.uploadStudentScore({
+                studentName: studentName,
+                seat: seat,
+                name: nameOnly,
+                questionTitle: currentQ.title,
+                score: finalScore,
+                maxScore: maxScore
+            }).then(ok => {
+                if (!ok) { try { localStorage.removeItem(submitKey); } catch (e) {} }
+                if (ok) showToast(`成績已送出！得分：${finalScore} 分`, tone);
+                else showToast(`得分 ${finalScore} 分，但成績尚未傳到老師的試算表，請通知老師`, "warning");
+            });
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            // 老師在網址後加 #reset 可清除此裝置的繳交紀錄（讓該生重考）
+            if (location.hash === '#reset') {
+                try { Object.keys(localStorage).filter(k => k.startsWith('flowchart_submitted_')).forEach(k => localStorage.removeItem(k)); } catch (e) {}
+                history.replaceState(null, '', location.pathname + location.search);
+            }
+            window.pickRandomQuestion();
+        });
+
+        function showToast(msg, type="info") {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            
+            let bgClass = "bg-slate-900 border-slate-700 text-slate-200";
+            if (type === "success") bgClass = "bg-emerald-950 border-emerald-700 text-emerald-200";
+            if (type === "warning") bgClass = "bg-amber-950 border-amber-700 text-amber-200";
+
+            toast.className = `${bgClass} border text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl pointer-events-auto flex items-center gap-2 transition-all duration-300 transform translate-y-2`;
+            toast.innerHTML = `<span class="" aria-hidden="true">ℹ</span><span>${msg}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add("opacity-0", "translate-y-4");
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
