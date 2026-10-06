@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>定期評量測驗系統</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1d2330;--mu:#667085;--bd:#d9dde5;--ac:#2f6fed;--ok:#1a8f4c;--no:#d64545}
+@media (prefers-color-scheme:dark){:root{--bg:#14171d;--card:#1e222b;--fg:#e8eaf0;--mu:#9aa3b2;--bd:#343a47;--ac:#6b9bff;--ok:#4cc98a;--no:#ff7b7b}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+main{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:22px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin:12px 0}
+.bar{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;padding:8px 16px;font-weight:600}
+.w{color:var(--no)}.mu{color:var(--mu);font-size:14px}.big{font-size:48px;font-weight:700;color:var(--ac)}
+.opts{display:grid;gap:6px;margin-top:8px}
+label{display:flex;gap:8px;border:1px solid var(--bd);border-radius:8px;padding:8px 10px;cursor:pointer}
+label:has(input:checked){border-color:var(--ac);background:color-mix(in srgb,var(--ac) 12%,transparent)}
+button{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:10px 18px;font-size:16px;cursor:pointer}
+button.s{background:var(--mu)}button:disabled{opacity:.4}
+input[type=text]{font-size:16px;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg);box-sizing:border-box}
+.chips{display:flex;gap:8px;flex-wrap:wrap}.nav{display:flex;justify-content:space-between;margin:16px 0}
+.bad{border-left:4px solid var(--no)}.y{color:var(--ok)}.n{color:var(--no)}
+table{width:100%;border-collapse:collapse;text-align:center}th,td{padding:6px;border-bottom:1px solid var(--bd)}
+.stat{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
+.fc{color:var(--fg)}.fc text{fill:currentColor;stroke:none}.fc rect,.fc path{fill:none;stroke:currentColor;stroke-width:1.2}.fc marker path{fill:currentColor}
+.ctx{background:var(--bg);border-left:4px solid var(--ac);padding:8px 12px;margin:8px 0;border-radius:6px;font-size:15px}
+.g2{grid-template-columns:1fr 1fr}
+.mag{position:fixed;inset:0;z-index:99;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:zoom-out;text-align:center}
+.mag .num{font-size:min(60vw,55vh);font-weight:800;line-height:1;color:var(--ac)}
+.mag .mu{font-size:20px}
+</style></head><body>
+<div id="bar" class="bar" hidden><span id="prog"></span><span id="tm"></span></div>
+<main id="app"></main>
+<script>
+// ★ 貼上 Apps Script 部署後的 /exec 網址
+const API='';
+const N=10, LIM=30*60*1000, K='quiz_v2', L='ABCD', PER=100/(2*N);
+
+const MK='<defs><marker id="a" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L8 4L0 8z"/></marker></defs>';
+function fc(items){const cx=130;let y=0,s='';const seg=(a,b)=>`<path d="M${cx} ${a}V${b}" marker-end="url(#a)"/>`;
+const box=(t,y)=>{const rd=t[0]=='@';if(rd)t=t.slice(1);return `<rect x="${cx-58}" y="${y}" width="116" height="26" rx="${rd?13:0}"/><text x="${cx}" y="${y+17}" text-anchor="middle">${t}</text>`};
+items.forEach((it,i)=>{if(i==0){y=10}else{s+=seg(y,y+14);y+=14}
+if(typeof it=='string'){s+=box(it,y);y+=26}else{const cy=y+24;
+s+=`<path d="M${cx} ${y}L${cx+72} ${cy}L${cx} ${y+48}L${cx-72} ${cy}Z"/><text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="10">${it.q}</text>${it.tag?`<text x="2" y="${y+10}" font-size="10" style="fill:var(--ac)">${it.tag}</text>`:''}<text x="${cx+4}" y="${y+60}" font-size="10">否</text><text x="${cx+76}" y="${cy-4}" font-size="10">是</text>`;
+let b=y+48;it.body.forEach(t=>{s+=seg(b,b+14);b+=14;s+=box(t,b);b+=26});
+s+=`<path d="M${cx-58} ${b-13}H${cx-95}V${cy}H${cx-72}" marker-end="url(#a)"/>`;const e=b+14;s+=`<path d="M${cx+72} ${cy}H${cx+95}V${e}H${cx}"/>`;y=e}});
+s+=seg(y,y+14);y+=18;return `<svg class="fc" viewBox="0 0 260 ${y}" width="100%" style="max-width:260px" font-size="11">${MK}${s}</svg>`}
+const sv1=p=>`<svg class="fc" viewBox="0 0 100 40" width="90">${p}</svg>`;
+const S={para:sv1('<path d="M22 5H95L78 35H5Z"/>'),dia:sv1('<path d="M50 3L95 20L50 37L5 20Z"/>'),arrow:sv1('<path d="M5 20H88M88 20L79 15M88 20L79 25"/>'),term:sv1('<rect x="5" y="8" width="90" height="24" rx="12"/>')};
+const CAP=`<svg class="fc" viewBox="0 0 320 175" width="100%" style="max-width:340px" font-size="9"><rect x="70" y="52" width="100" height="70"/><rect x="82" y="62" width="76" height="40"/><text x="120" y="78" text-anchor="middle">安全認證</text><text x="120" y="93" text-anchor="middle">請輸入圖中文字</text><rect x="14" y="8" width="96" height="34" rx="8"/><text x="62" y="22" text-anchor="middle">來訂電影票！</text><text x="62" y="35" text-anchor="middle">這什麼啊？</text><rect x="150" y="4" width="166" height="46" rx="8"/><text x="233" y="19" text-anchor="middle">如果沒有識別碼，有人會用</text><text x="233" y="31" text-anchor="middle">程式自動訂票，那你現在就</text><text x="233" y="43" text-anchor="middle">訂不到票囉！</text><circle cx="265" cy="80" r="10"/><path d="M245 130V100H285V130"/><text x="265" y="145" text-anchor="middle">程式設計師</text><rect x="14" y="132" width="150" height="36" rx="8"/><text x="89" y="147" text-anchor="middle">為什麼要輸入識別碼？</text><text x="89" y="160" text-anchor="middle">字那麼醜誰看得懂？</text></svg>`;
+const Q=(q,y)=>({q,body:y});
+const rq=Q('米飯散開了嗎？',['翻炒']);
+const q1=[['量溫度',Q('油熱了嗎？',['加熱'])],[Q('油熱了嗎？',['加熱','量溫度'])],[Q('油溫到150度了嗎？',['加熱'])],['量溫度',Q('油溫到150度了嗎？',['加熱'])]].map(fc);
+const q3=[['加入米飯',rq,'加入火腿','翻炒 1 分鐘','加入調味料拌勻'],['加入米飯',rq,'加入火腿','加入調味料拌勻'],['加入米飯',Q('米飯散開了嗎？',['翻炒','加入火腿']),'加入調味料拌勻'],['加入米飯','加入火腿',rq,'加入調味料拌勻']].map(fc);
+const CX="拜特放學回到家時看到桌上香噴噴的蛋炒飯，他想：蛋炒飯製作過程是不是也能用流程圖完成呢？於是他上網搜尋蛋炒飯的製作過程並畫成流程圖，請根據下圖回答下列問題。<div style='text-align:center'>"+fc(['@開始','放入適量的油至鍋中',Object.assign(Q('油熱了嗎？',['加熱']),{tag:'A部分'}),'開中火，加入蛋',Q('蛋凝固了嗎？',['在鍋中快速攪拌']),'加入米飯',Q('米飯散開了嗎？',['翻炒']),'加入調味料拌勻','@結束'])+"</div>";
+
+// 是非題：[題目, 答案(1=正確,0=錯誤)]；想加題就照格式往下加
+const TF=[
+["在流程圖中，下方的符號是程式流程圖的決策或條件判斷的符號。",0,'para'],
+["在流程圖中，使用下方的符號時，結果只能為「是」或「否」。",1,'dia'],
+["有邏輯性解決問題的方法，稱為演算法。",1],
+["流程圖的符號有制訂標準，無法依個人喜好來繪製。",1],
+["繪製流程圖的好處是簡單易懂，方便判讀與相互交流。",1],
+["電腦發展的歷史比程式語言早。",0],
+["使用不同指令集的中央處理器，所對應的組合語言語法也會不同。",1],
+["以高階語言所設計的程式，不用再轉譯成機器語言，就能被硬體執行。",0],
+["為完成某項工作而依其邏輯順序寫成的一連串指令，就稱為程式。",1],
+["運算思維就是解決問題的思維模式。",1],
+["為了讓網友認識自己，可以將自己的出生年月日、手機電話清楚標示在網路上。",0],
+["在網路上散播色情影音檔是違法的網路行為。",1],
+["危害資訊安全的原因，一定是人為破壞。",0],
+["密碼管理重點是不要告訴別人，不可用電子郵件或經由他人轉交密碼。",1]];
+
+// 選擇題：[題目, [選項], 答案index(0=A)]
+const MC=[
+["請問下列符號中，哪一個圖例在流程圖中代表開始／結束？",[S.para,S.arrow,S.term,S.dia],2],
+["關於下圖情境的敘述，下列何者正確？"+CAP,["杜絕不實資訊的散布。","不隨意盜取圖片，尊重他人的著作權。","安全認證系統可以保障大多數使用者的權益。","避免使用盜版軟體。"],2],
+["下列哪一項是繪製流程圖的好處？",["幫助我們思考動作的過程。","以圖形表現，簡單易懂。","符號統一，方便流通。","以上皆是。"],3],
+["程式語言的首要功能為下列何者？",["讓電腦按照指令的邏輯順序來完成工作。","讓人們再學一種不同的語言。","把數學方程式變成一種語言。","一級方程式賽車專用的語言。"],0],
+["依據使用者輸入的月分顯示季節，使用哪一種控制流程結構較適合？",["循序結構","選擇結構","重複結構","跳躍結構"],1],
+["常見的英文簡稱「AI」，是下列何者的簡稱？",["自動生產","節約能源","電動汽車","人工智慧"],3],
+["下列哪一項是電腦上網的設備之一？",["掃描器","數據機","繪圖機","光碟機"],1],
+["下列何者最能確保通訊資料的安全性？",["壓縮資料","備份資料","分割資料","加密資料"],3],
+["下列何者是虛擬實境的英文與縮寫？",["Virtual Reality，簡稱 VR。","Internet of Things，簡稱 IoT。","Augmented Reality，簡稱 AR。","Mixed Reality，簡稱 MR。"],0],
+["下列何者是違法的網路行為？",["在網路上散播色情影音檔","傳送群組訊息一同團購禮品","呼朋引伴玩網路對戰遊戲","網路現場直播自己創意舞蹈"],0],
+["阿亮將日本連載漫畫掃描成圖檔供人下載，這樣的行為觸犯下列何者？",["刑法","民法","著作權法","個人資料保護法"],2],
+["可以直接被電腦接受的語言是？",["Java","C++","機器語言","組合語言"],2],
+["關於資訊產業的敘述，下列何者「錯誤」？",["對其從業人員素質要求高","產業間競爭激烈","產品生命週期長","產業營運國際化程度高"],2],
+["請問以下哪個「不是」個人資料保護法定義的個人資料？",["身分證字號","出生年月日","車牌號碼","手機號碼"],2]];
+
+// 素養題組：[情境, [[題目, [選項], 答案index], ...3題]]；每次測驗隨機抽 1 組
+const GP=[
+[CX,[
+["拜特將油放入鍋中後，等了很久都不知道油熱了沒，所以他覺得流程圖中可以再增加一些動作協助確認，下列哪個圖形適合替代 A 部分，讓拜特更清楚知道什麼時候可以加入蛋？",q1,3],
+["拜特完成蛋炒飯後，發現鍋底仍殘留許多油，若想使用剛好的油量，下列哪個選項最符合流程圖中「放入適量的油至鍋中」的油量？",["放入鋪滿鍋底薄薄一層的油","放入 50 毫升的油","放入米飯重量 5％的油","放入兩匙油"],2],
+["拜特希望在蛋炒飯中加入火腿增加風味，網路查詢建議米飯炒開之後，再放入火腿翻炒即可，請問下面哪項流程較符合網路的建議？",q3,0]]],
+["資訊科技與現在生活息息相關，有許多便利的事物都因資訊科技而生。請根據資訊科技與人類生活的互動回答下列問題。",[
+["針對餐廳用餐使用手機點餐，下列哪項敘述「不是」手機點餐的優點？",["同桌的人可以各自拿起行動裝置線上觀看菜色。","要調整菜單與金額非常麻煩。","可以減少紙本菜單的浪費，並能即時讓顧客知道哪些菜已售完。","可以讓廚房收到訂單後就製作餐點，不用經過其他服務生點菜與遞單。"],1],
+["現在有許多智慧家電在家中運作，針對智慧家電下列哪項操作是正確的使用方法？",["連網智慧家電都不用設定帳號密碼，這樣才能方便使用。","有智慧家電我們就可以完全信任設備，不用定期進行檢查。","智慧家電協助我們很多事情，所以我們不用再學習傳統技術與能力。","在使用智慧家電時，仍需注意設備是否有正常運作，耗材是否有定期更換。"],3],
+["汽車輔助駕駛可以幫助駕駛人遇到突發狀況時降低風險，下列哪項敘述為正確的使用方式？",["雖然有輔助駕駛，但雙手仍要緊握方向盤，隨時注意周遭路況。","有輔助駕駛幫忙跟車與煞車，所以可以邊開車邊看影片。","有輔助駕駛幫忙維持車道不會偏移，所以可以放開雙手開車。","有倒車雷達與車身雷達幫忙偵測周圍的物體，所以停車時可以完全信任這些雷達，只要沒有警報聲就是沒東西。"],0]]]];
+const MCA=MC.concat(...GP.map(([c,qs])=>qs.map(q=>[q[0],q[1],q[2],c])));
+// 選擇題：從一般題抽 N-3 題，再隨機插入 1 組題組（3 題連續）
+const pickMC=()=>{const a=shuf([...Array(MC.length).keys()]).slice(0,N-3),g=Math.floor(Math.random()*GP.length),b=[0,1,2].map(i=>MC.length+3*g+i);a.splice(Math.floor(Math.random()*(a.length+1)),0,...b);return a};
+
+const $=s=>document.querySelector(s), app=$('#app');
+const ld=()=>{try{return JSON.parse(localStorage.getItem(K))}catch(e){return null}};
+const sv=()=>{try{localStorage.setItem(K,JSON.stringify(st))}catch(e){}};
+const shuf=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
+const pick=n=>shuf([...Array(n).keys()]).slice(0,N);
+const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+let st=null,tmr=null,pg=0,armed=false;
+
+const items=()=>[
+ ...st.tf.map(i=>({k:'t'+i,s:0,q:TF[i][0],a:TF[i][1],g:TF[i][2]})),
+ ...st.mc.map(i=>({k:'m'+i,s:1,q:MCA[i][0],o:MCA[i][1],a:MCA[i][2],c:MCA[i][3]}))];
+const cnt=s=>items().filter(x=>x.s==s&&st.ans[x.k]!==undefined).length;
+
+function start(){
+ app.innerHTML=`<h1>📝 定期評量</h1><div class="card"><ul>
+ <li>是非 ${N} 題 ＋ 選擇 ${N} 題（含 1 組 3 題的素養題組），每題 ${PER} 分，滿分 100 分。</li>
+ <li>限時 30 分鐘，時間到自動交卷。</li>
+ <li><b>只能測驗一次</b>，重新整理頁面不會重置計時。</li></ul>
+ <p>班級 <input type="text" id="cls" style="width:26%"> 座號 <input type="text" id="no" inputmode="numeric" style="width:20%"> 姓名 <input type="text" id="nm" style="width:28%"></p>
+ <button id="go">開始測驗</button></div>`;
+ $('#go').onclick=()=>{
+  const cls=$('#cls').value.trim(),no=parseInt($('#no').value),name=$('#nm').value.trim();
+  if(!cls||!(no>0)||!name){alert('請填寫班級、座號（數字）與姓名');return}
+  st={cls,no,name,start:Date.now(),tf:pick(TF.length),mc:pickMC(),ans:{},done:0};
+  sv();run();
+ };
+}
+
+const chips=()=>['是非題','選擇題'].map((t,i)=>`<button class="${i==pg?'':'s'}" data-p="${i}">${t}（${cnt(i)}/${N}）</button>`).join('');
+function upd(){$('#prog').textContent=`已作答 ${Object.keys(st.ans).length}/${2*N}`;const c=$('#ch');if(c)c.innerHTML=chips()}
+
+function run(){
+ $('#bar').hidden=false;show();upd();tick();clearInterval(tmr);tmr=setInterval(tick,1000);
+}
+function show(){
+ armed=false;
+ let h=`<div id="ch" class="chips">${chips()}</div>`;
+ let pc;
+ items().filter(x=>x.s==pg).forEach((x,n)=>{
+  if(x.c&&x.c!==pc)h+=`<div class="card"><b>題組</b>：${x.c}</div>`;pc=x.c;
+  const img=x.s&&x.o[0].startsWith('<svg'),o=x.s?x.o.map((t,i)=>[`(${L[i]}) ${t}`,i]):[['正確',1],['錯誤',0]];
+  h+=`<div class="card"><b>${n+1}.</b> ${x.q}${x.g?`<div>${S[x.g]}</div>`:''}<div class="opts${img?' g2':''}">${o.map(([t,v])=>`<label><input type="radio" name="${x.k}" value="${v}" ${st.ans[x.k]===v?'checked':''}><span>${t}</span></label>`).join('')}</div></div>`;
+ });
+ h+=`<div class="nav"><button class="s" data-p="0" ${pg==0?'disabled':''}>← 上一頁</button>${pg==0?'<button data-p="1">下一頁 →</button>':'<button id="sub">交卷</button>'}</div><div class="mu" id="hint"></div>`;
+ app.innerHTML=h;window.scrollTo(0,0);
+}
+app.onchange=e=>{if(e.target.type=='radio'){st.ans[e.target.name]=+e.target.value;sv();upd()}};
+app.onclick=e=>{
+ const b=e.target.closest('button');if(!b||b.disabled)return;
+ if(b.dataset.p!==undefined){pg=+b.dataset.p;show();return}
+ if(b.id=='sub'){
+  if(!armed){armed=true;b.textContent='再按一次確認交卷';const m=2*N-Object.keys(st.ans).length;$('#hint').textContent=m?`尚有 ${m} 題未作答（可點上方分頁回去作答）`:'所有題目皆已作答';}
+  else finish();
+ }
+};
+function tick(){
+ const r=st.start+LIM-Date.now();if(r<=0){finish(true);return}
+ const t=$('#tm');t.textContent=`⏱ ${String(Math.floor(r/60000)).padStart(2,'0')}:${String(Math.floor(r/1000)%60).padStart(2,'0')}`;
+ t.className=r<300000?'w':'';
+}
+function finish(auto){
+ clearInterval(tmr);const it=items();
+ st.a=[0,1].map(s=>it.filter(x=>x.s==s&&st.ans[x.k]===x.a).length);
+ st.tot=Math.round((st.a[0]+st.a[1])*PER);st.done=Date.now();st.auto=!!auto;sv();send();result();
+}
+function send(){
+ if(!/^https/.test(API))return;
+ fetch(API,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},
+  body:JSON.stringify({cls:st.cls,no:st.no,name:st.name,tot:st.tot,tf:st.a[0],mc:st.a[1],sec:Math.round(Math.min(LIM,st.done-st.start)/1000),auto:st.auto})
+ }).then(()=>{st.sent=1;sv()}).catch(()=>{});
+}
+function zoom(){
+ const d=document.createElement('div');d.className='mag';
+ d.innerHTML=`<div class="mu">${esc(st.cls)} 班 ${esc(st.no)} 號 ${esc(st.name)}</div><div class="num">${st.tot}</div><div class="mu">點任意處關閉</div>`;
+ d.onclick=()=>d.remove();document.body.appendChild(d);
+}
+function fmt(x,v){if(v===undefined)return '未作答';return x.s?(x.o[v].startsWith('<svg')?`(${L[v]})`:`(${L[v]}) ${x.o[v]}`):(v?'正確':'錯誤')}
+function result(){
+ $('#bar').hidden=true;
+ const wr=items().filter(x=>st.ans[x.k]!==x.a),u=Math.min(LIM,st.done-st.start);
+ let h=`<h1>${esc(st.name)} 的測驗結果</h1><div class="card" style="text-align:center"><div class="big" onclick="zoom()" style="cursor:zoom-in" title="點擊放大">${st.tot}</div><p><button id="mag" class="s" onclick="zoom()">🔍 放大成績</button></p>
+ <div>是非 ${st.a[0]}/${N}（${st.a[0]*PER} 分）｜選擇 ${st.a[1]}/${N}（${st.a[1]*PER} 分）<br>用時 ${Math.floor(u/60000)} 分 ${Math.floor(u/1000)%60} 秒${st.auto?'（時間到自動交卷）':''}</div>
+ <p class="mu">${/^https/.test(API)?(st.sent?'成績已送出給老師。':'成績傳送中，請保持網路連線…'):'（尚未設定成績試算表網址）'}</p></div>`;
+ h+=wr.length?`<h2>答錯／未作答（${wr.length} 題）</h2>`:'<h2>🎉 全部答對！</h2>';
+ wr.forEach(x=>{h+=`<div class="card bad">${x.c?`<div class="ctx">${x.c}</div>`:''}${x.q}${x.g?`<div>${S[x.g]}</div>`:''}<div style="font-size:14px;margin-top:6px"><span class="n">你的答案：${esc(fmt(x,st.ans[x.k]))}</span><br><span class="y">正確答案：${esc(fmt(x,x.a))}</span></div></div>`});
+ app.innerHTML=h;window.scrollTo(0,0);
+}
+
+// ---------- 老師端：網址後面加 #teacher ----------
+let rows=[];
+async function teacher(){
+ if(!/^https/.test(API)){app.innerHTML='<div class="card">尚未設定 API 網址</div>';return}
+ const k=prompt('請輸入教師密碼');if(!k)return;
+ app.innerHTML='<p class="mu">載入中…</p>';
+ try{
+  const r=await(await fetch(API+'?key='+encodeURIComponent(k))).json();
+  if(r.error){app.innerHTML='<div class="card">密碼錯誤</div>';return}
+  const m={};
+  r.rows.forEach(x=>{const id=x.cls+'|'+x.no,c=m[id];m[id]=Object.assign({},(!c||x.time>c.time)?x:c,{n:(c?c.n:0)+1})});
+  rows=Object.values(m).sort((p,q)=>String(p.cls).localeCompare(String(q.cls))||p.no-q.no);
+  const t=rows.map(x=>+x.tot),avg=t.length?(t.reduce((a,b)=>a+b,0)/t.length).toFixed(1):0;
+  app.innerHTML=`<h1>全班成績</h1><div class="card stat"><span>人數 ${rows.length}</span><span>平均 ${avg}</span><span>最高 ${t.length?Math.max(...t):0}</span><span>最低 ${t.length?Math.min(...t):0}</span></div>
+  <p><button onclick="teacher()">重新整理</button> <button class="s" onclick="csv()">下載 CSV</button></p>
+  <div class="card" style="overflow-x:auto"><table><tr>${['班級','座號','姓名','總分','是非','選擇','用時','次數'].map(h=>`<th>${h}</th>`).join('')}</tr>
+  ${rows.map(x=>`<tr><td>${esc(x.cls)}</td><td>${esc(x.no)}</td><td>${esc(x.name)}</td><td><b>${esc(x.tot)}</b></td><td>${x.tf}/${N}</td><td>${x.mc}/${N}</td><td>${Math.floor(x.sec/60)}:${String(x.sec%60).padStart(2,'0')}</td><td class="${x.n>1?'w':''}">${x.n}</td></tr>`).join('')}</table></div>
+  <p class="mu">每位學生只列最新一筆；「次數」大於 1 代表重複交卷過。</p>`;
+ }catch(e){app.innerHTML='<div class="card">讀取失敗，請確認 API 網址與部署設定</div>'}
+}
+function csv(){
+ const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+ const s='\ufeff班級,座號,姓名,總分,是非,選擇,用時(秒),次數\n'+rows.map(x=>[x.cls,x.no,x.name,x.tot,x.tf,x.mc,x.sec,x.n].map(q).join(',')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([s],{type:'text/csv'}));a.download='成績.csv';a.click();
+}
+
+window.addEventListener('hashchange',()=>location.reload());
+if(location.hash==='#teacher')teacher();
+else{st=ld();if(st&&st.done){if(!st.sent)send();result()}else if(st&&st.start)run();else start()}
+</script></body></html>
