@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scratch 繪圖作業繳交系統</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen pb-10" style="font-family:'Microsoft JhengHei',sans-serif">
+
+<header class="bg-orange-500 text-white shadow sticky top-0 z-50">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+    <h1 class="text-xl font-extrabold">✎ Scratch 繪圖作業</h1>
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2">
+        <input id="cls" placeholder="班級" maxlength="10" class="bg-white/25 placeholder-orange-100 text-white font-semibold px-3 py-2 rounded-xl w-20 focus:outline-none">
+        <input id="seat" placeholder="座號" maxlength="3" inputmode="numeric" class="bg-white/25 placeholder-orange-100 text-white font-semibold px-3 py-2 rounded-xl w-16 focus:outline-none">
+        <input id="name" placeholder="姓名" maxlength="20" class="bg-white/25 placeholder-orange-100 text-white font-semibold px-3 py-2 rounded-xl w-28 focus:outline-none">
+      </div>
+      <div class="bg-white text-orange-600 rounded-xl px-4 py-1.5 font-bold">總分 <span id="total" class="text-2xl font-black">0</span> / 100</div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 mt-5">
+  <div id="tabs" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-5"></div>
+
+  <div class="grid lg:grid-cols-12 gap-5">
+    <div class="lg:col-span-7 space-y-5">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border">
+        <div class="flex justify-between items-center mb-3">
+          <h2 id="ttitle" class="font-bold text-lg"></h2>
+          <span id="badge" class="text-xs px-2.5 py-1 rounded-full font-bold bg-slate-100 text-slate-500">未繳交</span>
+        </div>
+        <div id="tdesc" class="text-sm bg-slate-50 p-3 rounded-xl border mb-4"></div>
+
+        <div id="drop" class="border-2 border-dashed border-slate-300 rounded-2xl p-5 text-center bg-slate-50">
+          <input type="file" id="file" accept=".sb3" class="hidden">
+          <p class="text-sm font-bold">拖曳或選擇 Scratch 檔 (.sb3)</p>
+          <p id="fname" class="text-xs text-slate-400 my-1">尚未選擇檔案</p>
+          <button id="pick" onclick="document.getElementById('file').click()" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl">📂 選擇檔案</button>
+        </div>
+
+        <button id="submit" onclick="submitTask()" class="mt-4 w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold text-sm px-4 py-3 rounded-xl">確認繳交本題</button>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 shadow-sm border">
+        <h3 class="font-bold mb-3">檢測結果 <span class="text-xs font-normal text-slate-400">（點任一項可看說明與範例）</span></h3>
+        <div id="checklist" class="space-y-2"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 shadow-sm border">
+        <h3 class="font-bold mb-3">積木執行順序</h3>
+        <div id="blocks" class="bg-slate-900 text-emerald-300 p-3 rounded-xl text-xs font-mono max-h-48 overflow-y-auto"></div>
+      </div>
+    </div>
+
+    <div class="lg:col-span-5">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border lg:sticky lg:top-20">
+        <h3 class="font-bold mb-3">舞台模擬</h3>
+        <div class="relative aspect-[4/3] bg-slate-950 rounded-2xl overflow-hidden">
+          <canvas id="cv" width="480" height="360" class="w-full h-full"></canvas>
+          <div id="ov" class="absolute inset-0 bg-slate-950/85 flex items-center justify-center text-white text-sm">等待上傳 .sb3 檔案...</div>
+        </div>
+        <div id="fb" class="mt-4 p-4 rounded-xl bg-slate-50 border">
+          <b id="fbT" class="text-sm">準備就緒</b>
+          <p id="fbX" class="text-xs text-slate-500 mt-1">請上傳本題的 .sb3 檔案。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="hint" class="hidden fixed inset-0 z-[60] bg-slate-900/60 flex items-center justify-center p-4" onclick="if(event.target===this)closeHint()">
+  <div class="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl">
+    <div class="flex justify-between items-start gap-3 mb-2">
+      <h3 id="hT" class="font-bold text-slate-800"></h3>
+      <button onclick="closeHint()" class="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
+    </div>
+    <p id="hX" class="text-sm text-slate-600 mb-3"></p>
+    <div id="hB"></div>
+    <button onclick="closeHint()" class="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 rounded-xl text-sm">我知道了</button>
+  </div>
+</div>
+
+<script>
+const TASK_IDS = [1, 2, 3, 4, 5];
+const POINTS = { 1: 20, 2: 20, 3: 20, 4: 20, 5: 20 };
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbx4SoQfpd6zhVbd42xesc8Hl1FIJg4m12_LfMsvgFoUx8zm17Qlv9BreC2KrNTXeKBx/exec";
+let cur = 1, busy = false;
+
+const tasks = {
+  1: {
+    short: '直線回原點',
+    title: "任務 1：畫一條長度 100 的直線，完成後回到指定位置",
+    desc: `<ul class="list-disc list-inside space-y-1 text-xs">
+      <li>先「下筆」，再「移動 100 步」</li>
+      <li>畫完後先「停筆」，再用「定位」回到指定位置（避免多畫一條回程線）</li></ul>`,
+    criteria: [
+      { name: '有使用「下筆」', check: p => p.hasPenDown },
+      { name: '順序正確：先「下筆」才「移動 100 步」', check: p => p.isPenDownBeforeMove && p.moveValues.includes(100) },
+      { name: '順序正確：先「停筆」才「定位」回到指定位置', check: p => p.isPenUpBeforeGoto },
+      { name: '有使用「定位」積木回到指定位置', check: p => p.hasGoto }
+    ]
+  },
+  2: {
+    short: '折線與轉角',
+    title: "任務 2：折線與轉角度（畫出 L 形直角折線）",
+    desc: `<ul class="list-disc list-inside space-y-1 text-xs">
+      <li>先「下筆」</li>
+      <li>依序：移動 100 步 ➔ 旋轉 90 度 ➔ 移動 100 步</li></ul>`,
+    criteria: [
+      { name: '有使用「下筆」', check: p => p.hasPenDown },
+      { name: '順序正確：先「下筆」才移動與轉角', check: p => p.isPenDownBeforeMove },
+      { name: '依序為：移動 ➔ 旋轉 ➔ 移動（步數與角度不限）', check: p => p.hasMoveTurnMove },
+      { name: '移動 100 步、旋轉 90 度', check: p => p.moveValues.includes(100) && p.turnValues.includes(90) }
+    ],
+    poly: { sides: 1, len: 100, angle: 90, startX: 170, startY: 120 }
+  },
+  3: {
+    short: '正五邊形',
+    title: "任務 3：畫一個邊長 70 的正五邊形",
+    desc: `<ul class="list-disc list-inside space-y-1 text-xs">
+      <li>使用「下筆」，並放在移動／迴圈之前</li>
+      <li>重複執行 5 次</li>
+      <li>迴圈內：移動 70 步、旋轉 72 度</li></ul>`,
+    criteria: [
+      { name: '有使用「下筆」', check: p => p.hasPenDown },
+      { name: '順序正確：「下筆」在迴圈（或移動）之前', check: p => p.isPenDownBeforeLoop || p.isPenDownBeforeMove },
+      { name: '重複執行 5 次', check: p => p.repeatCount === 5 },
+      { name: '移動 70 步、旋轉 72 度', check: p => p.moveValues.includes(70) && p.turnValues.includes(72) }
+    ],
+    poly: { sides: 5, len: 70, angle: 72 }
+  },
+  4: {
+    short: '迴圈畫八邊形',
+    title: "任務 4：使用迴圈畫一個邊長 60 的正八邊形",
+    desc: `<ul class="list-disc list-inside space-y-1 text-xs">
+      <li>使用「下筆」，並放在移動／迴圈之前</li>
+      <li>重複執行 8 次</li>
+      <li>迴圈內：移動 60 步、旋轉 45 度</li></ul>`,
+    criteria: [
+      { name: '有使用「下筆」', check: p => p.hasPenDown },
+      { name: '順序正確：「下筆」在迴圈（或移動）之前', check: p => p.isPenDownBeforeLoop || p.isPenDownBeforeMove },
+      { name: '重複執行 8 次', check: p => p.repeatCount === 8 },
+      { name: '移動 60 步、旋轉 45 度', check: p => p.moveValues.includes(60) && p.turnValues.includes(45) }
+    ],
+    poly: { sides: 8, len: 60, angle: 45 }
+  },
+  5: {
+    short: '輸入邊數畫N邊形',
+    title: "任務 5：輸入邊數，自動畫出正N邊形",
+    desc: `<ul class="list-disc list-inside space-y-1 text-xs">
+      <li>先「詢問...並等待」，再進入迴圈</li>
+      <li>使用「下筆」</li>
+      <li>旋轉角度用到 360 ÷ 邊數（或用到詢問的答案）</li></ul>`,
+    criteria: [
+      { name: '有「詢問並等待」，且在迴圈之前', check: p => p.askCount >= 1 && p.isAskBeforeLoop },
+      { name: '有使用「下筆」', check: p => p.hasPenDown },
+      { name: '旋轉用到除法或詢問的答案', check: p => p.hasDivideOp || p.turnUsesAnswer },
+      { name: '有使用重複執行迴圈', check: p => p.hasLoop }
+    ],
+    poly: { sides: 6, len: 55, angle: 60 }
+  }
+};
+
+// ---------- 檢測項目說明（點擊彈窗） ----------
+// 積木格式：[類別, 文字, 縮排層級]。想改用真實截圖：在該項目加 img: '檔名.png'（與網頁同資料夾）
+const BC = { pen: '#0FBD8C', motion: '#4C97FF', control: '#FFAB19', sensing: '#5CB1D6', op: '#59C059' };
+const PD = ['pen', '下筆'], PU = ['pen', '停筆'];
+const mv = (n, i) => ['motion', `移動 ${n} 步`, i];
+const tr = (n, i) => ['motion', `右轉 ${n} 度`, i];
+const rp = (n, i) => ['control', `重複執行 ${n} 次`, i];
+const gt = ['motion', '定位到 x: 0 y: 0'];
+
+function polyHints(shape, n, len, ang, wn, wa) {
+  const L = [rp(n), mv(len, 1), tr(ang, 1)];
+  return [
+    { tip: '程式要有「下筆」積木。', good: [PD, ...L], bad: L },
+    { tip: '「下筆」放在迴圈外面、迴圈前面，只要下一次就好。', good: [PD, ...L], bad: [...L, PD] },
+    { tip: `${shape}有 ${n} 條邊，所以重複執行 ${n} 次。`, good: L, bad: [rp(wn), mv(len, 1), tr(ang, 1)] },
+    { tip: `邊長 ${len}，旋轉角度 = 360 ÷ ${n} = ${ang} 度。`, good: [mv(len), tr(ang)], bad: [mv(len), tr(wa)] }
+  ];
+}
+
+const ASK = ['sensing', '詢問 幾邊形？ 並等待'];
+const RP_ANS = ['control', '重複執行 ( 答案 ) 次'];
+const TR_DIV = ['motion', '右轉 ( 360 ÷ 答案 ) 度', 1];
+
+const HINTS = {
+  1: [
+    { tip: '程式要有「下筆」積木，移動時才會留下線。', good: [PD, mv(100)], bad: [mv(100)] },
+    { tip: '「下筆」一定要放在「移動 100 步」前面，而且步數要是 100。', good: [PD, mv(100)], bad: [mv(100), PD] },
+    { tip: '畫完線後，先「停筆」，再「定位」回去，這樣回程才不會多畫一條線。程式開頭有先定位也沒關係，只要畫完之後有「停筆 → 定位」就算正確。',
+      good: [PU, gt, ['motion', '面朝 90 度']], bad: [gt, PU] },
+    { tip: '要用「定位到 x: ___ y: ___」積木，讓角色回到指定位置。', good: [PU, gt], bad: [PU] }
+  ],
+  2: [
+    { tip: '程式要有「下筆」積木。', good: [PD, mv(100)], bad: [mv(100)] },
+    { tip: '「下筆」要放在所有移動和旋轉的前面。', good: [PD, mv(100), tr(90)], bad: [mv(100), PD, tr(90)] },
+    { tip: '順序要是：移動 → 旋轉 → 移動，中間不能少，也不能換順序。',
+      good: [PD, mv(100), tr(90), mv(100)], bad: [PD, tr(90), mv(100), mv(100)] },
+    { tip: '移動的步數是 100，旋轉的角度是 90。',
+      good: [mv(100), tr(90), mv(100)], bad: [mv(50), tr(45), mv(50)] }
+  ],
+  3: polyHints('正五邊形', 5, 70, 72, 10, 90),
+  4: polyHints('正八邊形', 8, 60, 45, 6, 60),
+  5: [
+    { tip: '要先「詢問邊數並等待」，再進入迴圈，迴圈才能用到使用者輸入的答案。',
+      good: [ASK, RP_ANS, mv(55, 1), TR_DIV], bad: [RP_ANS, [...ASK, 1]].map(b => b.length === 3 ? b : b) },
+    { tip: '程式要有「下筆」積木。', good: [PD, RP_ANS], bad: [RP_ANS] },
+    { tip: '旋轉角度要用「360 ÷ 邊數」，邊數用「答案」積木，這樣不管輸入幾邊形都能畫對。',
+      good: [['motion', '右轉 ( 360 ÷ 答案 ) 度']], bad: [tr(60)] },
+    { tip: '要用「重複執行」積木，次數放「答案」。',
+      good: [RP_ANS, mv(55, 1), TR_DIV], bad: [mv(55), tr(60), mv(55), tr(60)] }
+  ]
+};
+HINTS[5][0].bad = [RP_ANS, ['sensing', '詢問 幾邊形？ 並等待', 1]];
+
+function hintBlocks(list) {
+  return '<div class="inline-block">' + list.map(([c, t, ind]) =>
+    `<div style="background:${BC[c]};margin-left:${(ind || 0) * 22}px" class="text-white font-bold text-sm px-3 py-2 rounded-md mb-0.5 shadow-sm w-fit whitespace-nowrap">${t}</div>`
+  ).join('') + '</div>';
+}
+
+function showHint(i) {
+  const c = tasks[cur].criteria[i], h = (HINTS[cur] || [])[i];
+  if (!h) return;
+  $('hT').innerText = c.name;
+  $('hX').innerText = h.tip;
+  let html = '';
+  if (h.img) html += `<img src="${h.img}" class="w-full rounded-xl border mb-3" alt="範例">`;
+  html += `<div class="mb-3"><div class="text-xs font-bold text-emerald-600 mb-1.5">✔ 正確範例</div><div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 overflow-x-auto">${hintBlocks(h.good)}</div></div>`;
+  if (h.bad) html += `<div><div class="text-xs font-bold text-rose-600 mb-1.5">✕ 常見錯誤</div><div class="bg-rose-50 border border-rose-200 rounded-xl p-3 overflow-x-auto">${hintBlocks(h.bad)}</div></div>`;
+  $('hB').innerHTML = html;
+  $('hint').classList.remove('hidden');
+}
+function closeHint() { $('hint').classList.add('hidden'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHint(); });
+
+const res = {};
+TASK_IDS.forEach(id => res[id] = { parsed: null, fileName: '', submitted: false });
+
+const $ = id => document.getElementById(id);
+const FIELDS = ['cls', 'seat', 'name'];
+const student = () => ({
+  className: $('cls').value.trim(),
+  seatNo: $('seat').value.trim(),
+  studentName: $('name').value.trim()
+});
+
+function buildTabs() {
+  $('tabs').innerHTML = TASK_IDS.map(id => `<button id="tab${id}" onclick="switchTask(${id})" class="text-left p-3 rounded-2xl bg-white border-2 shadow-sm"><b class="text-sm">任務 ${id}：${tasks[id].short}</b><div class="text-xs text-slate-500">狀態：<b id="st${id}">未繳交</b></div></button>`).join('');
+}
+
+function calc(p, id) {
+  const cs = tasks[id].criteria;
+  const passed = cs.filter(c => c.check(p)).length;
+  return { passed, total: cs.length, score: Math.round(POINTS[id] * passed / cs.length) };
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  FIELDS.forEach(f => {
+    try { $(f).value = localStorage.getItem('scratch_' + f) || ''; } catch (e) {}
+    $(f).addEventListener('input', () => { try { localStorage.setItem('scratch_' + f, $(f).value); } catch (e) {} });
+  });
+  $('file').addEventListener('change', e => { if (e.target.files[0]) processFile(e.target.files[0]); e.target.value = ''; });
+  const d = $('drop');
+  d.addEventListener('dragover', e => { e.preventDefault(); d.classList.add('bg-blue-50'); });
+  d.addEventListener('dragleave', () => d.classList.remove('bg-blue-50'));
+  d.addEventListener('drop', e => { e.preventDefault(); d.classList.remove('bg-blue-50'); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); });
+  buildTabs();
+  switchTask(1);
+});
+
+function switchTask(id) {
+  cur = id;
+  TASK_IDS.forEach(t => {
+    $('tab' + t).classList.toggle('border-blue-500', t === id);
+    $('tab' + t).classList.toggle('border-transparent', t !== id);
+  });
+  $('ttitle').innerText = tasks[id].title;
+  $('tdesc').innerHTML = tasks[id].desc;
+  refresh();
+}
+
+function refresh() {
+  const r = res[cur], p = r.parsed;
+  $('fname').innerText = r.fileName ? '已載入：' + r.fileName : '尚未選擇檔案';
+  const sb = $('submit'), badge = $('badge');
+  $('pick').disabled = r.submitted;
+  $('drop').classList.toggle('opacity-60', r.submitted);
+  if (r.submitted) {
+    sb.disabled = true; sb.innerText = '🔒 本題已繳交';
+    sb.className = 'mt-4 w-full bg-emerald-700 text-white font-extrabold text-sm px-4 py-3 rounded-xl cursor-not-allowed';
+    badge.className = 'text-xs px-2.5 py-1 rounded-full font-bold bg-emerald-100 text-emerald-800';
+    badge.innerText = '已繳交';
+  } else {
+    sb.disabled = !p; sb.innerText = p ? '確認繳交本題' : '請先上傳 .sb3 檔案';
+    sb.className = 'mt-4 w-full font-extrabold text-sm px-4 py-3 rounded-xl ' + (p ? 'bg-amber-500 hover:bg-amber-600 text-slate-900' : 'bg-slate-300 text-slate-500 cursor-not-allowed');
+    badge.className = 'text-xs px-2.5 py-1 rounded-full font-bold ' + (p ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500');
+    badge.innerText = p ? '草稿測試中' : '未繳交';
+  }
+  renderChecklist(); renderBlocks(); simulate(); updateTotal();
+}
+
+function renderChecklist() {
+  const p = res[cur].parsed;
+  $('checklist').innerHTML = tasks[cur].criteria.map((c, i) => {
+    let icon = '○', cls = 'bg-slate-50 border-slate-200', tag = '待檢測';
+    if (p) {
+      if (c.check(p)) { icon = '✔'; cls = 'bg-emerald-50 border-emerald-200 text-emerald-900'; tag = '符合'; }
+      else { icon = '✕'; cls = 'bg-rose-50 border-rose-200 text-rose-900'; tag = '未符合'; }
+    }
+    return `<div onclick="showHint(${i})" class="p-3 rounded-xl border flex justify-between items-center gap-2 text-xs font-semibold cursor-pointer hover:shadow-md transition ${cls}">
+      <span>${icon} ${c.name}</span>
+      <span class="whitespace-nowrap">${tag} <span class="ml-1 text-blue-600 underline">ⓘ 看說明</span></span></div>`;
+  }).join('');
+  if (p) {
+    const r = calc(p, cur);
+    feedback(`本題得分：${r.score} / ${POINTS[cur]} 分（通過 ${r.passed}/${r.total} 項）`,
+      r.passed === r.total ? '全部通過，可以繳交了！' : '點選未符合的項目，可以看到修正範例。');
+  } else feedback('準備就緒', '請上傳本題的 .sb3 檔案。');
+}
+
+function feedback(t, x) { $('fbT').innerText = t; $('fbX').innerText = x; }
+
+function updateTotal() {
+  let sum = 0;
+  TASK_IDS.forEach(id => {
+    const r = res[id], s = r.parsed ? calc(r.parsed, id) : null;
+    if (s) sum += s.score;
+    const el = $('st' + id);
+    el.innerText = r.submitted ? `已繳交・${s.score}/${POINTS[id]} 分` : s ? `草稿・${s.score}/${POINTS[id]} 分` : '未繳交';
+    el.className = r.submitted ? 'text-emerald-600' : s ? 'text-amber-600' : '';
+  });
+  $('total').innerText = sum;
+}
+
+async function submitTask() {
+  const r = res[cur];
+  if (busy || !r.parsed || r.submitted) return;
+  const missing = FIELDS.find(f => !$(f).value.trim());
+  if (missing) {
+    feedback('請先輸入班級、座號與姓名', '三個欄位都要填寫後再繳交。');
+    $(missing).focus();
+    return;
+  }
+  const stu = student();
+  const cs = tasks[cur].criteria.map(c => ({ name: c.name, ok: !!c.check(r.parsed) }));
+  const sc = calc(r.parsed, cur);
+  busy = true;
+  try {
+    await fetch(SHEET_API_URL, {
+      method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        ...stu, taskId: cur, taskTitle: tasks[cur].title, fileName: r.fileName,
+        passed: sc.passed, total: sc.total, score: sc.score, failed: cs.filter(c => !c.ok).map(c => c.name)
+      })
+    });
+  } catch (e) { busy = false; feedback('傳送失敗', '請檢查網路後再按一次繳交。'); return; }
+  busy = false;
+  r.submitted = true;
+  refresh();
+  feedback(`任務 ${cur} 已繳交，得 ${sc.score} 分`, '目前總分顯示在右上角。');
+}
+
+// ---------- 解析 .sb3 ----------
+function emptyParsed() {
+  return { hasPenDown: false, hasPenUp: false, hasLoop: false, hasGoto: false, hasMoveTurnMove: false, isPenUpBeforeGoto: false, moveValues: [], turnValues: [], repeatCount: 0, askCount: 0,
+    hasDivideOp: false, turnUsesAnswer: false, isPenDownBeforeMove: false, isPenDownBeforeLoop: false, isAskBeforeLoop: false, sequence: [] };
+}
+
+function evalInput(inp, blocks, d) {
+  if (!inp || d > 6) return null;
+  const v = inp[1];
+  if (Array.isArray(v)) { const n = parseFloat(v[1]); return (v[0] === 12 || isNaN(n)) ? null : n; }
+  if (typeof v === 'string' && blocks[v]) {
+    const b = blocks[v];
+    const f = { operator_add: (x, y) => x + y, operator_subtract: (x, y) => x - y, operator_multiply: (x, y) => x * y, operator_divide: (x, y) => y === 0 ? null : x / y }[b.opcode];
+    if (f) {
+      const x = evalInput(b.inputs && b.inputs.NUM1, blocks, d + 1), y = evalInput(b.inputs && b.inputs.NUM2, blocks, d + 1);
+      return (x === null || y === null) ? null : f(x, y);
+    }
+  }
+  return null;
+}
+
+function inputOp(block, name, blocks) {
+  const inp = block.inputs && block.inputs[name];
+  if (!inp) return '';
+  const v = inp[1];
+  if (Array.isArray(v)) return v[0] === 12 ? 'variable' : '';
+  return (typeof v === 'string' && blocks[v]) ? { op: blocks[v].opcode, raw: JSON.stringify(blocks[v]) } : '';
+}
+
+function parseScratch(data) {
+  const P = emptyParsed(), seq = P.sequence;
+  if (!data || !data.targets) return P;
+  let t = data.targets.find(x => !x.isStage && x.blocks && Object.keys(x.blocks).length) || data.targets.find(x => x.blocks && Object.keys(x.blocks).length);
+  if (!t) return P;
+  const blocks = t.blocks;
+  let start = Object.keys(blocks).find(id => blocks[id] && blocks[id].opcode && blocks[id].opcode.startsWith('event_when'))
+    || Object.keys(blocks).find(id => blocks[id] && blocks[id].topLevel);
+
+  function walk(id) {
+    while (id && blocks[id] && typeof blocks[id] === 'object') {
+      const b = blocks[id], op = b.opcode;
+      if (op === 'pen_clear' || op === 'pen_eraseAll') seq.push({ type: 'eraseAll', desc: '【畫筆】全部清除' });
+      else if (op === 'pen_penDown') { P.hasPenDown = true; seq.push({ type: 'penDown', desc: '【畫筆】下筆' }); }
+      else if (op === 'pen_penUp') { P.hasPenUp = true; seq.push({ type: 'penUp', desc: '【畫筆】停筆' }); }
+      else if (op === 'motion_movesteps') {
+        const v = evalInput(b.inputs && b.inputs.STEPS, blocks, 0);
+        if (v !== null) P.moveValues.push(v);
+        seq.push({ type: 'move', val: v, desc: v !== null ? `【動作】移動 ${v} 步` : '【動作】移動 [變數或算式] 步' });
+      } else if (op === 'motion_turnright' || op === 'motion_turnleft') {
+        const v = evalInput(b.inputs && b.inputs.DEGREES, blocks, 0);
+        if (v !== null) P.turnValues.push(v);
+        const o = inputOp(b, 'DEGREES', blocks);
+        if (o === 'variable') P.turnUsesAnswer = true;
+        else if (o) {
+          if (o.op === 'operator_divide') P.hasDivideOp = true;
+          if (o.op === 'sensing_answer' || o.op === 'data_variable' || o.raw.includes('sensing_answer') || o.raw.includes('data_variable')) P.turnUsesAnswer = true;
+        }
+        if (v === null) P.turnUsesAnswer = true;
+        seq.push({ type: 'turn', val: v, desc: v !== null ? `【動作】旋轉 ${v} 度` : '【動作】旋轉 [變數或算式] 度' });
+      } else if (op === 'motion_pointindirection') seq.push({ type: 'point', desc: '【動作】面朝方向' });
+      else if (op === 'motion_gotoxy' || op === 'motion_glideto' || op === 'motion_setx' || op === 'motion_sety') { P.hasGoto = true; seq.push({ type: 'goto', desc: '【動作】定位至指定位置' }); }
+      else if (op === 'sensing_askandwait') { P.askCount++; seq.push({ type: 'ask', desc: '【偵測】詢問...並等待' }); }
+      else if (op === 'control_repeat') {
+        const n = evalInput(b.inputs && b.inputs.TIMES, blocks, 0);
+        P.hasLoop = true; P.repeatCount = n !== null ? n : 0;
+        seq.push({ type: 'loop_start', count: n, desc: n !== null ? `【控制】重複執行 ${n} 次` : '【控制】重複執行 [變數] 次' });
+        const sub = b.inputs && b.inputs.SUBSTACK;
+        if (Array.isArray(sub) && typeof sub[1] === 'string') walk(sub[1]);
+        seq.push({ type: 'loop_end', desc: '【控制】重複執行結束' });
+      }
+      id = b.next;
+    }
+  }
+  if (start) walk(start);
+
+  const idx = k => seq.findIndex(s => s.type === k);
+  const pd = idx('penDown'), mvI = idx('move'), lp = idx('loop_start'), ak = idx('ask');
+  P.isPenDownBeforeMove = pd !== -1 && mvI !== -1 && pd < mvI;
+  P.isPenDownBeforeLoop = pd !== -1 && lp !== -1 && pd < lp;
+  P.isAskBeforeLoop = ak !== -1 && lp !== -1 && ak < lp;
+  // 任何一個「定位」只要出現在某個「停筆」之後就算通過（開頭先定位不影響）
+  const puAt = seq.map((s, i) => s.type === 'penUp' ? i : -1).filter(i => i >= 0);
+  P.isPenUpBeforeGoto = seq.some((s, i) => s.type === 'goto' && puAt.some(q => q < i));
+  const mt = seq.filter(s => s.type === 'move' || s.type === 'turn').map(s => s.type);
+  for (let i = 0; i + 2 < mt.length; i++) if (mt[i] === 'move' && mt[i + 1] === 'turn' && mt[i + 2] === 'move') P.hasMoveTurnMove = true;
+  return P;
+}
+
+function processFile(file) {
+  if (res[cur].submitted) { feedback('本題已繳交', '已鎖定，無法再修改。'); return; }
+  if (!file.name.endsWith('.sb3')) { feedback('檔案格式錯誤', '請上傳副檔名為 .sb3 的檔案。'); return; }
+  JSZip.loadAsync(file).then(z => {
+    const f = z.file('project.json');
+    if (!f) throw new Error('no project.json');
+    return f.async('text');
+  }).then(txt => {
+    res[cur].parsed = parseScratch(JSON.parse(txt));
+    res[cur].fileName = file.name;
+    refresh();
+  }).catch(() => feedback('讀取失敗', '檔案可能損壞或不是有效的 Scratch 專案。'));
+}
+
+function renderBlocks() {
+  const p = res[cur].parsed;
+  if (!p) { $('blocks').innerHTML = '<span class="text-slate-500">尚未上傳 .sb3 檔案...</span>'; return; }
+  $('blocks').innerHTML = p.sequence.length
+    ? p.sequence.map((s, i) => `<div class="py-0.5">#${i + 1} ${s.desc}</div>`).join('')
+    : '<span class="text-slate-400">未偵測到繪圖或動作積木。</span>';
+}
+
+// ---------- 舞台模擬 ----------
+function expand(seq, n) {
+  function build(i) {
+    const items = [];
+    while (i < seq.length) {
+      const s = seq[i];
+      if (s.type === 'loop_end') return { items, next: i + 1 };
+      if (s.type === 'loop_start') {
+        const inner = build(i + 1), k = Math.max(0, Math.min(cur === 5 ? n : (s.count || n), 100));
+        for (let j = 0; j < k; j++) items.push(...inner.items);
+        i = inner.next; continue;
+      }
+      items.push(s); i++;
+    }
+    return { items, next: i };
+  }
+  return build(0).items;
+}
+
+function simulate() {
+  const cv = $('cv'), ctx = cv.getContext('2d'), p = res[cur].parsed;
+  ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, 480, 360);
+  ctx.strokeStyle = '#1e293b';
+  for (let x = 0; x < 480; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 360); ctx.stroke(); }
+  for (let y = 0; y < 360; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(480, y); ctx.stroke(); }
+  $('ov').classList.toggle('hidden', !!p);
+  if (!p) return;
+  if (cur === 1) { lineReturn(ctx, p); return; }
+  const poly = tasks[cur].poly, dyn = cur === 5;
+  let x = poly.startX !== undefined ? poly.startX : 240 - poly.len / 2, y = poly.startY !== undefined ? poly.startY : 210, a = 0, down = false;
+  expand(p.sequence, poly.sides).forEach(s => {
+    if (s.type === 'eraseAll') { ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, 480, 360); }
+    else if (s.type === 'penDown') down = true;
+    else if (s.type === 'penUp') down = false;
+    else if (s.type === 'move') {
+      const d = dyn ? poly.len : (s.val || poly.len), nx = x + d * Math.cos(a), ny = y - d * Math.sin(a);
+      if (down) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, ny); ctx.strokeStyle = '#4C97FF'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.stroke(); }
+      x = nx; y = ny;
+    } else if (s.type === 'turn') a -= ((dyn ? poly.angle : (s.val || poly.angle)) * Math.PI) / 180;
+  });
+}
+
+function lineReturn(ctx, p) {
+  const sx = 140, sy = 180;
+  let x = sx, y = sy, down = false;
+  const line = (a, b, c, d, col, w, dash) => {
+    ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round';
+    ctx.setLineDash(dash ? [4, 4] : []); ctx.stroke(); ctx.setLineDash([]);
+  };
+  p.sequence.forEach(s => {
+    if (s.type === 'eraseAll') { ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, 480, 360); }
+    else if (s.type === 'penDown') down = true;
+    else if (s.type === 'penUp') down = false;
+    else if (s.type === 'move') { const nx = x + (s.val || 100); if (down) line(x, y, nx, y, '#4C97FF', 4); x = nx; }
+    else if (s.type === 'goto') { if (down) line(x, y, sx, sy, '#f43f5e', 3, true); x = sx; y = sy; }
+  });
+  ctx.fillStyle = '#FFAB19'; ctx.beginPath(); ctx.arc(sx, sy, 5, 0, 7); ctx.fill();
+}
+</script>
+</body>
+</html>
