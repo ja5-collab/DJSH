@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>二年級第一次定期評量</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --paper:#FAF7EF;
+    --ink:#20242B;
+    --ink-soft:#5B6373;
+    --navy:#2E4B6B;
+    --navy-deep:#213A56;
+    --coral:#E8734A;
+    --coral-deep:#C85C36;
+    --teal:#2F8F76;
+    --red:#C6533F;
+    --line:#DEDACB;
+    --card:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC","Heiti TC",sans-serif;
+    line-height:1.7;
+  }
+  header{
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-deep) 100%);
+    color:#F4F1E8;
+    padding:38px 24px 34px;
+  }
+  .header-inner{max-width:720px;margin:0 auto;}
+  header .kicker{font-size:13px;letter-spacing:.02em;color:#B9C7DA;margin-bottom:8px;}
+  header h1{font-size:27px;margin:0 0 6px;font-weight:800;}
+  header p{margin:0;color:#CBD6E4;font-size:14px;}
+  main{max-width:720px;margin:0 auto;padding:36px 24px 80px;}
+  .section-label{display:flex;align-items:baseline;gap:12px;margin:48px 0 20px;}
+  .section-label .num{font-size:34px;font-weight:800;color:var(--coral);line-height:1;}
+  .section-label .title{font-size:19px;font-weight:800;color:var(--ink);}
+  .section-label .sub{font-size:13px;color:var(--ink-soft);margin-top:2px;}
+  .rule{border:none;border-top:1px solid var(--line);margin:0 0 24px;}
+  .lead{font-size:13.5px;color:var(--ink-soft);margin:-8px 0 22px;}
+  .lead b{color:var(--coral-deep);}
+
+  .id-input{font-size:16px;padding:9px 12px;border:1px solid var(--line);border-radius:6px;}
+
+  .question{margin-bottom:32px;}
+  .question .qtext{font-size:15.5px;font-weight:600;margin-bottom:12px;}
+  .options{display:flex;flex-direction:column;gap:8px;}
+  .option{
+    border:1px solid var(--line);background:var(--card);border-radius:6px;
+    padding:12px 14px;font-size:14.5px;cursor:pointer;display:flex;gap:10px;
+    align-items:flex-start;transition:border-color .15s, background .15s;
+  }
+  .option:hover{border-color:var(--navy);}
+  .option .tag{
+    flex:0 0 auto;width:22px;height:22px;border-radius:50%;
+    border:1.5px solid var(--ink-soft);display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;color:var(--ink-soft);
+  }
+  .option.selected{border-color:var(--coral);background:#FFF3ED;}
+  .option.selected .tag{background:var(--coral);border-color:var(--coral);color:#fff;}
+
+  .task-card{
+    background:var(--card);border:1px solid var(--line);border-radius:8px;
+    padding:20px 22px;margin-bottom:16px;
+  }
+  .task-card .task-title{font-size:15.5px;font-weight:800;margin-bottom:10px;color:var(--navy-deep);}
+  .task-card ol{margin:6px 0 0;padding-left:20px;}
+  .task-card li{margin-bottom:4px;font-size:14px;color:var(--ink);}
+
+  .upload-box{
+    border:2px dashed var(--line);border-radius:8px;padding:20px 18px;
+    text-align:center;background:#FFFDFA;margin-top:14px;
+  }
+  .upload-box.has-file{border-color:var(--teal);background:#F1F9F6;}
+  .upload-box.has-error{border-color:var(--red);background:#FBF1EF;}
+  .upload-btn{
+    display:inline-block;background:var(--navy);color:#fff;border:none;
+    padding:9px 20px;border-radius:6px;font-size:13.5px;font-weight:700;cursor:pointer;
+  }
+  .upload-btn:hover{background:var(--navy-deep);}
+  .status-line{margin-top:10px;font-size:13px;color:var(--ink-soft);}
+  .status-line.ok{color:var(--teal);font-weight:600;}
+  .status-line.err{color:var(--red);font-weight:600;}
+
+  #submitBtn{
+    display:block;width:100%;margin-top:44px;padding:15px;
+    background:var(--coral);color:#fff;border:none;border-radius:8px;
+    font-size:16px;font-weight:800;letter-spacing:.02em;cursor:pointer;
+    transition:background .15s;
+  }
+  #submitBtn:disabled{background:#D8D2C4;color:#8B8577;cursor:not-allowed;}
+  #submitBtn:not(:disabled):hover{background:var(--coral-deep);}
+  #hint{text-align:center;font-size:12.5px;color:var(--ink-soft);margin-top:10px;}
+
+  .results{margin-top:44px;}
+  .score-hero{
+    text-align:center;padding:30px 20px 26px;background:var(--navy);
+    border-radius:10px;color:#F4F1E8;margin-bottom:28px;
+  }
+  .score-hero .big{font-size:50px;font-weight:800;line-height:1;}
+  .score-hero .lbl{margin-top:6px;font-size:13px;color:#C6D2E2;}
+  .breakdown-block{margin-bottom:26px;}
+  .breakdown-block h4{font-size:14.5px;color:var(--ink-soft);margin:0 0 4px;font-weight:700;}
+  .breakdown-block .sim-note{font-size:12.5px;color:var(--coral-deep);margin-bottom:12px;}
+  .row{
+    display:flex;justify-content:space-between;gap:12px;padding:10px 0;
+    border-bottom:1px solid var(--line);font-size:14px;
+  }
+  .row:last-child{border-bottom:none;}
+  .row .left{flex:1;}
+  .row .mark{flex:0 0 auto;font-weight:700;white-space:nowrap;}
+  .mark.pass{color:var(--teal);}
+  .mark.fail{color:var(--red);}
+  .mark.skip{color:var(--ink-soft);}
+  .mc-detail{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="kicker">第一次定期評量</div>
+    <h1>資訊與社會 × 模組化程式</h1>
+    <p>第一部分為選擇題；第二部分請分別上傳兩個 Scratch 任務的 .sb3 檔，系統會實際「執行模擬」你的程式並依繪製結果評分。</p>
+  </div>
+</header>
+
+<main>
+  <div id="quizArea">
+
+    <div class="task-card">
+      <div class="task-title">班級、座號、姓名</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <input id="clsInput" class="id-input" type="text" placeholder="班級" maxlength="10" style="width:7em">
+        <input id="seatInput" class="id-input" type="text" inputmode="numeric" placeholder="座號" maxlength="3" style="width:7em">
+        <input id="nameInput" class="id-input" type="text" placeholder="姓名" maxlength="20" style="width:10em">
+      </div>
+    </div>
+
+    <div class="section-label">
+      <div class="num">01</div>
+      <div><div class="title">選擇題</div><div class="sub">共 5 題，每題 8 分（共 40 分），點選你認為正確的答案</div></div>
+    </div>
+    <hr class="rule">
+    <div id="questions"></div>
+
+    <div class="section-label">
+      <div class="num">02</div>
+      <div><div class="title">Scratch 實作題</div><div class="sub">共 2 個任務（25 分、35 分，共 60 分），系統會模擬執行你的程式來評分</div></div>
+    </div>
+    <hr class="rule">
+    <p class="lead">評分方式：系統會實際「跑」一次你上傳的程式，用不同的輸入各跑一次（每組都正確才給分），再檢查畫筆畫出的圖形（邊數、邊長、轉彎角度、是否封閉）是否正確 —— 不是只看你用了哪些積木。<b>兩個任務不用全部都上傳</b>，至少完成 1 個就可以提交，沒交的任務以 0 分計，不會被當成答錯。</p>
+
+    <div id="tasksContainer"></div>
+
+    <button id="submitBtn" disabled>提交測驗</button>
+    <div id="hint">請完成 5 題選擇題，並至少成功上傳 1 個 Scratch 任務的 .sb3 檔案後才能提交</div>
+  </div>
+
+  <div class="results" id="resultsArea" style="display:none;"></div>
+</main>
+
+<script>
+/* ============ 選擇題題庫（共 17 題，每次隨機抽 5 題） ============ */
+const MC_COUNT = 5;
+const MC_POINTS_PER_Q = 8;   // 5 題 × 8 分 = 40 分
+
+const QUESTION_POOL = [
+  { text:"小美在交友軟體上認識一位聲稱是「醫生」的網友，對方要求先匯款作為「保證金」才能見面。小美應該怎麼做？",
+    options:[{key:"A",label:"立刻匯款，展現誠意"},{key:"B",label:"拒絕匯款，並提高警覺，這很可能是詐騙"},{key:"C",label:"先匯一半金額試探對方"},{key:"D",label:"把自己的身分證影本傳給對方核對身分"}],
+    answer:"B" },
+  { text:"下列何者是判斷網路新聞可信度時，較不可靠的做法？",
+    options:[{key:"A",label:"查看新聞的資料來源與發布時間"},{key:"B",label:"確認是否有多家媒體同步報導"},{key:"C",label:"看留言區按讚數最多的留言就當作事實"},{key:"D",label:"查證作者身分與過往報導紀錄"}],
+    answer:"C" },
+  { text:"若在班級群組中看到有人被同學惡意公開嘲笑的截圖並持續轉傳，身為旁觀者較恰當的做法是？",
+    options:[{key:"A",label:"跟著轉傳，讓更多人知道"},{key:"B",label:"不轉傳，並告知師長或協助當事人求助"},{key:"C",label:"事不關己，直接忽略"},{key:"D",label:"私訊嘲笑者稱讚他很幽默"}],
+    answer:"B" },
+  { text:"收到自稱「銀行客服」的電話，要求提供信用卡卡號與驗證碼以「解除分期付款」，下列處理方式何者正確？",
+    options:[{key:"A",label:"直接提供以求盡快解決"},{key:"B",label:"掛斷電話，改用銀行官方電話或 165 查證"},{key:"C",label:"提供卡號但拒絕給驗證碼即可"},{key:"D",label:"請對方傳簡訊來，比較安全"}],
+    answer:"B" },
+  { text:"依 PAPA 理論，某購物網站在未告知用戶的情況下，將會員的購買紀錄賣給廣告商，這違反了哪一項？",
+    options:[{key:"A",label:"資訊隱私權（Privacy）"},{key:"B",label:"資訊準確性（Accuracy）"},{key:"C",label:"資訊所有權（Property）"},{key:"D",label:"資訊可及性（Accessibility）"}],
+    answer:"A" },
+  { text:"某氣象網站因程式錯誤，長期發布錯誤的降雨機率，導致民眾誤判天氣。這違反了 PAPA 理論中的哪一項？",
+    options:[{key:"A",label:"資訊隱私權"},{key:"B",label:"資訊準確性"},{key:"C",label:"資訊所有權"},{key:"D",label:"資訊可及性"}],
+    answer:"B" },
+  { text:"小華未經授權，將購買的付費電子書轉檔後上傳到網路供大家免費下載。這樣的行為主要違反了 PAPA 理論中的哪一項？",
+    options:[{key:"A",label:"資訊隱私權"},{key:"B",label:"資訊準確性"},{key:"C",label:"資訊所有權"},{key:"D",label:"資訊可及性"}],
+    answer:"C" },
+  { text:"政府補助偏鄉學校添購平板電腦，讓當地學生也能使用數位學習資源，這符合 PAPA 理論中的哪一項？",
+    options:[{key:"A",label:"資訊隱私權"},{key:"B",label:"資訊準確性"},{key:"C",label:"資訊所有權"},{key:"D",label:"資訊可及性"}],
+    answer:"D" },
+  { text:"下列關於個人資料保護的做法，何者較不恰當？",
+    options:[{key:"A",label:"社群帳號設定為僅好友可見"},{key:"B",label:"不隨意在公開網頁填寫真實姓名、電話、住址"},{key:"C",label:"在遊戲論壇上為了炫耀，公開分享自己的學校與班級"},{key:"D",label:"定期檢查帳號隱私設定"}],
+    answer:"C" },
+  { text:"小傑每天只看同一個立場鮮明的新聞頻道與粉專，久而久之只接觸到跟自己想法相同的資訊。這種現象最可能造成下列哪一種問題？",
+    options:[{key:"A",label:"個人資料被外洩"},{key:"B",label:"陷入「同溫層」，看不到不同觀點，容易產生偏見"},{key:"C",label:"電腦中毒"},{key:"D",label:"網路速度變慢"}],
+    answer:"B" },
+  { text:"下列關於使用他人創作內容的態度，何者正確？",
+    options:[{key:"A",label:"只要註明出處，就可以任意修改後拿去營利"},{key:"B",label:"網路上找到的圖片都是免費的，可以隨意使用"},{key:"C",label:"使用他人的圖片、文章前，應確認授權方式，尊重智慧財產權"},{key:"D",label:"只要沒有被發現，抄襲別人的作業沒關係"}],
+    answer:"C" },
+  { text:"收到一則訊息宣稱「轉發此訊息 10 次，手機會中獎」，下列處理方式何者最恰當？",
+    options:[{key:"A",label:"立刻轉發給所有聯絡人，以免錯過中獎機會"},{key:"B",label:"先查證訊息的真實性，確認是謠言後就不要轉傳"},{key:"C",label:"轉發給討厭的同學，看他會不會相信"},{key:"D",label:"直接刪除帳號"}],
+    answer:"B" },
+  { text:"小安發現自己在網路上被冒名申請帳號，並用來發布不實言論，下列處理方式何者較不恰當？",
+    options:[{key:"A",label:"向該平台檢舉冒用帳號"},{key:"B",label:"保留相關截圖作為證據"},{key:"C",label:"認為反正是別人的帳號，不關自己的事而不予理會"},{key:"D",label:"必要時尋求師長、家長或警方協助"}],
+    answer:"C" },
+  { text:"網路上流傳一則「地震即將發生」的訊息，未附任何官方來源。下列做法何者最符合媒體識讀原則？",
+    options:[{key:"A",label:"立即轉發提醒親友小心"},{key:"B",label:"查證是否為氣象署等官方單位發布，再決定是否轉傳"},{key:"C",label:"認為寧可信其有，先跟著準備避難"},{key:"D",label:"既然是關心親友，轉發錯了也沒關係"}],
+    answer:"B" },
+  { text:"下列何者是使用資訊科技時，應具備的正確態度？",
+    options:[{key:"A",label:"在網路上具有匿名性，發言不需要為內容負責"},{key:"B",label:"尊重他人著作權、隱私權，並為自己的言論負責"},{key:"C",label:"只要是「大家都在做」的事，就可以跟著做"},{key:"D",label:"網路上的規範與現實生活無關"}],
+    answer:"B" },
+  { text:"小雅收到朋友傳來的投資群組邀請連結，宣稱「保證獲利、穩賺不賠」，下列反應何者較為適當？",
+    options:[{key:"A",label:"高獲利很吸引人，馬上加入投資"},{key:"B",label:"保持警覺，穩賺不賠的說法通常是詐騙話術，應查證後再決定"},{key:"C",label:"因為是朋友傳的，所以一定可靠"},{key:"D",label:"借錢也要加入，才能提早獲利"}],
+    answer:"B" },
+  { text:"下列關於面對網路訊息應有的整體素養，何者敘述錯誤？",
+    options:[{key:"A",label:"接收訊息時應保持獨立思考，不隨波逐流"},{key:"B",label:"轉傳訊息前應先確認來源與真實性"},{key:"C",label:"只要是親友傳來的訊息，內容一定正確無誤"},{key:"D",label:"遇到可疑訊息或詐騙，可撥打 165 反詐騙專線查證"}],
+    answer:"C" }
+];
+
+function pickRandom(arr, n){
+  const copy = arr.slice();
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, n);
+}
+
+const QUESTIONS = pickRandom(QUESTION_POOL, MC_COUNT).map((q, i) => ({ ...q, no: i + 1 }));
+
+/* ============ 實作任務設定 ============ */
+function distinctInts(min,max,k){
+  const all=[]; for(let i=min;i<=max;i++) all.push(i);
+  return pickRandom(all,k);
+}
+
+/* kind：fixed = 固定畫八邊形；askN = 詢問邊數
+   pts：四個評分項目的配分（加總 = max）。實作題合計 25 + 35 = 60 分 */
+const TASKS = [
+  {
+    id:1, kind:'fixed',
+    max:25, pts:[5,5,5,10],
+    title:"任務一 ： 畫八邊形",
+    desc:["直接畫出一個正八邊形，不需要詢問使用者任何輸入。","以鉛筆為角色，各邊長度需一致。"],
+    trials(){ return [{ askQueue:[], fallback:"50", expectedN:8 }]; }
+  },
+  {
+    id:2, kind:'askN',
+    max:35, pts:[7,9,9,10],
+    title:"任務二 ： 使用者輸入邊數畫正多邊形",
+    desc:["詢問「要畫正幾邊形？」並等待使用者輸入邊數。","依照輸入的邊數畫出對應的正多邊形（邊長自訂，但各邊長度需一致）。","轉彎角度要依邊數自動計算（360 ÷ 邊數），圖形需封閉。"],
+    trials(){ return distinctInts(3,10,3).map(n => ({ askQueue:[String(n)], fallback:"5", expectedN:n })); }
+  }
+];
+
+const state = { answers:{}, taskFiles:{}, taskFileNames:{} };
+
+/* ============ 渲染選擇題 ============ */
+const qContainer = document.getElementById('questions');
+QUESTIONS.forEach(q => {
+  const qDiv = document.createElement('div');
+  qDiv.className = 'question';
+  const qt = document.createElement('div');
+  qt.className = 'qtext';
+  qt.textContent = q.no + '. ' + q.text;
+  qDiv.appendChild(qt);
+  const optWrap = document.createElement('div');
+  optWrap.className = 'options';
+  q.options.forEach(opt => {
+    const optDiv = document.createElement('div');
+    optDiv.className = 'option';
+    optDiv.innerHTML = '<span class="tag">' + opt.key + '</span><span>' + opt.label + '</span>';
+    optDiv.addEventListener('click', () => {
+      state.answers[q.no] = opt.key;
+      optWrap.querySelectorAll('.option').forEach(el => el.classList.remove('selected'));
+      optDiv.classList.add('selected');
+      updateSubmitState();
+    });
+    optWrap.appendChild(optDiv);
+  });
+  qDiv.appendChild(optWrap);
+  qContainer.appendChild(qDiv);
+});
+
+/* ============ 渲染任務卡片與上傳區 ============ */
+const tasksContainer = document.getElementById('tasksContainer');
+TASKS.forEach(task => {
+  const card = document.createElement('div');
+  card.className = 'task-card';
+  let html = '<div class="task-title">' + task.title + '（' + task.max + ' 分）</div><ol>';
+  task.desc.forEach(line => { html += '<li>' + line + '</li>'; });
+  html += '</ol>';
+  html += '<div class="upload-box" id="uploadBox-' + task.id + '">'
+        + '<label class="upload-btn">選擇 .sb3 檔案<input type="file" id="fileInput-' + task.id + '" accept=".sb3" style="display:none;"></label>'
+        + '<div class="status-line" id="statusLine-' + task.id + '">尚未上傳檔案</div>'
+        + '</div>';
+  card.innerHTML = html;
+  tasksContainer.appendChild(card);
+
+  const fileInput = card.querySelector('#fileInput-' + task.id);
+  const uploadBox = card.querySelector('#uploadBox-' + task.id);
+  const statusLine = card.querySelector('#statusLine-' + task.id);
+
+  fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    state.taskFiles[task.id] = null;
+    state.taskFileNames[task.id] = file.name;
+    uploadBox.classList.remove('has-file','has-error');
+    statusLine.className = 'status-line';
+    statusLine.textContent = '正在解析「' + file.name + '」…';
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const zip = await JSZip.loadAsync(arrayBuffer);
+      const projFile = zip.file('project.json');
+      if (!projFile) throw new Error('找不到 project.json');
+      const text = await projFile.async('string');
+      const data = JSON.parse(text);
+      if (!data.targets || !Array.isArray(data.targets)) throw new Error('專案格式無法辨識');
+      state.taskFiles[task.id] = data;
+      uploadBox.classList.add('has-file');
+      statusLine.className = 'status-line ok';
+      statusLine.textContent = '已成功讀取「' + file.name + '」';
+    } catch (err) {
+      statusLine.className = 'status-line err';
+      uploadBox.classList.add('has-error');
+      statusLine.textContent = '解析失敗：' + err.message + '，請確認是 .sb3 檔案';
+    }
+    updateSubmitState();
+  });
+});
+
+function updateSubmitState() {
+  const allAnswered = QUESTIONS.every(q => state.answers[q.no]);
+  const anyFile = TASKS.some(t => !!state.taskFiles[t.id]);
+  document.getElementById('submitBtn').disabled = !(allAnswered && anyFile);
+}
+
+/* ============ Scratch 執行模擬引擎 ============ */
+function toNumber(v){ const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+
+function getInputRef(block, name){
+  const inp = block.inputs && block.inputs[name];
+  if (!inp) return null;
+  const v = inp[1];
+  return typeof v === 'string' ? v : null;
+}
+
+function evalInput(blocks, block, name, ctx){
+  const inp = block.inputs && block.inputs[name];
+  if (!inp) return 0;
+  const v = inp[1];
+  if (typeof v === 'string') return evalBlock(blocks, v, ctx);
+  if (Array.isArray(v)) {
+    if (v[0] === 12) return ctx.variables[v[2]] !== undefined ? ctx.variables[v[2]] : 0; // variable reporter used directly as input
+    if (v[0] === 13) return 0; // list reporter used directly as input (not supported)
+    return v[1]; // literal number/text/etc.
+  }
+  return 0;
+}
+
+function evalBlock(blocks, id, ctx){
+  const b = blocks[id];
+  if (!b) return 0;
+  switch (b.opcode) {
+    case 'sensing_answer': return ctx.currentAnswer;
+    case 'operator_add': return toNumber(evalInput(blocks,b,'NUM1',ctx)) + toNumber(evalInput(blocks,b,'NUM2',ctx));
+    case 'operator_subtract': return toNumber(evalInput(blocks,b,'NUM1',ctx)) - toNumber(evalInput(blocks,b,'NUM2',ctx));
+    case 'operator_multiply': return toNumber(evalInput(blocks,b,'NUM1',ctx)) * toNumber(evalInput(blocks,b,'NUM2',ctx));
+    case 'operator_divide': {
+      const d = toNumber(evalInput(blocks,b,'NUM2',ctx));
+      return d === 0 ? 0 : toNumber(evalInput(blocks,b,'NUM1',ctx)) / d;
+    }
+    case 'operator_mod': {
+      const d = toNumber(evalInput(blocks,b,'NUM2',ctx));
+      return d === 0 ? 0 : toNumber(evalInput(blocks,b,'NUM1',ctx)) % d;
+    }
+    case 'operator_equals': return evalInput(blocks,b,'OPERAND1',ctx) == evalInput(blocks,b,'OPERAND2',ctx);
+    case 'operator_gt': return toNumber(evalInput(blocks,b,'OPERAND1',ctx)) > toNumber(evalInput(blocks,b,'OPERAND2',ctx));
+    case 'operator_lt': return toNumber(evalInput(blocks,b,'OPERAND1',ctx)) < toNumber(evalInput(blocks,b,'OPERAND2',ctx));
+    case 'operator_and': return !!evalInput(blocks,b,'OPERAND1',ctx) && !!evalInput(blocks,b,'OPERAND2',ctx);
+    case 'operator_or': return !!evalInput(blocks,b,'OPERAND1',ctx) || !!evalInput(blocks,b,'OPERAND2',ctx);
+    case 'operator_not': return !evalInput(blocks,b,'OPERAND',ctx);
+    case 'data_variable': {
+      const varId = b.fields && b.fields.VARIABLE && b.fields.VARIABLE[1];
+      return ctx.variables[varId] !== undefined ? ctx.variables[varId] : 0;
+    }
+    case 'math_number': case 'math_integer': case 'math_whole_number':
+    case 'math_positive_number': case 'math_angle':
+      return (b.fields && b.fields.NUM) ? b.fields.NUM[0] : 0;
+    case 'text':
+      return (b.fields && b.fields.TEXT) ? b.fields.TEXT[0] : '';
+    case 'argument_reporter_string_number': case 'argument_reporter_boolean': {
+      const name = (b.fields && b.fields.VALUE) ? b.fields.VALUE[0] : null;
+      const scope = ctx.paramStack[ctx.paramStack.length - 1];
+      return (scope && name in scope) ? scope[name] : 0;
+    }
+    default: return 0;
+  }
+}
+
+function doMove(ctx, steps){
+  const rad = ctx.dir * Math.PI / 180;
+  const dx = Math.sin(rad) * steps;
+  const dy = Math.cos(rad) * steps;
+  const nx = ctx.x + dx, ny = ctx.y + dy;
+  if (ctx.penDown) ctx.events.push({ type:'move', value: Math.abs(steps), x1: ctx.x, y1: ctx.y, x2: nx, y2: ny });
+  ctx.x = nx; ctx.y = ny;
+}
+function doGoto(ctx, x, y){
+  const dist = Math.hypot(x - ctx.x, y - ctx.y);
+  if (ctx.penDown && dist > 0.001) ctx.events.push({ type:'move', value: dist, x1: ctx.x, y1: ctx.y, x2: x, y2: y });
+  ctx.x = x; ctx.y = y;
+}
+
+function buildProcedureDefs(blocks){
+  const defs = {};
+  Object.keys(blocks).forEach(id => {
+    const b = blocks[id];
+    if (b.opcode === 'procedures_definition') {
+      const protoId = getInputRef(b, 'custom_block');
+      const proto = blocks[protoId];
+      if (proto && proto.mutation) {
+        let argIds = [], argNames = [];
+        try { argIds = JSON.parse(proto.mutation.argumentids || '[]'); } catch(e){}
+        try { argNames = JSON.parse(proto.mutation.argumentnames || '[]'); } catch(e){}
+        defs[proto.mutation.proccode] = { bodyStart: b.next, argIds, argNames };
+      }
+    }
+  });
+  return defs;
+}
+
+function runOneBlock(blocks, id, ctx){
+  const b = blocks[id];
+  switch (b.opcode) {
+    case 'motion_movesteps': doMove(ctx, toNumber(evalInput(blocks,b,'STEPS',ctx))); break;
+    case 'motion_gotoxy': doGoto(ctx, toNumber(evalInput(blocks,b,'X',ctx)), toNumber(evalInput(blocks,b,'Y',ctx))); break;
+    case 'motion_turnright': {
+      const deg = toNumber(evalInput(blocks,b,'DEGREES',ctx));
+      ctx.dir += deg; ctx.events.push({ type:'turn', value: deg }); break;
+    }
+    case 'motion_turnleft': {
+      const deg = toNumber(evalInput(blocks,b,'DEGREES',ctx));
+      ctx.dir -= deg; ctx.events.push({ type:'turn', value: -deg }); break;
+    }
+    case 'motion_pointindirection': ctx.dir = toNumber(evalInput(blocks,b,'DIRECTION',ctx)); break;
+    case 'pen_penDown': ctx.penDown = true; ctx.hasPenDown = true; break;
+    case 'pen_penUp': ctx.penDown = false; ctx.hasPenUp = true; break;
+    case 'pen_clear': ctx.events = []; break;
+    case 'control_repeat': {
+      const times = Math.max(0, Math.min(2000, Math.round(toNumber(evalInput(blocks,b,'TIMES',ctx)))));
+      const sub = getInputRef(b, 'SUBSTACK');
+      for (let i = 0; i < times && !ctx.aborted; i++) if (sub) runStack(blocks, sub, ctx);
+      break;
+    }
+    case 'control_if': {
+      if (evalInput(blocks,b,'CONDITION',ctx)) { const sub = getInputRef(b,'SUBSTACK'); if (sub) runStack(blocks, sub, ctx); }
+      break;
+    }
+    case 'control_if_else': {
+      const cond = evalInput(blocks,b,'CONDITION',ctx);
+      const branch = cond ? getInputRef(b,'SUBSTACK') : getInputRef(b,'SUBSTACK2');
+      if (branch) runStack(blocks, branch, ctx);
+      break;
+    }
+    case 'sensing_askandwait': {
+      ctx.askCount = (ctx.askCount || 0) + 1;
+      ctx.currentAnswer = ctx.askQueue.length ? ctx.askQueue.shift() : ctx.fallbackAnswer;
+      break;
+    }
+    case 'data_setvariableto': {
+      const varId = b.fields && b.fields.VARIABLE && b.fields.VARIABLE[1];
+      ctx.variables[varId] = evalInput(blocks,b,'VALUE',ctx);
+      break;
+    }
+    case 'data_changevariableby': {
+      const varId = b.fields && b.fields.VARIABLE && b.fields.VARIABLE[1];
+      ctx.variables[varId] = toNumber(ctx.variables[varId]) + toNumber(evalInput(blocks,b,'VALUE',ctx));
+      break;
+    }
+    case 'procedures_call': {
+      const proccode = b.mutation && b.mutation.proccode;
+      const def = ctx.procedureDefs[proccode];
+      if (def) {
+        const scope = {};
+        def.argNames.forEach((name, idx) => { scope[name] = evalInput(blocks, b, def.argIds[idx], ctx); });
+        ctx.paramStack.push(scope);
+        runStack(blocks, def.bodyStart, ctx);
+        ctx.paramStack.pop();
+      }
+      break;
+    }
+    default: break;
+  }
+}
+
+function runStack(blocks, startId, ctx){
+  let id = startId, guard = 0;
+  while (id && blocks[id] && !ctx.aborted) {
+    ctx.opCount++;
+    if (ctx.opCount > ctx.opLimit) { ctx.aborted = true; return; }
+    runOneBlock(blocks, id, ctx);
+    id = blocks[id].next;
+    guard++;
+    if (guard > 200000) { ctx.aborted = true; return; }
+  }
+}
+
+function runTargetFlagScripts(blocks, askQueue, fallbackAnswer){
+  const ctx = {
+    x:0, y:0, dir:90, penDown:false, events:[], variables:{}, paramStack:[],
+    askQueue: askQueue.slice(), fallbackAnswer, currentAnswer:'', askCount:0,
+    procedureDefs: buildProcedureDefs(blocks), opCount:0, opLimit:40000, aborted:false,
+    hasPenDown:false, hasPenUp:false
+  };
+  const hats = Object.keys(blocks).filter(id => blocks[id].opcode === 'event_whenflagclicked' && blocks[id].topLevel);
+  hats.forEach(h => { if (!ctx.aborted) runStack(blocks, blocks[h].next, ctx); });
+  return ctx;
+}
+
+function evaluateShape(ctx){
+  const moves = ctx.events.filter(e => e.type === 'move' && e.value > 0.5);
+  const turnsAbs = ctx.events.filter(e => e.type === 'turn').map(e => Math.abs(e.value));
+  const lengths = moves.map(m => m.value);
+  const avgLen = lengths.length ? lengths.reduce((a,b)=>a+b,0) / lengths.length : 0;
+  const lenSpread = lengths.length ? Math.max(...lengths) - Math.min(...lengths) : 0;
+  const avgTurn = turnsAbs.length ? turnsAbs.reduce((a,b)=>a+b,0) / turnsAbs.length : 0;
+  const turnSpread = turnsAbs.length ? Math.max(...turnsAbs) - Math.min(...turnsAbs) : 0;
+  let closureDist = null;
+  if (moves.length) {
+    const first = moves[0], last = moves[moves.length - 1];
+    closureDist = Math.hypot(last.x2 - first.x1, last.y2 - first.y1);
+  }
+  return { n: moves.length, avgLen, lenSpread, avgTurn, turnSpread, closureDist };
+}
+
+/* 對一個任務評分：用不同的隨機輸入各跑一次，每一組都必須正確才給分；
+   跑遍所有角色，取得分最高的角色作為代表結果。
+   誤差極小：轉角 0.001°、邊長 0.01 點，學生寫死近似角度（如 51.4）無法通過 */
+const TOL_ANGLE = 0.001, TOL_LEN = 0.01, TOL_CLOSE = 0.05;
+
+function gradeTask(task, projectData){
+  const configs = task.trials();
+  const P = task.pts;
+  const targets = (projectData.targets || []).filter(t => t.blocks);
+  if (!targets.length) targets.push({ blocks:{} });
+  let best = null;
+
+  targets.forEach(t => {
+    const runs = configs.map(cfg => {
+      const ctx = runTargetFlagScripts(t.blocks, cfg.askQueue, cfg.fallback);
+      return { cfg, ctx, sh: evaluateShape(ctx) };
+    });
+    const every = fn => runs.every(fn);
+    const polygon = every(r => r.sh.n >= 3);            // 門檻：至少畫出 3 條邊
+    const checks = [];
+    if (task.kind === 'fixed') checks.push(polygon && every(r => r.ctx.hasPenDown && r.ctx.hasPenUp));
+    else checks.push(polygon && every(r => (r.ctx.askCount || 0) >= 1));
+    checks.push(every(r => r.sh.n === r.cfg.expectedN));
+    checks.push(polygon && every(r => r.sh.lenSpread <= TOL_LEN));
+    checks.push(polygon && every(r =>
+      Math.abs(r.sh.avgTurn - 360 / r.cfg.expectedN) <= TOL_ANGLE && r.sh.turnSpread <= TOL_ANGLE &&
+      r.sh.closureDist !== null && r.sh.closureDist <= TOL_CLOSE));
+    const score = checks.reduce((sum, ok, i) => sum + (ok ? P[i] : 0), 0);
+    if (!best || score > best.score) best = { score, checks };
+  });
+
+  const labels = [];
+  if (task.kind === 'fixed') {
+    labels.push('程式有使用「下筆」與「停筆」，且確實畫出多邊形',
+      '繪製的邊數正確（8 邊）',
+      '各邊長度一致',
+      '轉彎角度為 45° 且圖形封閉');
+  } else {
+    labels.push('有「詢問…並等待」取得邊數，且確實畫出多邊形',
+      '邊數與輸入一致（3 組測試都要正確）',
+      '各邊長度一致（3 組測試都要正確）',
+      '轉彎角度 = 360 ÷ 邊數（需精確計算，不可寫死近似值）且圖形封閉');
+  }
+  const items = labels.map((label, i) => ({ label, pass: best.checks[i], pts: P[i] }));
+
+  let simNote;
+  if (task.kind === 'fixed') simNote = '本任務不需輸入，直接檢查畫出的圖形';
+  else simNote = '本次 3 組模擬輸入（邊數）：' + configs.map(c => c.expectedN).join('、');
+
+  return { score: best.score, items, simNote };
+}
+
+/* ============ 成績上傳與老師頁 ============ */
+const API = 'https://script.google.com/macros/s/AKfycbyyxVNIk4t96pV0yaebCtwdpVN67kCNDhMGJIVu2xmZnLm7mO9j9IUyuIem_ViEV6_AUQ/exec';  // 貼上 Apps Script 部署後的 /exec 網址
+
+// 繳交紀錄的 localStorage 前綴（與舊版不同，避免和舊版測驗互相影響）
+const DONE_PREFIX = 'scratch_quiz2_done_';
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function sendScore(stu, total, mc, task) {
+  if (!API) return;
+  fetch(API, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ cls: stu.cls, seat: stu.seat, name: stu.name, total, mc, task }) })
+    .catch(() => {
+      try { localStorage.removeItem(DONE_PREFIX + stu.cls + '_' + stu.seat); } catch (e) {}
+      alert('成績尚未傳到老師的試算表，請通知老師');
+    });
+}
+
+async function teacher() {
+  const qa = document.getElementById('quizArea'), ra = document.getElementById('resultsArea');
+  qa.style.display = 'none'; ra.style.display = 'block';
+  if (!API) { ra.innerHTML = '<p class="lead">尚未設定 API 網址</p>'; return; }
+  const k = window.tk || prompt('請輸入教師密碼');
+  if (!k) { ra.innerHTML = ''; return; }
+  ra.innerHTML = '<p class="lead">載入中…</p>';
+  try {
+    const r = await (await fetch(API + '?key=' + encodeURIComponent(k))).json();
+    if (r.error) { window.tk = null; ra.innerHTML = '<p class="lead">密碼錯誤，請重新整理頁面再試</p>'; return; }
+    window.tk = k;
+    const m = {};
+    r.rows.forEach(x => { const key = x.cls + '|' + x.seat; if (!m[key] || x.time < m[key].time) m[key] = x; }); // 同班級同座號只算最早一筆
+    const a = Object.values(m).sort((p, q) =>
+      String(p.cls).localeCompare(String(q.cls), 'zh-TW', { numeric: true }) || p.seat - q.seat);
+    const avg = a.length ? Math.round(a.reduce((s, x) => s + x.total, 0) / a.length) : 0;
+    ra.innerHTML = '<div class="score-hero"><div class="big">' + a.length + '</div><div class="lbl">已繳交人數｜平均 ' + avg + ' 分</div></div>'
+      + '<button class="upload-btn" id="rfBtn">重新整理</button>'
+      + '<div class="breakdown-block" style="margin-top:20px"><h4>全班成績（依班級、座號排序）</h4>'
+      + a.map(x => '<div class="row"><div class="left">' + esc(x.cls) + ' 班 ' + esc(x.seat) + ' 號　' + esc(x.name) + '</div><div class="mark pass">' + x.total + ' 分</div></div>').join('')
+      + '</div>';
+    document.getElementById('rfBtn').onclick = teacher;
+  } catch (e) {
+    ra.innerHTML = '<p class="lead">讀取失敗，請確認 API 網址與部署設定</p>';
+  }
+}
+
+if (location.hash === '#reset') {
+  try { Object.keys(localStorage).filter(k => k.startsWith(DONE_PREFIX)).forEach(k => localStorage.removeItem(k)); } catch (e) {}
+  history.replaceState(null, '', location.pathname + location.search);
+}
+window.addEventListener('hashchange', () => location.reload());
+if (location.hash === '#teacher') teacher();
+
+/* ============ 提交與結算 ============ */
+document.getElementById('submitBtn').addEventListener('click', () => {
+  const stu = {
+    cls: document.getElementById('clsInput').value.trim(),
+    seat: parseInt(document.getElementById('seatInput').value, 10),
+    name: document.getElementById('nameInput').value.trim()
+  };
+  if (!stu.cls || !(stu.seat > 0) || !stu.name) {
+    alert('請先在最上方輸入班級、座號（數字）與姓名');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+  const doneKey = DONE_PREFIX + stu.cls + '_' + stu.seat;
+  let already = false;
+  try { already = !!localStorage.getItem(doneKey); } catch (e) {}
+  if (already) { alert(stu.cls + ' 班 ' + stu.seat + ' 號已經繳交過了，不能重複繳交'); return; }
+
+  let mcScore = 0;
+  const mcRows = QUESTIONS.map(q => {
+    const userAns = state.answers[q.no];
+    const correct = userAns === q.answer;
+    if (correct) mcScore += MC_POINTS_PER_Q;
+    return { q, userAns, correct };
+  });
+
+  const taskResults = TASKS.map(task => {
+    const data = state.taskFiles[task.id];
+    if (!data) {
+      return { task, submitted:false, result:{ score:0, items:[{label:'此題未提交（可選作）', pass:null, pts:0}], simNote:'未上傳檔案，此題以 0 分計，不影響其他題目' } };
+    }
+    return { task, submitted:true, result: gradeTask(task, data) };
+  });
+  const taskScoreSum = taskResults.reduce((a,t) => a + t.result.score, 0);
+  const total = mcScore + taskScoreSum;
+  const mcMaxTotal = QUESTIONS.length * MC_POINTS_PER_Q;
+  const maxTotal = mcMaxTotal + TASKS.reduce((s,t) => s + t.max, 0);
+
+  try { localStorage.setItem(doneKey, '1'); } catch (e) {}
+  sendScore(stu, total, mcScore, total - mcScore);
+  renderResults(mcRows, mcScore, mcMaxTotal, taskResults, total, maxTotal);
+});
+
+function renderResults(mcRows, mcScore, mcMaxTotal, taskResults, total, maxTotal){
+  document.getElementById('quizArea').style.display = 'none';
+  const area = document.getElementById('resultsArea');
+  area.style.display = 'block';
+
+  let html = '';
+  html += '<div class="score-hero"><div class="big">' + total + ' / ' + maxTotal + '</div>'
+        + '<div class="lbl">選擇題 ' + mcScore + ' / ' + mcMaxTotal + ' 實作題 ' + (total - mcScore) + ' / ' + TASKS.reduce((s,t)=>s+t.max,0) + '</div></div>';
+
+  html += '<div class="breakdown-block"><h4>選擇題結果</h4>';
+  mcRows.forEach(r => {
+    html += '<div class="row"><div class="left">第 ' + r.q.no + ' 題'
+      + '<div class="mc-detail">你的答案：' + (r.userAns || '未作答') + ' 正確答案：' + r.q.answer + '</div></div>'
+      + '<div class="mark ' + (r.correct ? 'pass' : 'fail') + '">' + (r.correct ? '+' + MC_POINTS_PER_Q : '+0') + '</div></div>';
+  });
+  html += '</div>';
+
+  taskResults.forEach(({task, submitted, result}) => {
+    html += '<div class="breakdown-block"><h4>' + task.title + (submitted ? '（檔案：' + esc(state.taskFileNames[task.id] || '') + '）' : '') + ' — ' + result.score + ' / ' + task.max + '</h4>';
+    html += '<div class="sim-note">' + result.simNote + '</div>';
+    result.items.forEach(it => {
+      const markClass = it.pass === null ? 'skip' : (it.pass ? 'pass' : 'fail');
+      const markText = it.pass === null ? '—' : (it.pass ? '+' + it.pts : '+0');
+      html += '<div class="row"><div class="left">' + it.label + '</div>'
+        + '<div class="mark ' + markClass + '">' + markText + '</div></div>';
+    });
+    html += '</div>';
+  });
+
+  area.innerHTML = html;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+
+</body>
+</html>
