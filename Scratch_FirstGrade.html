@@ -514,7 +514,7 @@ async function submitTask() {
     // 只送「身分＋檔名＋積木資料」，分數由伺服器自己算；畫面上的分數只是草稿預覽
     const out = await fetch(SHEET_API_URL, {
       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ ...stu, taskId, fileName: r.fileName, project: r.raw })
+      body: JSON.stringify({ ...stu, assignment: 'firstgrade', taskId, fileName: r.fileName, project: r.raw })
     }).then(x => x.json());
     if (!out || !out.ok) throw new Error((out && out.error) || '伺服器沒有回應');
     r.submitted = true; r.serverScore = out.score;
