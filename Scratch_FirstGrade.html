@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scratch 計算與繪圖作業繳交系統</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen pb-10" style="font-family:'Microsoft JhengHei',sans-serif">
+
+<header class="bg-orange-500 text-white shadow sticky top-0 z-50">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+    <h1 class="text-xl font-extrabold">✎ Scratch 計算與繪圖作業</h1>
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2">
+        <input id="cls" placeholder="班級" maxlength="3" inputmode="numeric" autocomplete="off" class="bg-white/25 placeholder-orange-100 text-white font-semibold px-3 py-2 rounded-xl w-24 focus:outline-none">
+        <input id="seat" placeholder="座號" maxlength="2" inputmode="numeric" autocomplete="off" class="bg-white/25 placeholder-orange-100 text-white font-semibold px-3 py-2 rounded-xl w-16 focus:outline-none">
+        <input id="name" placeholder="姓名" maxlength="20" class="bg-white/25 placeholder-orange-100 text-white font-semibold px-3 py-2 rounded-xl w-28 focus:outline-none">
+      </div>
+      <div class="bg-white text-orange-600 rounded-xl px-4 py-1.5 font-bold">總分 <span id="total" class="text-2xl font-black">0</span> / 100</div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 mt-5">
+  <div id="tabs" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5"></div>
+
+  <div class="grid lg:grid-cols-12 gap-5">
+    <div class="lg:col-span-7 space-y-5">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border">
+        <div class="flex justify-between items-center mb-3">
+          <h2 id="ttitle" class="font-bold text-lg"></h2>
+          <span id="badge" class="text-xs px-2.5 py-1 rounded-full font-bold bg-slate-100 text-slate-500">未繳交</span>
+        </div>
+        <div id="tdesc" class="text-sm bg-slate-50 p-3 rounded-xl border mb-4"></div>
+
+        <div id="drop" class="border-2 border-dashed border-slate-300 rounded-2xl p-5 text-center bg-slate-50">
+          <input type="file" id="file" accept=".sb3" class="hidden">
+          <p class="text-sm font-bold">拖曳或選擇 Scratch 檔 (.sb3)</p>
+          <p id="fname" class="text-xs text-slate-400 my-1">尚未選擇檔案</p>
+          <button id="pick" onclick="document.getElementById('file').click()" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl">📂 選擇檔案</button>
+        </div>
+
+        <button id="submit" onclick="submitTask()" class="mt-4 w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold text-sm px-4 py-3 rounded-xl">確認繳交本題</button>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 shadow-sm border">
+        <h3 class="font-bold mb-3">檢測結果 <span class="text-xs font-normal text-slate-400">（點任一項可看說明與範例）</span></h3>
+        <div id="checklist" class="space-y-2"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 shadow-sm border">
+        <h3 class="font-bold mb-3">你的積木程式</h3>
+        <div id="blocks" class="bg-slate-900 text-emerald-300 p-3 rounded-xl text-xs font-mono max-h-48 overflow-y-auto"></div>
+      </div>
+    </div>
+
+    <div class="lg:col-span-5">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border lg:sticky lg:top-20">
+        <h3 id="stageT" class="font-bold mb-3">舞台模擬</h3>
+        <div id="stageBox" class="relative aspect-[4/3] bg-slate-950 rounded-2xl overflow-hidden">
+          <canvas id="cv" width="480" height="360" class="w-full h-full"></canvas>
+          <div id="ov" class="absolute inset-0 bg-slate-950/85 flex items-center justify-center text-white text-sm">等待上傳 .sb3 檔案...</div>
+        </div>
+        <p id="stageCap" class="hidden text-xs text-slate-500 mt-2">舞台顯示：階梯數 N＝5 的結果</p>
+        <div id="testBox" class="hidden text-xs"></div>
+        <div id="fb" class="mt-4 p-4 rounded-xl bg-slate-50 border">
+          <b id="fbT" class="text-sm">準備就緒</b>
+          <p id="fbX" class="text-xs text-slate-500 mt-1">請上傳本題的 .sb3 檔案。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="hint" class="hidden fixed inset-0 z-[60] bg-slate-900/60 flex items-center justify-center p-4" onclick="if(event.target===this)closeHint()">
+  <div class="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl">
+    <div class="flex justify-between items-start gap-3 mb-2">
+      <h3 id="hT" class="font-bold text-slate-800"></h3>
+      <button onclick="closeHint()" class="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
+    </div>
+    <p id="hX" class="text-sm text-slate-600 mb-3"></p>
+    <div id="hB"></div>
+    <button onclick="closeHint()" class="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 rounded-xl text-sm">我知道了</button>
+  </div>
+</div>
+
+<script>
+const TASK_IDS = [1, 2, 3, 4, 5, 6, 7, 8];
+const POINTS = { 1: 12, 2: 12, 3: 12, 4: 12, 5: 12, 6: 12, 7: 12, 8: 16 };   // 合計 100 分
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbx4SoQfpd6zhVbd42xesc8Hl1FIJg4m12_LfMsvgFoUx8zm17Qlv9BreC2KrNTXeKBx/exec";
+let cur = 1, busy = false;
+
+// ===== 題目參數與評分設定（要改題目數字，改這裡） =====
+const DRINK = 35;                          // 第 1 題：每杯飲料價格
+const TICKET_FULL = 200, TICKET_STU = 120; // 第 2 題：全票、學生票
+const SAVE_START = 100, SAVE_WEEK = 50;    // 第 4 題：目前存款、每週存入
+
+// 自動測試設定。num：代入數字測試；cases：票種＋張數；guess：猜數字互動測試；stairs：階梯圖形
+const SPEC = {
+  1: { type: 'num', f: a => DRINK * a[0], datasets: [[3], [10]] },
+  2: { type: 'pair', datasets: [[3, 2], [5, 4], [1, 6]] },   // 全票張數、學生票張數（兩次詢問誰先問都可以）
+  3: { type: 'num', f: a => 5 * a[0] * (a[0] + 1), datasets: [[3], [10]], varInit: 13 },   // 10+20+…+10N；變數一開始放「殘留值」，沒設初始值就會算錯
+  // 目標金額都用 50 的倍數，「重複直到 存款 ＝ 目標」的寫法也不會卡住。存款從 100（題目）或從 0 開始算都接受，但三組測試要用同一種
+  4: { type: 'num', fs: [a => a[0] <= SAVE_START ? 0 : Math.ceil((a[0] - SAVE_START) / SAVE_WEEK), a => Math.ceil(a[0] / SAVE_WEEK)], datasets: [[300], [500], [1000]], varInit: 13 },
+  5: { type: 'guess' },
+  6: { type: 'stairs', datasets: [[3], [5]] }
+};
+
+const tasks = {
+  1: {
+    short: '飲料訂購計算',
+    title: '第 1 題｜飲料訂購計算',
+    desc: `<p class="mb-1 font-bold">每杯飲料 ${DRINK} 元，輸入購買杯數，計算總金額。</p>
+      <ul class="list-disc list-inside space-y-1 text-xs">
+      <li>取得杯數（用「詢問並等待」，或用「設定變數」都可以）</li>
+      <li>總金額 ＝ ${DRINK} × 杯數</li>
+      <li>用「說」積木顯示總金額</li></ul>`,
+    criteria: [
+      { name: '取得購買杯數（詢問並等待，或設定變數）', check: p => p.inputsOk },
+      { name: `有使用「×」乘法，並用到每杯 ${DRINK} 元`, check: p => p.ops.has('operator_multiply') && p.consts.has(DRINK) },
+      { name: '有使用「說」積木顯示結果', check: p => p.said },
+      { name: '總金額計算正確（買 3 杯、10 杯測試）', check: p => p.testsOk }
+    ]
+  },
+  2: {
+    short: '遊樂園門票',
+    title: '第 2 題｜遊樂園門票',
+    desc: `<p class="mb-1 font-bold">全票 ${TICKET_FULL} 元、學生票（半票）${TICKET_STU} 元，輸入各買幾張，計算應付金額。</p>
+      <ul class="list-disc list-inside space-y-1 text-xs">
+      <li>用「詢問並等待」問 2 次：全票幾張、學生票（半票）幾張，各存進一個變數</li>
+      <li>應付金額 ＝ 全票張數 × ${TICKET_FULL} ＋ 學生票張數 × ${TICKET_STU}</li>
+      <li>用「說」積木顯示應付金額</li>
+      <li>詢問的問題文字請寫清楚是「全票」還是「學生票／半票」，系統才知道你先問哪一個</li></ul>`,
+    criteria: [
+      { name: '用「詢問並等待」取得全票與學生票的張數（要問 2 次）', check: p => p.inputsOk },
+      { name: '有使用「×」乘法與「＋」加法', check: p => p.ops.has('operator_multiply') && p.ops.has('operator_add') },
+      { name: `全票 ${TICKET_FULL}、學生票 ${TICKET_STU} 的單價都有用到`, check: p => p.consts.has(TICKET_FULL) && p.consts.has(TICKET_STU) },
+      { name: '應付金額計算正確（3 組測試）', check: p => p.testsOk }
+    ]
+  },
+  3: {
+    short: '運動次數累計',
+    title: '第 3 題｜運動次數累計',
+    desc: `<p class="mb-1 font-bold">第一天跳繩 10 下，每天增加 10 下，輸入天數後計算總次數。</p>
+      <ul class="list-disc list-inside space-y-1 text-xs">
+      <li>取得天數（詢問並等待，或設定變數）</li>
+      <li>開始前先把「總次數」和「今天次數」都設為 0</li>
+      <li>重複執行「天數」次：今天次數增加 10，總次數加上今天次數</li>
+      <li>用「說」積木顯示總次數（3 天＝10＋20＋30＝60）</li></ul>`,
+    criteria: [
+      { name: '取得天數（詢問並等待，或設定變數）', check: p => p.inputsOk },
+      { name: '使用「重複執行」，次數由天數決定（不是寫死的數字）', check: p => p.run.loops.some(l => !l.literal) },
+      { name: '迴圈內有累加：今天次數增加 10、總次數加上今天次數', check: p => p.run.accum.size >= 2 },
+      { name: '總次數正確，且開始前已設初始值（3 天、10 天測試）', check: p => p.testsOk }
+    ]
+  },
+  4: {
+    short: '存款目標挑戰',
+    title: '第 4 題｜存款目標挑戰',
+    desc: `<p class="mb-1 font-bold">目前有 ${SAVE_START} 元，每週存入 ${SAVE_WEEK} 元，輸入目標金額，計算需要幾週才能達成。</p>
+      <ul class="list-disc list-inside space-y-1 text-xs">
+      <li>取得目標金額（詢問並等待，或設定變數）</li>
+      <li>開始前先設定：「存款」＝${SAVE_START}、「週數」＝0（目標金額用 50 的倍數測試）</li>
+      <li>用迴圈（例如「重複直到」存款達到目標）：每週存款增加 ${SAVE_WEEK}、週數增加 1</li>
+      <li>「達成」是存款 ≥ 目標（剛好等於也算），最後說出週數</li></ul>`,
+    criteria: [
+      { name: '取得目標金額（詢問並等待，或設定變數）', check: p => p.inputsOk },
+      { name: '使用迴圈（重複直到…，或重複執行）', check: p => p.run.loops.length > 0 },
+      { name: `迴圈內有累加：存款增加 ${SAVE_WEEK}、週數增加 1`, check: p => p.run.accum.size >= 2 },
+      { name: '週數計算正確（目標 300、500、1000 測試）', check: p => p.testsOk }
+    ]
+  },
+  5: {
+    short: '猜數字遊戲',
+    title: '第 5 題｜猜數字遊戲',
+    desc: `<p class="mb-1 font-bold">設定一個秘密數字，讓使用者反覆輸入猜測，直到猜中為止。</p>
+      <ul class="list-disc list-inside space-y-1 text-xs">
+      <li>先決定秘密數字，存進變數（用「設定變數」設 42、用「隨機取數」，或用「詢問」請出題的人輸入都可以）</li>
+      <li>用「詢問並等待」讓使用者猜，猜錯就再問一次（要用迴圈）</li>
+      <li>猜中後停止詢問，並用「說」顯示訊息（例如「猜中了！」）</li>
+      <li>系統會自動測試：先輸入錯的數字，再輸入變數裡的秘密數字，看程式會不會停下來</li></ul>`,
+    criteria: [
+      { name: '有把秘密數字存進變數（設定、隨機取數，或詢問輸入）', check: p => p.secretOk },
+      { name: '用「詢問並等待」搭配迴圈，猜錯會再問一次', check: p => p.keepsAsking && p.run.loops.length > 0 },
+      { name: '有比較猜測與秘密數字（＝、＞、＜ 積木）', check: p => p.ops.has('operator_equals') || p.ops.has('operator_gt') || p.ops.has('operator_lt') },
+      { name: '猜中後停止詢問並說出訊息（猜錯、猜錯、猜中測試）', check: p => p.testsOk }
+    ]
+  },
+  6: {
+    short: '階梯設計師',
+    title: '第 6 題｜階梯設計師',
+    desc: `<p class="mb-1 font-bold">輸入階梯數量，利用迴圈畫出連續向上的階梯。</p>
+      <ul class="list-disc list-inside space-y-1 text-xs">
+      <li>取得階梯數量 N（詢問並等待，或設定變數），先「下筆」</li>
+      <li>重複執行 N 次，每一階：向右移動（例如 80 步）→ 左轉 90 度 → 向上移動（例如 30 步）→ 右轉 90 度（回到向右）</li>
+      <li>最後一階可以只畫橫的（不用再往上）。每階橫線長度要一樣、直線長度也要一樣</li>
+      <li>系統會用 N＝3 和 N＝5 測試，右邊舞台顯示 N＝5 的結果</li></ul>`,
+    criteria: [
+      { name: '取得階梯數量 N（詢問並等待，或設定變數）', check: p => p.inputsOk },
+      { name: '使用「重複執行」，次數由 N 決定（不是寫死的數字）', check: p => p.run.loops.some(l => !l.literal) },
+      { name: '有使用「下筆」，且在移動之前', check: p => p.penBeforeMove },
+      { name: '畫出 N 階階梯：橫線、直線交替，每條橫線等長、每條直線等長（N＝3、5 測試）', check: p => p.testsOk }
+    ]
+  },
+  7: {
+    short: '大小正方形',
+    title: '第 7 題｜大小正方形',
+    desc: `<p class="mb-1 font-bold">利用變數與迴圈，畫出三個邊長不同的正方形。</p>
+      <ul class="list-disc list-inside space-y-1 text-xs">
+      <li>建立變數「邊長」，開始前設為 40（例如），先「下筆」</li>
+      <li>外層：重複執行 3 次（三個正方形）</li>
+      <li>內層：重複執行 4 次（移動「邊長」步、右轉 90 度）</li>
+      <li>每畫完一個正方形，把「邊長」增加 20（變成 40、60、80）</li>
+      <li>想讓正方形排成一排：畫完先「停筆」、用「x 改變」移開、再「下筆」</li></ul>`,
+    criteria: [
+      { name: '用變數當邊長（「移動」的步數放變數）', check: p => p.run.varMoves > 0 },
+      { name: '巢狀迴圈：外層重複 3 次，內層重複 4 次', check: p => p.run.loops.some(l => l.n === 3 && l.hasChild) && p.run.loops.some(l => l.n === 4) },
+      { name: '三個正方形的邊長各不相同（每個正方形畫完，邊長會改變）', check: p => new Set(p.run.moves.filter(m => m.down).map(m => Math.round(m.len))).size >= 3 },
+      { name: '畫出三個封閉的正方形（模擬繪圖檢查）', check: p => squaresOk(p.run) }
+    ]
+  },
+  8: {
+    short: '雪花設計師',
+    title: '第 8 題｜雪花設計師',
+    desc: `<p class="mb-1 font-bold">利用畫筆、迴圈與旋轉角度，繪製一朵具有對稱線條的雪花。</p>
+      <ul class="list-disc list-inside space-y-1 text-xs">
+      <li>先「下筆」，再重複執行 6 次：移動（例如 80 步）、右轉 60 度（360 ÷ 6）</li>
+      <li>畫完的圖形旋轉 60 度後要和原圖完全重合（6 重對稱）</li>
+      <li>進階挑戰：每條邊再加上分枝，讓它更像雪花（系統一樣會檢查是否 6 重對稱）</li></ul>`,
+    criteria: [
+      { name: '有使用「下筆」，且在移動之前', check: p => p.penBeforeMove },
+      { name: '重複執行 6 次', check: p => p.run.loops.some(l => l.n === 6) },
+      { name: '迴圈內有移動，並右轉（或左轉）60 度', check: p => p.run.moves.some(m => m.down && m.len !== 0) && p.run.turns.some(t => Math.abs(t) === 60) },
+      { name: '圖形旋轉 60° 後與原圖重合（6 重對稱檢查）', check: p => snowflakeOk(p.run) }
+    ]
+  }
+};
+
+// ---------- 檢測項目說明（點擊彈窗） ----------
+// 積木格式：[類別, 文字, 縮排層級]
+const BC = { pen: '#0FBD8C', motion: '#4C97FF', control: '#FFAB19', sensing: '#5CB1D6', op: '#59C059', data: '#FF8C1A', looks: '#9966FF' };
+const PD = ['pen', '下筆'];
+const mv = (n, i) => ['motion', `移動 ${n} 步`, i || 0];
+const tr = (n, i) => ['motion', `右轉 ${n} 度`, i || 0];
+const tl = (n, i) => ['motion', `左轉 ${n} 度`, i || 0];
+const rp = (n, i) => ['control', `重複執行 ${n} 次`, i || 0];
+const ru = (c, i) => ['control', `重複直到 ${c}`, i || 0];
+const iff = (c, i) => ['control', `如果 ${c} 那麼`, i || 0];
+const els = (i) => ['control', '否則', i || 0];
+const ask = (q, i) => ['sensing', `詢問 ${q} 並等待`, i || 0];
+const setv = (v, e, i) => ['data', `設定 ${v} 為 ${e}`, i || 0];
+const chg = (v, e, i) => ['data', `將 ${v} 增加 ${e}`, i || 0];
+const say = (e, i) => ['looks', `說 ${e} 持續 2 秒`, i || 0];
+
+// 只需「輸入 → 運算 → 說」的題目（第 1 題）會用到
+const HINTS = {
+  1: [
+    { tip: '要先拿到杯數：用「詢問…並等待」，再把「答案」存進變數「杯數」；或直接「設定 杯數 為 3」。',
+      good: [ask('買幾杯？'), setv('杯數', '( 答案 )')], bad: [setv('總金額', 35)] },
+    { tip: `總金額 ＝ 單價 ${DRINK} × 杯數，要用「×」乘法積木，而且 ${DRINK} 要寫在程式裡。`,
+      good: [setv('總金額', `( ${DRINK} × 杯數 )`)], bad: [setv('總金額', `( ${DRINK} + 杯數 )`)] },
+    { tip: '算出結果後，要用「說」積木把總金額顯示出來，系統才抓得到你的答案。',
+      good: [setv('總金額', `( ${DRINK} × 杯數 )`), say('( 總金額 )')], bad: [setv('總金額', `( ${DRINK} × 杯數 )`)] },
+    { tip: '系統會測試買 3 杯（105 元）和 10 杯（350 元）。要用杯數去乘，不能把杯數寫死。',
+      good: [ask('買幾杯？'), setv('杯數', '( 答案 )'), say(`( ${DRINK} × 杯數 )`)], bad: [setv('杯數', 3), say(`( ${DRINK} × 3 )`)] }
+  ],
+  2: [
+    { tip: '要問兩次：一次問全票幾張、一次問學生票幾張。每次問完就把「答案」存進變數（下一次詢問會蓋掉答案）。',
+      good: [ask('全票要幾張？'), setv('全票', '( 答案 )'), ask('學生票要幾張？'), setv('學生票', '( 答案 )')],
+      bad: [ask('全票和學生票各幾張？'), setv('全票', '( 答案 )')] },
+    { tip: '兩種票各算各的再加起來：全票張數 × 200 ＋ 學生票張數 × 120，要用到「×」和「＋」。',
+      good: [setv('金額', `( ( 全票 × ${TICKET_FULL} ) + ( 學生票 × ${TICKET_STU} ) )`)], bad: [setv('金額', `( ( 全票 + 學生票 ) × ${TICKET_FULL} )`)] },
+    { tip: `兩種票價都要用到：全票 ${TICKET_FULL}、學生票 ${TICKET_STU}。`,
+      good: [setv('金額', `( ( 全票 × ${TICKET_FULL} ) + ( 學生票 × ${TICKET_STU} ) )`)], bad: [setv('金額', `( 全票 × ${TICKET_FULL} )`)] },
+    { tip: '系統會測試 3 組張數（例如全票 3、學生票 2 → 840）。問題文字要寫清楚「全票」或「學生票」，最後別忘了用「說」顯示金額。',
+      good: [ask('全票要幾張？'), setv('全票', '( 答案 )'), ask('學生票要幾張？'), setv('學生票', '( 答案 )'), setv('金額', `( ( 全票 × ${TICKET_FULL} ) + ( 學生票 × ${TICKET_STU} ) )`), say('( 金額 )')],
+      bad: [ask('全票要幾張？'), setv('全票', '( 答案 )'), ask('學生票要幾張？'), setv('學生票', '( 答案 )'), setv('金額', `( ( 全票 × ${TICKET_STU} ) + ( 學生票 × ${TICKET_FULL} ) )`)] }
+  ],
+  3: [
+    { tip: '要先拿到天數：用「詢問…並等待」存進變數「天數」，或直接「設定 天數 為 3」。', good: [ask('幾天？'), setv('天數', '( 答案 )')], bad: [rp(3)] },
+    { tip: '重複的次數要放變數「天數」（不是 3、10 這種寫死的數字），這樣不管幾天都能算。', good: [rp('( 天數 )')], bad: [rp(10)] },
+    { tip: '每天要做兩件事：今天的次數增加 10，再讓總次數加上今天的次數（今天次數一開始是 0，第一天加完就是 10）。',
+      good: [rp('( 天數 )'), chg('今天次數', 10, 1), chg('總次數', '( 今天次數 )', 1)], bad: [rp('( 天數 )'), chg('總次數', 10, 1)] },
+    { tip: '迴圈前要先設初始值：總次數＝0、今天次數＝0；否則第二次執行就會從上次的結果繼續加。最後再「說」出總次數。',
+      good: [setv('總次數', 0), setv('今天次數', 0), rp('( 天數 )'), chg('今天次數', 10, 1), chg('總次數', '( 今天次數 )', 1), say('( 總次數 )')],
+      bad: [rp('( 天數 )'), chg('今天次數', 10, 1), chg('總次數', '( 今天次數 )', 1), say('( 總次數 )')] }
+  ],
+  4: [
+    { tip: '要先拿到目標金額：用「詢問…並等待」存進變數「目標」，或直接「設定 目標 為 300」。', good: [ask('目標金額？'), setv('目標', '( 答案 )')], bad: [setv('週數', 4)] },
+    { tip: '不知道要重複幾次，但知道「存款達到目標」就停，所以用「重複直到」最適合。',
+      good: [ru('< 存款 ≥ 目標 >'), chg('存款', 50, 1)], bad: [chg('存款', 50)] },
+    { tip: '每週要做兩件事：存款增加 50、週數增加 1。',
+      good: [ru('< 存款 ≥ 目標 >'), chg('存款', 50, 1), chg('週數', 1, 1)], bad: [ru('< 存款 ≥ 目標 >'), chg('存款', 50, 1)] },
+    { tip: '開始前先設：存款＝100、週數＝0。「達成」包含剛好等於目標（存款 300、目標 300 要算達成），所以用「存款 ＝ 目標」或「不成立 ( 存款 < 目標 )」，不要用「存款 ＞ 目標」。',
+      good: [setv('存款', 100), setv('週數', 0), ru('< 不成立 ( 存款 < 目標 ) >'), chg('存款', 50, 1), chg('週數', 1, 1), say('( 週數 )')],
+      bad: [setv('存款', 100), setv('週數', 0), ru('< 存款 > 目標 >'), chg('存款', 50, 1), chg('週數', 1, 1)] }
+  ],
+  5: [
+    { tip: '秘密數字要存進變數，之後才有東西可以比對。可以用「設定變數」設一個數字，也可以先「詢問」出題的人、再把答案存起來。', good: [setv('秘密數字', 42), ask('請出題者輸入秘密數字'), setv('秘密數字', '( 答案 )')], bad: [ask('猜幾？')] },
+    { tip: '猜錯要再問一次，所以「詢問」要放在迴圈裡，用「重複直到 答案 ＝ 秘密數字」。',
+      good: [ask('猜一個數字'), ru('< ( 答案 ) = ( 秘密數字 ) >'), say('再猜一次', 1), ask('猜一個數字', 1)],
+      bad: [ask('猜一個數字'), iff('< ( 答案 ) = ( 秘密數字 ) >'), say('猜中了！', 1)] },
+    { tip: '要用「＝」積木（也可以搭配＞、＜）比較「答案」和「秘密數字」。', good: [['op', '< ( 答案 ) = ( 秘密數字 ) >']], bad: [setv('猜測', '( 答案 )')] },
+    { tip: '系統會先猜錯兩次，再輸入秘密數字。猜中後程式要停止詢問，並說出訊息。',
+      good: [setv('秘密數字', 42), ask('猜一個數字'), ru('< ( 答案 ) = ( 秘密數字 ) >'), say('再猜一次', 1), ask('猜一個數字', 1), say('猜中了！')],
+      bad: [['control', '一直重複'], ask('猜一個數字', 1), iff('< ( 答案 ) = ( 秘密數字 ) >', 1), say('猜中了！', 2)] }
+  ],
+  6: [
+    { tip: '要先拿到階梯數量：用「詢問…並等待」存進變數 N，或直接「設定 N 為 3」。', good: [ask('幾階？'), setv('N', '( 答案 )')], bad: [rp(3)] },
+    { tip: '重複的次數要放變數 N（不是 3、5 這種寫死的數字），N 是幾就畫幾階。', good: [rp('( N )')], bad: [rp(5)] },
+    { tip: '「下筆」放在迴圈外面、迴圈前面，只要下一次就好。', good: [PD, rp('( N )'), mv(80, 1)], bad: [rp('( N )'), mv(80, 1), PD] },
+    { tip: '每一階：向右 80 → 左轉 90（朝上）→ 向上 30 → 右轉 90（回到向右）。最後的右轉不能少，否則第二階會歪掉。橫線長度要一樣、直線長度也要一樣。',
+      good: [PD, rp('( N )'), mv(80, 1), tl(90, 1), mv(30, 1), tr(90, 1)], bad: [PD, rp('( N )'), mv(80, 1), tl(90, 1), mv(30, 1)] }
+  ],
+  7: [
+    { tip: '正方形的邊長要放在變數「邊長」裡，「移動」積木的步數放這個變數。', good: [setv('邊長', 40), mv('( 邊長 )')], bad: [mv(30)] },
+    { tip: '外層重複 3 次（三個正方形），內層重複 4 次（四條邊）。',
+      good: [rp(3), rp(4, 1), mv('( 邊長 )', 2), tr(90, 2)], bad: [rp(12), mv('( 邊長 )', 1), tr(90, 1)] },
+    { tip: '每畫完一個正方形（內層迴圈結束後），要把邊長增加 20，三個正方形才會大小不同。',
+      good: [rp(3), rp(4, 1), mv('( 邊長 )', 2), tr(90, 2), chg('邊長', 20, 1)], bad: [rp(3), rp(4, 1), mv('( 邊長 )', 2), tr(90, 2)] },
+    { tip: '完整程式：下筆、設邊長＝40，外層 3 次，內層 4 次（移動、右轉 90），內層結束後邊長增加 20（想排成一排，可再加「停筆 → x 改變 → 下筆」）。增加邊長不要放進內層，否則一個正方形的四條邊會不一樣長。',
+      good: [PD, setv('邊長', 40), rp(3), rp(4, 1), mv('( 邊長 )', 2), tr(90, 2), chg('邊長', 20, 1)],
+      bad: [PD, setv('邊長', 40), rp(3), rp(4, 1), mv('( 邊長 )', 2), tr(90, 2), chg('邊長', 20, 2)] }
+  ],
+  8: [
+    { tip: '「下筆」放在迴圈外面、迴圈前面，只要下一次就好。', good: [PD, rp(6), mv(80, 1)], bad: [rp(6), mv(80, 1), PD] },
+    { tip: '雪花有 6 個邊（手臂），所以重複執行 6 次。', good: [rp(6), mv(80, 1), tr(60, 1)], bad: [rp(5), mv(80, 1), tr(72, 1)] },
+    { tip: '迴圈裡要有「移動」，並且每次轉 60 度（360 ÷ 6）。', good: [mv(80), tr(60)], bad: [mv(80), tr(90)] },
+    { tip: '「下筆 → 重複 6 次（移動、右轉 60）」會畫出 6 重對稱的圖形。想更像雪花，可以在每條邊加上分枝（移動出去再退回來），只要整張圖轉 60 度後仍然重合就算對。',
+      good: [PD, rp(6), mv(80, 1), tr(60, 1)], bad: [PD, rp(6), mv(80, 1), tr(50, 1)] }
+  ]
+};
+
+function hintBlocks(list) {
+  return '<div class="inline-block">' + list.map(([c, t, ind]) =>
+    `<div style="background:${BC[c]};margin-left:${(ind || 0) * 22}px" class="text-white font-bold text-sm px-3 py-2 rounded-md mb-0.5 shadow-sm w-fit whitespace-nowrap">${t}</div>`
+  ).join('') + '</div>';
+}
+
+function showHint(i) {
+  const c = tasks[cur].criteria[i], h = (HINTS[cur] || [])[i];
+  if (!h) return;
+  $('hT').innerText = c.name;
+  $('hX').innerText = h.tip;
+  let html = '';
+  html += `<div class="mb-3"><div class="text-xs font-bold text-emerald-600 mb-1.5">✔ 正確範例</div><div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 overflow-x-auto">${hintBlocks(h.good)}</div></div>`;
+  if (h.bad) html += `<div><div class="text-xs font-bold text-rose-600 mb-1.5">✕ 常見錯誤</div><div class="bg-rose-50 border border-rose-200 rounded-xl p-3 overflow-x-auto">${hintBlocks(h.bad)}</div></div>`;
+  $('hB').innerHTML = html;
+  $('hint').classList.remove('hidden');
+}
+function closeHint() { $('hint').classList.add('hidden'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHint(); });
+
+const res = {};
+TASK_IDS.forEach(id => res[id] = { parsed: null, raw: null, fileName: '', submitted: false, serverScore: 0 });
+
+const $ = id => document.getElementById(id);
+const FIELDS = ['cls', 'seat', 'name'];
+const FIELD_LABEL = { cls: '班級', seat: '座號', name: '姓名' };
+const CLASS_RE = /^[1-9]\d\d$/;   // 班級：三位數字，例如 101、215、308
+const SEAT_MAX = 99;          // 座號：1 到 SEAT_MAX（要改上限只改這裡；Apps Script 裡也有同一個設定）
+
+// 輸入時即時清理：全形數字轉半形、只留數字、班級最多 3 碼、座號最多 2 碼且不可 0 開頭
+function sanitize(f) {
+  const el = $(f);
+  if (f !== 'cls' && f !== 'seat') return;
+  let v = el.value.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/\D/g, '');
+  v = f === 'cls' ? v.slice(0, 3) : v.replace(/^0+/, '').slice(0, 2);
+  if (el.value !== v) el.value = v;
+}
+
+// 回傳尚未填寫的欄位（例如 ['cls','name']）
+function missingFields() {
+  return FIELDS.filter(f => !$(f).value.trim());
+}
+
+// 回傳 null 表示沒問題；否則回傳 [有問題的欄位, 提示文字]
+function idError() {
+  const c = $('cls').value.trim(), s = $('seat').value.trim();
+  if (!CLASS_RE.test(c)) return ['cls', '班級請輸入三位數字，例如 101、215。'];
+  if (!/^\d{1,2}$/.test(s) || Number(s) < 1 || Number(s) > SEAT_MAX) return ['seat', `座號請輸入 1 到 ${SEAT_MAX} 的數字。`];
+  if (!$('name').value.trim()) return ['name', '請輸入姓名。'];
+  return null;
+}
+const student = () => ({
+  className: $('cls').value.trim(),
+  seatNo: $('seat').value.trim(),
+  studentName: $('name').value.trim()
+});
+
+function buildTabs() {
+  $('tabs').innerHTML = TASK_IDS.map(id => `<button id="tab${id}" onclick="switchTask(${id})" class="text-left p-3 rounded-2xl bg-white border-2 shadow-sm"><b class="text-sm">第 ${id} 題：${tasks[id].short}</b><div class="text-xs text-slate-500">狀態：<b id="st${id}">未繳交</b></div></button>`).join('');
+}
+
+function calc(p, id) {
+  const cs = tasks[id].criteria;
+  const passed = cs.filter(c => c.check(p)).length;
+  return { passed, total: cs.length, score: Math.round(POINTS[id] * passed / cs.length) };
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  FIELDS.forEach(f => {
+    try { $(f).value = localStorage.getItem('scratch_' + f) || ''; } catch (e) {}
+    sanitize(f);
+    $(f).addEventListener('input', () => { sanitize(f); try { localStorage.setItem('scratch_' + f, $(f).value); } catch (e) {} });
+    $(f).addEventListener('blur', () => {   // 離開欄位時，若格式不對就提示
+      const bad = idError();
+      if (bad && bad[0] === f && $(f).value) feedback('請檢查班級、座號與姓名', bad[1]);
+    });
+  });
+  $('file').addEventListener('change', e => { if (e.target.files[0]) processFile(e.target.files[0]); e.target.value = ''; });
+  const d = $('drop');
+  d.addEventListener('dragover', e => { e.preventDefault(); d.classList.add('bg-blue-50'); });
+  d.addEventListener('dragleave', () => d.classList.remove('bg-blue-50'));
+  d.addEventListener('drop', e => { e.preventDefault(); d.classList.remove('bg-blue-50'); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); });
+  buildTabs();
+  switchTask(1);
+});
+
+function switchTask(id) {
+  cur = id;
+  TASK_IDS.forEach(t => {
+    $('tab' + t).classList.toggle('border-blue-500', t === id);
+    $('tab' + t).classList.toggle('border-transparent', t !== id);
+  });
+  $('ttitle').innerText = tasks[id].title;
+  $('tdesc').innerHTML = tasks[id].desc;
+  refresh();
+}
+
+function refresh() {
+  const r = res[cur], p = r.parsed;
+  $('fname').innerText = r.fileName ? '已載入：' + r.fileName : '尚未選擇檔案';
+  const sb = $('submit'), badge = $('badge');
+  $('pick').disabled = r.submitted;
+  $('drop').classList.toggle('opacity-60', r.submitted);
+  if (r.submitted) {
+    sb.disabled = true; sb.innerText = '🔒 本題已繳交';
+    sb.className = 'mt-4 w-full bg-emerald-700 text-white font-extrabold text-sm px-4 py-3 rounded-xl cursor-not-allowed';
+    badge.className = 'text-xs px-2.5 py-1 rounded-full font-bold bg-emerald-100 text-emerald-800';
+    badge.innerText = '已繳交';
+  } else {
+    sb.disabled = !p; sb.innerText = p ? '確認繳交本題' : '請先上傳 .sb3 檔案';
+    sb.className = 'mt-4 w-full font-extrabold text-sm px-4 py-3 rounded-xl ' + (p ? 'bg-amber-500 hover:bg-amber-600 text-slate-900' : 'bg-slate-300 text-slate-500 cursor-not-allowed');
+    badge.className = 'text-xs px-2.5 py-1 rounded-full font-bold ' + (p ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500');
+    badge.innerText = p ? '草稿測試中' : '未繳交';
+  }
+  renderChecklist(); renderBlocks(); renderStage(); updateTotal();
+}
+
+function renderChecklist() {
+  const p = res[cur].parsed;
+  $('checklist').innerHTML = tasks[cur].criteria.map((c, i) => {
+    let icon = '○', cls = 'bg-slate-50 border-slate-200', tag = '待檢測';
+    if (p) {
+      if (c.check(p)) { icon = '✔'; cls = 'bg-emerald-50 border-emerald-200 text-emerald-900'; tag = '符合'; }
+      else { icon = '✕'; cls = 'bg-rose-50 border-rose-200 text-rose-900'; tag = '未符合'; }
+    }
+    return `<div onclick="showHint(${i})" class="p-3 rounded-xl border flex justify-between items-center gap-2 text-xs font-semibold cursor-pointer hover:shadow-md transition ${cls}">
+      <span>${icon} ${c.name}</span>
+      <span class="whitespace-nowrap">${tag} <span class="ml-1 inline-block text-[11px] font-bold text-blue-600 bg-white/80 border border-blue-200 rounded-full px-2.5 py-0.5">ⓘ 看說明</span></span></div>`;
+  }).join('');
+  if (p) {
+    const r = calc(p, cur);
+    feedback(`本題得分：${r.score} / ${POINTS[cur]} 分（通過 ${r.passed}/${r.total} 項）`,
+      r.passed === r.total ? '全部通過，可以繳交了！' : '點選未符合的項目，可以看到修正範例。');
+  } else feedback('準備就緒', '請上傳本題的 .sb3 檔案。');
+}
+
+function feedback(t, x) { $('fbT').innerText = t; $('fbX').innerText = x; }
+
+function updateTotal() {
+  let sum = 0;
+  TASK_IDS.forEach(id => {
+    const r = res[id], s = r.parsed ? calc(r.parsed, id) : null;
+    const sc = r.submitted ? r.serverScore : (s ? s.score : null);
+    if (sc !== null) sum += sc;
+    const el = $('st' + id);
+    el.innerText = r.submitted ? `已繳交・${sc}/${POINTS[id]} 分` : s ? `草稿・${sc}/${POINTS[id]} 分` : '未繳交';
+    el.className = r.submitted ? 'text-emerald-600' : s ? 'text-amber-600' : '';
+  });
+  $('total').innerText = sum;
+}
+
+async function submitTask() {
+  const r = res[cur];
+  if (busy || !r.parsed || !r.raw || r.submitted) return;
+
+  // 1) 檢查是否有沒填的欄位 → 跳出 alert 說明哪些沒寫
+  const miss = missingFields();
+  if (miss.length) {
+    const names = miss.map(f => FIELD_LABEL[f]).join('、');
+    alert(`⚠ 尚未填寫：${names}\n\n請在畫面最上方填好「班級、座號、姓名」後，再按繳交。`);
+    feedback('尚未填寫個人資料', `請填寫：${names}`);
+    $(miss[0]).focus();
+    return;
+  }
+
+  // 2) 有填但格式不對 → 也用 alert 提醒
+  const bad = idError();
+  if (bad) {
+    alert('⚠ ' + bad[1]);
+    feedback('請檢查班級、座號與姓名', bad[1]);
+    $(bad[0]).focus();
+    return;
+  }
+
+  const stu = student(), taskId = cur;
+  busy = true;
+  $('submit').disabled = true; $('submit').innerText = '送出中，請稍候…';
+  try {
+    // 只送「身分＋檔名＋積木資料」，分數由伺服器自己算；畫面上的分數只是草稿預覽
+    const out = await fetch(SHEET_API_URL, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ ...stu, taskId, fileName: r.fileName, project: r.raw })
+    }).then(x => x.json());
+    if (!out || !out.ok) throw new Error((out && out.error) || '伺服器沒有回應');
+    r.submitted = true; r.serverScore = out.score;
+    busy = false; refresh();
+    feedback(`✅ 成績送出！第 ${taskId} 題已繳交，得 ${out.score} 分（通過 ${out.passed}/${out.total} 項）`, '以伺服器評分為準，目前總分顯示在右上角。');
+    alert(`✅ 成績送出！\n\n${stu.className} 班 ${stu.seatNo} 號 ${stu.studentName}\n第 ${taskId} 題已繳交，得 ${out.score} 分（通過 ${out.passed}/${out.total} 項）`);
+  } catch (e) {
+    busy = false; refresh();
+    feedback('傳送失敗', (e.message || '') + '　請檢查網路後再按一次繳交。');
+    alert('❌ 成績送出失敗\n\n' + (e.message || '') + '\n請檢查網路後再按一次繳交。');
+  }
+}
+
+/* =====================================================================
+   Scratch 積木解析與「迷你直譯器」
+   不只看積木有沒有放，而是真的把程式跑一遍（含詢問、變數、運算、迴圈、畫筆），
+   再檢查輸出的數字與畫出的圖形，所以不同寫法只要結果對就能過。
+   （這一段不依賴網頁元素，可原封不動搬進 Apps Script 做伺服器端評分。）
+   ===================================================================== */
+const STEP_LIMIT = 60000;
+const isBlk = b => b && typeof b === 'object' && !Array.isArray(b) && b.opcode;
+const toNum = x => { if (typeof x === 'number') return x; if (x === '' || x === null || x === undefined || x === true || x === false) return x === true ? 1 : 0; const n = Number(x); return isNaN(n) ? 0 : n; };
+const isNumLike = x => typeof x === 'number' || (typeof x === 'string' && x.trim() !== '' && !isNaN(Number(x)));
+const truthy = v => typeof v === 'boolean' ? v : typeof v === 'string' ? !(v === '' || v === '0' || v.toLowerCase() === 'false') : !!v;
+const isLit = inp => !!inp && Array.isArray(inp[1]) && inp[1][0] !== 12 && inp[1][0] !== 13;
+const varKey = b => { const f = b.fields && b.fields.VARIABLE; return f ? (f[1] || f[0]) : '?'; };
+const varName = b => { const f = b.fields && b.fields.VARIABLE; return f ? f[0] : '?'; };
+
+function pickBlocks(data) {
+  if (!data || !data.targets) return null;
+  const has = t => t.blocks && Object.keys(t.blocks).some(k => isBlk(t.blocks[k]));
+  const t = data.targets.find(x => !x.isStage && has(x)) || data.targets.find(has);
+  return t ? t.blocks : null;
+}
+
+function pickStart(blocks) {
+  const ids = Object.keys(blocks).filter(id => isBlk(blocks[id]));
+  const len = id => { let n = 0; while (id && isBlk(blocks[id]) && n < 5000) { n++; id = blocks[id].next; } return n; };
+  const hats = ids.filter(id => blocks[id].opcode.startsWith('event_when'));
+  const flag = hats.filter(id => blocks[id].opcode === 'event_whenflagclicked');
+  const pool = flag.length ? flag : hats.length ? hats : ids.filter(id => blocks[id].topLevel && !blocks[id].shadow);
+  return pool.sort((a, b) => len(b) - len(a))[0] || null;
+}
+
+// 把一個輸入欄位（含巢狀積木）用到的 opcode 全部收集起來
+function exprOps(blocks, inp, set, consts) {
+  set = set || new Set();
+  if (!inp) return set;
+  const v = inp[1];
+  if (consts && Array.isArray(v) && v[0] !== 12 && v[0] !== 13 && isNumLike(v[1])) consts.add(toNum(v[1]));   // 程式裡寫死的數字（例如單價）
+  if (typeof v === 'string' && isBlk(blocks[v])) {
+    const b = blocks[v]; set.add(b.opcode);
+    Object.keys(b.inputs || {}).forEach(k => { if (!/^SUBSTACK/.test(k)) exprOps(blocks, b.inputs[k], set, consts); });
+  }
+  return set;
+}
+
+// ---------- 靜態走訪：產生「你的積木程式」清單，並收集用到的積木種類 ----------
+function listProgram(blocks, startId) {
+  const out = [], ops = new Set(), consts = new Set();
+  const ex = inp => {
+    if (!inp) return '';
+    const v = inp[1];
+    if (Array.isArray(v)) return v[0] === 12 ? `[${v[1]}]` : String(v[1] === undefined ? '' : v[1]);
+    if (typeof v === 'string' && isBlk(blocks[v])) return exb(blocks[v]);
+    return Array.isArray(inp[2]) ? String(inp[2][1]) : '';
+  };
+  const exb = b => {
+    const i = b.inputs || {}, bin = s => `(${ex(i.NUM1)} ${s} ${ex(i.NUM2)})`, cmp = s => `(${ex(i.OPERAND1)} ${s} ${ex(i.OPERAND2)})`;
+    switch (b.opcode) {
+      case 'operator_add': return bin('＋'); case 'operator_subtract': return bin('－');
+      case 'operator_multiply': return bin('×'); case 'operator_divide': return bin('÷');
+      case 'operator_mod': return bin('除以…的餘數');
+      case 'operator_gt': return cmp('>'); case 'operator_lt': return cmp('<'); case 'operator_equals': return cmp('=');
+      case 'operator_and': return cmp('且'); case 'operator_or': return cmp('或');
+      case 'operator_not': return `(不成立 ${ex(i.OPERAND)})`;
+      case 'operator_join': return `(${ex(i.STRING1)} 接 ${ex(i.STRING2)})`;
+      case 'operator_round': return `(四捨五入 ${ex(i.NUM)})`;
+      case 'data_variable': return `[${varName(b)}]`;
+      case 'sensing_answer': return '[答案]';
+      default: return `<${b.opcode.replace(/^.*?_/, '')}>`;
+    }
+  };
+  const mark = b => { ops.add(b.opcode); Object.keys(b.inputs || {}).forEach(k => { if (!/^SUBSTACK/.test(k)) exprOps(blocks, b.inputs[k], ops, consts); }); };
+  const sub = (b, k, d) => { const s = b.inputs && b.inputs[k]; if (s && typeof s[1] === 'string') walk(s[1], d + 1); };
+  function walk(id, d) {
+    while (id && isBlk(blocks[id]) && out.length < 400) {
+      const b = blocks[id], i = b.inputs || {}, o = b.opcode;
+      mark(b);
+      let t = null;
+      switch (o) {
+        case 'event_whenflagclicked': t = '【事件】當綠旗被點擊'; break;
+        case 'pen_penDown': t = '【畫筆】下筆'; break;
+        case 'pen_penUp': t = '【畫筆】停筆'; break;
+        case 'pen_clear': t = '【畫筆】全部清除'; break;
+        case 'motion_movesteps': t = `【動作】移動 ${ex(i.STEPS)} 步`; break;
+        case 'motion_turnright': t = `【動作】右轉 ${ex(i.DEGREES)} 度`; break;
+        case 'motion_turnleft': t = `【動作】左轉 ${ex(i.DEGREES)} 度`; break;
+        case 'motion_pointindirection': t = `【動作】面朝 ${ex(i.DIRECTION)} 度`; break;
+        case 'motion_gotoxy': t = `【動作】定位到 x:${ex(i.X)} y:${ex(i.Y)}`; break;
+        case 'sensing_askandwait': t = `【偵測】詢問 ${ex(i.QUESTION)} 並等待`; break;
+        case 'data_setvariableto': t = `【變數】設定 ${varName(b)} 為 ${ex(i.VALUE)}`; break;
+        case 'data_changevariableby': t = `【變數】將 ${varName(b)} 增加 ${ex(i.VALUE)}`; break;
+        case 'looks_say': t = `【外觀】說 ${ex(i.MESSAGE)}`; break;
+        case 'looks_sayforsecs': t = `【外觀】說 ${ex(i.MESSAGE)} 持續 ${ex(i.SECS)} 秒`; break;
+        case 'control_repeat': t = `【控制】重複執行 ${ex(i.TIMES)} 次`; break;
+        case 'control_repeat_until': t = `【控制】重複直到 ${ex(i.CONDITION)}`; break;
+        case 'control_forever': t = '【控制】一直重複'; break;
+        case 'control_if': t = `【控制】如果 ${ex(i.CONDITION)} 那麼`; break;
+        case 'control_if_else': t = `【控制】如果 ${ex(i.CONDITION)} 那麼`; break;
+        default: t = event_or_other(o);
+      }
+      out.push({ t, d });
+      if (o === 'control_if_else') { sub(b, 'SUBSTACK', d); out.push({ t: '【控制】否則', d }); sub(b, 'SUBSTACK2', d); }
+      else sub(b, 'SUBSTACK', d);
+      id = b.next;
+    }
+  }
+  const event_or_other = o => o.startsWith('event_') ? `【事件】${o.replace('event_', '')}` : `【${o.split('_')[0]}】${o.replace(/^.*?_/, '')}`;
+  if (startId) walk(startId, 0);
+  return { lines: out, ops, consts };
+}
+
+// ---------- 執行 ----------
+function runProgram(blocks, startId, opt) {
+  opt = opt || {};
+  const answers = opt.answers || [], varInit = opt.varInit || 0;
+  const S = { vars: {}, answer: '', says: [], asks: 0, consumed: [], setCount: {}, changed: new Set(), literalSets: [],
+    segs: [], moves: [], turns: [], order: [], loops: [], accum: new Set(), x: 0, y: 0, dir: 90, pen: false, steps: 0, timedOut: false,
+    sayAtAsk: [], varsAtAsk: [], askTexts: [], overAsk: false, varMoves: 0 };
+  const STOP = {}, stack = [];
+  const gv = k => k in S.vars ? S.vars[k] : varInit;
+
+  function ev(inp) {
+    if (!inp) return 0;
+    const v = inp[1];
+    if (Array.isArray(v)) return v[0] === 12 ? gv(v[2] || v[1]) : v[0] === 13 ? 0 : (v[1] === undefined ? '' : v[1]);
+    if (typeof v === 'string' && isBlk(blocks[v])) return evb(blocks[v]);
+    return Array.isArray(inp[2]) ? inp[2][1] : 0;
+  }
+  function evb(b) {
+    const i = b.inputs || {}, n1 = () => toNum(ev(i.NUM1)), n2 = () => toNum(ev(i.NUM2));
+    const cmp = (f) => { const a = ev(i.OPERAND1), c = ev(i.OPERAND2); return (isNumLike(a) && isNumLike(c)) ? f(toNum(a), toNum(c)) : f(String(a).toLowerCase(), String(c).toLowerCase()); };
+    switch (b.opcode) {
+      case 'operator_add': return n1() + n2();
+      case 'operator_subtract': return n1() - n2();
+      case 'operator_multiply': return n1() * n2();
+      case 'operator_divide': return n1() / n2();
+      case 'operator_mod': { const a = n1(), m = n2(); let r = a % m; if (r / m < 0) r += m; return r; }
+      case 'operator_round': return Math.round(toNum(ev(i.NUM)));
+      case 'operator_mathop': {
+        const x = toNum(ev(i.NUM)), f = b.fields && b.fields.OPERATOR && b.fields.OPERATOR[0];
+        return ({ abs: Math.abs(x), floor: Math.floor(x), ceiling: Math.ceil(x), sqrt: Math.sqrt(x) })[f] ?? 0;
+      }
+      case 'operator_random': return Math.round((toNum(ev(i.FROM)) + toNum(ev(i.TO))) / 2);
+      case 'operator_join': return String(ev(i.STRING1)) + String(ev(i.STRING2));
+      case 'operator_gt': return cmp((a, c) => a > c);
+      case 'operator_lt': return cmp((a, c) => a < c);
+      case 'operator_equals': return cmp((a, c) => a === c);
+      case 'operator_and': return truthy(ev(i.OPERAND1)) && truthy(ev(i.OPERAND2));
+      case 'operator_or': return truthy(ev(i.OPERAND1)) || truthy(ev(i.OPERAND2));
+      case 'operator_not': return !truthy(ev(i.OPERAND));
+      case 'data_variable': return gv(varKey(b));
+      case 'sensing_answer': return S.answer;
+      default: return 0;
+    }
+  }
+  const tick = () => { if (++S.steps > STEP_LIMIT) { S.timedOut = true; throw STOP; } };
+  const sub = (b, k) => { const s = b.inputs && b.inputs[k]; return s && typeof s[1] === 'string' ? s[1] : null; };
+  function lineTo(nx, ny) { if (S.pen && (nx !== S.x || ny !== S.y)) S.segs.push({ x1: S.x, y1: S.y, x2: nx, y2: ny }); S.x = nx; S.y = ny; }
+  function loop(b, n, literal, body) {
+    const rec = { n, literal, hasChild: false, depth: stack.length };
+    if (stack.length) stack[stack.length - 1].hasChild = true;
+    S.loops.push(rec); stack.push(rec);
+    try { body(rec); } finally { stack.pop(); }
+  }
+  function exec(id) {
+    while (id && isBlk(blocks[id])) {
+      const b = blocks[id], i = b.inputs || {};
+      tick();
+      switch (b.opcode) {
+        case 'control_repeat': {
+          const n = Math.max(0, Math.round(toNum(ev(i.TIMES))));
+          loop(b, n, isLit(i.TIMES), () => { for (let c = 0; c < n; c++) { tick(); exec(sub(b, 'SUBSTACK')); } });
+          break;
+        }
+        case 'control_repeat_until':
+          loop(b, 0, false, rec => { while (!truthy(ev(i.CONDITION))) { tick(); rec.n++; exec(sub(b, 'SUBSTACK')); } });
+          break;
+        case 'control_forever':
+          loop(b, 0, true, rec => { while (true) { tick(); rec.n++; exec(sub(b, 'SUBSTACK')); } });
+          break;
+        case 'control_if': if (truthy(ev(i.CONDITION))) exec(sub(b, 'SUBSTACK')); break;
+        case 'control_if_else': exec(truthy(ev(i.CONDITION)) ? sub(b, 'SUBSTACK') : sub(b, 'SUBSTACK2')); break;
+        case 'control_stop': throw STOP;
+        case 'data_setvariableto': {
+          const k = varKey(b), val = ev(i.VALUE);
+          S.vars[k] = val; S.setCount[k] = (S.setCount[k] || 0) + 1;
+          if (isLit(i.VALUE) && isNumLike(val)) S.literalSets.push({ k, v: toNum(val) });
+          if (stack.length && exprOps(blocks, i.VALUE).has('operator_add')) S.accum.add(id);
+          break;
+        }
+        case 'data_changevariableby': {
+          const k = varKey(b);
+          S.vars[k] = toNum(gv(k)) + toNum(ev(i.VALUE)); S.changed.add(k);
+          if (stack.length) S.accum.add(id);
+          break;
+        }
+        case 'sensing_askandwait': {
+          S.asks++;
+          S.askTexts.push(String(ev(i.QUESTION))); S.sayAtAsk.push(S.says.length); S.varsAtAsk.push(Object.assign({}, S.vars));
+          if (opt.maxAsks && S.asks > opt.maxAsks) { S.overAsk = true; throw STOP; }   // 問太多次就停（猜數字測試用）
+          const a = opt.answerFn ? opt.answerFn(S.asks - 1, S) : (answers.length ? answers[(S.asks - 1) % answers.length] : '');
+          S.answer = String(a);
+          if (answers.length && !opt.answerFn) S.consumed.push(toNum(a));
+          break;
+        }
+        case 'looks_say': case 'looks_sayforsecs': S.says.push(ev(i.MESSAGE)); break;
+        case 'pen_penDown': S.pen = true; S.order.push('pen'); break;
+        case 'pen_penUp': S.pen = false; break;
+        case 'pen_clear': S.segs = []; break;
+        case 'motion_movesteps': {
+          const d = toNum(ev(i.STEPS)), r = (90 - S.dir) * Math.PI / 180;
+          S.order.push('move'); S.moves.push({ len: d, down: S.pen });
+          if (!isLit(i.STEPS)) S.varMoves++;
+          lineTo(S.x + d * Math.cos(r), S.y + d * Math.sin(r));
+          break;
+        }
+        case 'motion_turnright': { const d = toNum(ev(i.DEGREES)); S.dir += d; S.turns.push(d); break; }
+        case 'motion_turnleft': { const d = toNum(ev(i.DEGREES)); S.dir -= d; S.turns.push(-d); break; }
+        case 'motion_pointindirection': S.dir = toNum(ev(i.DIRECTION)); break;
+        case 'motion_gotoxy': lineTo(toNum(ev(i.X)), toNum(ev(i.Y))); break;
+        case 'motion_glidesecstoxy': lineTo(toNum(ev(i.X)), toNum(ev(i.Y))); break;
+        case 'motion_changexby': lineTo(S.x + toNum(ev(i.DX)), S.y); break;
+        case 'motion_changeyby': lineTo(S.x, S.y + toNum(ev(i.DY))); break;
+        case 'motion_setx': lineTo(toNum(ev(i.X)), S.y); break;
+        case 'motion_sety': lineTo(S.x, toNum(ev(i.Y))); break;
+      }
+      id = b.next;
+    }
+  }
+  try { if (startId) exec(startId); } catch (e) { if (e !== STOP) throw e; }
+  S.literalInputs = S.literalSets.filter(s => S.setCount[s.k] === 1 && !S.changed.has(s.k)).map(s => s.v);
+  return S;
+}
+
+// ---------- 幾何檢查（用實際畫出的線段） ----------
+const near = (a, b, t) => Math.abs(a - b) <= (t === undefined ? 0.5 : t);
+const angDiff = (a, b) => { let d = (b - a) % 360; if (d > 180) d -= 360; if (d < -180) d += 360; return d; };
+function infoOf(s) {
+  const L = s.map(g => Math.hypot(g.x2 - g.x1, g.y2 - g.y1));
+  const H = s.map(g => Math.atan2(g.y2 - g.y1, g.x2 - g.x1) * 180 / Math.PI);
+  const contiguous = s.every((g, i) => i === 0 || (near(g.x1, s[i - 1].x2, 0.01) && near(g.y1, s[i - 1].y2, 0.01)));
+  const closed = s.length > 0 && contiguous && near(s[0].x1, s[s.length - 1].x2, 0.5) && near(s[0].y1, s[s.length - 1].y2, 0.5);
+  return { s, L, H, contiguous, closed };
+}
+// 一組線段是不是「封閉的正 n 邊形」？是就回傳邊長，不是回傳 null
+function regularSide(segs, n) {
+  const { s, L, H, closed } = infoOf(segs);
+  if (s.length !== n || !closed || !L.every(l => near(l, L[0]))) return null;
+  const d = H.map((h, i) => angDiff(h, H[(i + 1) % n]));
+  return d.every(x => near(Math.abs(x), 360 / n, 0.5)) && d.every(x => x * d[0] > 0) ? L[0] : null;
+}
+// 第 7 題：在所有線段裡找「連續 4 條、封閉的正方形」，剛好要有 3 個（多畫的零星線段不扣分）
+function findSquares(run) {
+  const s = run.segs, found = [];
+  for (let i = 0; i + 4 <= s.length;) {
+    const side = regularSide(s.slice(i, i + 4), 4);
+    if (side !== null && side >= 5) { found.push(side); i += 4; } else i++;
+  }
+  return found;
+}
+const squaresOk = run => findSquares(run).length === 3;
+// 第 6 題：N 階階梯。向右、向上交替；橫線剛好 N 條且等長，直線 N 或 N−1 條且等長（最後一階可以只畫橫的）
+function stairsOk(run, n) {
+  if (!(Number.isInteger(n) && n >= 1 && n <= 30)) return false;
+  const { s, L, H, contiguous } = infoOf(run.segs);
+  if (!contiguous || s.length < 2 * n - 1 || s.length > 2 * n) return false;
+  const dir = H.map(h => near(angDiff(h, 0), 0, 1) ? 'E' : near(angDiff(h, 90), 0, 1) ? 'N' : '?');
+  if (dir.some((d, i) => d === '?' || (i > 0 && d === dir[i - 1]))) return false;
+  const E = L.filter((l, i) => dir[i] === 'E'), U = L.filter((l, i) => dir[i] === 'N');
+  return E.length === n && (U.length === n - 1 || U.length === n) && E.every(l => near(l, E[0]) && l >= 5) && U.every(l => near(l, U[0]) && l >= 5);
+}
+// 第 8 題：把整張圖轉 60 度，每個點都要落在原本畫過的線上
+function snowflakeOk(run) {
+  const s = run.segs;
+  if (s.length < 6 || s.length > 3000) return false;
+  let W = 0, cx = 0, cy = 0;
+  s.forEach(g => { const l = Math.hypot(g.x2 - g.x1, g.y2 - g.y1); W += l; cx += l * (g.x1 + g.x2) / 2; cy += l * (g.y1 + g.y2) / 2; });
+  if (W < 50) return false;
+  cx /= W; cy /= W;
+  const dist = (px, py) => {
+    let m = 1e9;
+    for (const g of s) {
+      const dx = g.x2 - g.x1, dy = g.y2 - g.y1, l2 = dx * dx + dy * dy;
+      let t = l2 ? ((px - g.x1) * dx + (py - g.y1) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t));
+      m = Math.min(m, Math.hypot(px - (g.x1 + t * dx), py - (g.y1 + t * dy)));
+    }
+    return m;
+  };
+  const c = Math.cos(Math.PI / 3), sn = Math.sin(Math.PI / 3);
+  return s.every(g => [[g.x1, g.y1], [g.x2, g.y2], [(g.x1 + g.x2) / 2, (g.y1 + g.y2) / 2]].every(([x, y]) =>
+    dist(cx + (x - cx) * c - (y - cy) * sn, cy + (x - cx) * sn + (y - cy) * c) <= 1.5));
+}
+
+// ---------- 組合：解析一個 .sb3 的 project.json ----------
+const fmt = n => n === null || n === undefined ? '—' : (Number.isInteger(n) ? String(n) : String(Math.round(n * 1e6) / 1e6));
+function emptyParsed() {
+  const r = runProgram({}, null);
+  return { empty: true, lines: [], ops: new Set(), consts: new Set(), run: r, drawRun: r, tests: [], inputsOk: false, testsOk: false, said: false,
+    penBeforeMove: false, timedOut: false, secretOk: false, keepsAsking: false };
+}
+const closeTo = (a, b) => Math.abs(a - b) <= 1e-6 * Math.max(1, Math.abs(b));
+const lastNumber = v => { if (typeof v === 'number') return v; const m = String(v).match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi); return m ? Number(m[m.length - 1]) : null; };
+const sayNum = r => r.says.length ? lastNumber(r.says[r.says.length - 1]) : null;
+
+function parseScratch(data, id) {
+  const blocks = pickBlocks(data), startId = blocks ? pickStart(blocks) : null;
+  if (!blocks || !startId) return emptyParsed();
+  const { lines, ops, consts } = listProgram(blocks, startId);
+  const spec = SPEC[id] || { type: 'draw' };
+  const P = { empty: false, lines, ops, consts, tests: [], inputsOk: false, testsOk: false, secretOk: false, keepsAsking: false };
+  const go = opt => runProgram(blocks, startId, opt);
+  let timedOut = false;
+
+  if (spec.type === 'num') {
+    // 有用「詢問」：代入測試數字；沒用「詢問」：直接讀程式裡設定的數字
+    const probe = go({ answers: spec.datasets[0], varInit: spec.varInit });
+    const viaAsk = probe.asks > 0, sets = viaAsk ? spec.datasets : [spec.datasets[0]];
+    const rows = sets.map((d, n) => {
+      const r = n === 0 ? probe : go({ answers: d, varInit: spec.varInit });
+      timedOut = timedOut || r.timedOut;
+      const cand = viaAsk ? r.consumed.slice(0, 1) : r.literalInputs;
+      return { r, pool: cand.map(x => [x]), got: sayNum(r) };
+    });
+    const fs = spec.fs || [spec.f];
+    const hitOf = (row, f) => row.pool.find(c => row.got !== null && closeTo(row.got, f(c)));
+    const fUse = fs.find(f => rows.every(row => hitOf(row, f))) || fs[0];   // 所有測試都要用同一種算法才算對
+    rows.forEach((row, n) => {
+      const hit = hitOf(row, fUse), shown = hit || row.pool[0], enough = row.pool.length > 0;
+      P.tests.push({ title: `測試 ${n + 1}`, ok: !!hit,
+        lines: [`輸入：${shown ? fmt(shown[0]) : '—'}`, `你的程式說：${row.r.says.length ? (row.got === null ? '（說的內容沒有數字）' : fmt(row.got)) : '（沒有說任何東西）'}`, `正確答案：${shown ? fmt(fUse(shown)) : '—'}`],
+        why: !enough ? '找不到輸入的數字（請用「詢問並等待」或「設定變數」）' : '' });
+    });
+    P.run = P.drawRun = probe;
+    P.inputsOk = rows.every(row => row.pool.length > 0);
+    P.testsOk = P.tests.every(t => t.ok);
+  } else if (spec.type === 'stairs') {
+    const probe = go({ answers: spec.datasets[0] });
+    const viaAsk = probe.asks > 0, sets = viaAsk ? spec.datasets : [spec.datasets[0]];
+    let last = probe, allEnough = true;
+    sets.forEach((d, n) => {
+      const r = n === 0 ? probe : go({ answers: d });
+      last = r; timedOut = timedOut || r.timedOut;
+      const pool = (viaAsk ? r.consumed.slice(0, 1) : r.literalInputs).map(x => [x]);
+      allEnough = allEnough && pool.length > 0;
+      const hit = pool.find(c => stairsOk(r, c[0])), N = (hit || pool[0] || [null])[0];
+      P.tests.push({ title: `測試 ${n + 1}：階梯數 N＝${fmt(N)}`, ok: !!hit,
+        lines: [`畫出 ${r.segs.length} 條線（N 階應該有 ${N === null ? '—' : (2 * N - 1) + ' 或 ' + 2 * N} 條）`],
+        why: pool.length ? '' : '找不到輸入的數字（請用「詢問並等待」或「設定變數」）' });
+    });
+    P.run = probe; P.drawRun = last;
+    P.inputsOk = allEnough;
+    P.testsOk = P.tests.every(t => t.ok);
+  } else if (spec.type === 'pair') {
+    // 兩次詢問（全票張數、學生票張數）。依「第一個問題的文字」判斷先問的是哪一種票
+    let probe = null;
+    spec.datasets.forEach((d, n) => {
+      const r = go({ answers: d }), got = sayNum(r);
+      timedOut = timedOut || r.timedOut;
+      if (n === 0) probe = r;
+      const q1 = r.askTexts[0] || '', stuFirst = /學|半/.test(q1) && !/全/.test(q1), fullFirst = /全/.test(q1) && !/學|半/.test(q1);
+      const e0 = TICKET_FULL * d[0] + TICKET_STU * d[1], e1 = TICKET_FULL * d[1] + TICKET_STU * d[0];
+      const exps = stuFirst ? [e1] : fullFirst ? [e0] : [e0, e1];
+      const ok = r.asks >= 2 && got !== null && exps.some(e => closeTo(got, e));
+      P.tests.push({ title: `測試 ${n + 1}`, ok,
+        lines: [`${stuFirst ? '第 1 次輸入學生票 ' + d[0] + '、第 2 次輸入全票 ' + d[1] : '第 1 次輸入 ' + d[0] + '、第 2 次輸入 ' + d[1]}`,
+          `你的程式說：${r.says.length ? (got === null ? '（說的內容沒有數字）' : fmt(got)) : '（沒有說任何東西）'}`, `正確答案：${fmt(exps[0])}`],
+        why: r.asks < 2 ? '要用「詢問並等待」問 2 次' : '' });
+    });
+    P.run = P.drawRun = probe;
+    P.inputsOk = probe.asks >= 2;
+    P.testsOk = P.tests.every(t => t.ok);
+  } else if (spec.type === 'guess') {
+    // 先全部猜錯，看程式會不會繼續問；再用「變數裡的數字」當第 3 次猜測，看會不會停下來
+    const probe = go({ answerFn: i => -(i + 1), maxAsks: 3 });
+    const keys = new Set();
+    probe.varsAtAsk.concat([probe.vars]).forEach(v => Object.keys(v).forEach(k => { if (isNumLike(v[k])) keys.add(k); }));
+    let win = null;
+    for (const k of keys) {
+      const r = go({ answerFn: (i, S) => i < 2 ? -(i + 1) : toNum(k in S.vars ? S.vars[k] : 0), maxAsks: 6 });
+      timedOut = timedOut || r.timedOut;
+      if (r.asks === 3 && !r.overAsk && !r.timedOut && r.says.length > r.sayAtAsk[2]) { win = r; break; }
+    }
+    P.run = P.drawRun = probe;
+    P.secretOk = Object.keys(probe.setCount).length > 0;   // 有把某個東西存進變數（設定、隨機取數、詢問答案都算）
+    P.keepsAsking = probe.overAsk;
+    P.tests.push({ title: '測試 1：連續猜錯', ok: P.keepsAsking,
+      lines: [`猜 −1、−2、−3 都猜錯 → 程式${P.keepsAsking ? '會繼續詢問' : '沒有繼續詢問'}`] });
+    P.tests.push({ title: '測試 2：第 3 次猜中', ok: !!win,
+      lines: [win ? '第 3 次輸入秘密數字 → 程式停止詢問並說出訊息' : '第 3 次輸入秘密數字後，程式沒有正確停止並說話（或找不到秘密數字）'] });
+    P.testsOk = !!win;
+  } else {
+    P.run = P.drawRun = go({});
+    timedOut = P.run.timedOut;
+  }
+  P.said = P.run.says.length > 0;
+  P.timedOut = timedOut || P.run.timedOut;
+  const o = P.run.order, pd = o.indexOf('pen'), mvI = o.indexOf('move');
+  P.penBeforeMove = pd !== -1 && mvI !== -1 && pd < mvI;
+  return P;
+}
+
+function processFile(file) {
+  if (res[cur].submitted) { feedback('本題已繳交', '已鎖定，無法再修改。'); return; }
+  if (!file.name.endsWith('.sb3')) { feedback('檔案格式錯誤', '請上傳副檔名為 .sb3 的檔案。'); return; }
+  const taskId = cur;
+  JSZip.loadAsync(file).then(z => {
+    const f = z.file('project.json');
+    if (!f) throw new Error('no project.json');
+    return f.async('text');
+  }).then(txt => {
+    const data = JSON.parse(txt);
+    res[taskId].parsed = parseScratch(data, taskId);
+    // 只保留積木內容（不含造型、音效），這是唯一會送到伺服器的資料
+    res[taskId].raw = { targets: (data.targets || []).map(t => ({ isStage: !!t.isStage, blocks: t.blocks || {} })) };
+    res[taskId].fileName = file.name;
+    refresh();
+  }).catch(() => feedback('讀取失敗', '檔案可能損壞或不是有效的 Scratch 專案。'));
+}
+
+function renderBlocks() {
+  const p = res[cur].parsed;
+  if (!p) { $('blocks').innerHTML = '<span class="text-slate-500">尚未上傳 .sb3 檔案...</span>'; return; }
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  $('blocks').innerHTML = p.lines.length
+    ? p.lines.map(l => `<div class="py-0.5" style="padding-left:${l.d * 16}px">${esc(l.t)}</div>`).join('')
+    : '<span class="text-slate-400">未偵測到程式積木（請把積木接在「當綠旗被點擊」下面）。</span>';
+}
+
+// ---------- 右側：第 1～5 題顯示自動測試結果，第 6～8 題顯示舞台 ----------
+const isTestView = id => !!SPEC[id] && SPEC[id].type !== 'stairs';
+
+function renderStage() {
+  const p = res[cur].parsed, testView = isTestView(cur);
+  $('stageT').innerText = testView ? '自動測試' : '舞台模擬';
+  $('stageBox').classList.toggle('hidden', testView);
+  $('stageCap').classList.toggle('hidden', testView || cur !== 6);
+  $('testBox').classList.toggle('hidden', !testView);
+  if (testView) { renderTests(p); return; }
+  const cv = $('cv'), ctx = cv.getContext('2d');
+  ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, 480, 360);
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1;
+  for (let x = 0; x <= 480; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 360); ctx.stroke(); }
+  for (let y = 0; y <= 360; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(480, y); ctx.stroke(); }
+  ctx.strokeStyle = '#334155'; ctx.beginPath(); ctx.moveTo(240, 0); ctx.lineTo(240, 360); ctx.moveTo(0, 180); ctx.lineTo(480, 180); ctx.stroke();
+  $('ov').classList.toggle('hidden', !!p);
+  if (!p) return;
+  const run = p.drawRun || p.run;
+  ctx.strokeStyle = '#4C97FF'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  ctx.beginPath();
+  run.segs.forEach(g => { ctx.moveTo(240 + g.x1, 180 - g.y1); ctx.lineTo(240 + g.x2, 180 - g.y2); });
+  ctx.stroke();
+  ctx.fillStyle = '#FFAB19'; ctx.beginPath(); ctx.arc(240 + run.x, 180 - run.y, 4, 0, 7); ctx.fill();   // 小貓最後停的位置
+}
+
+function renderTests(p) {
+  const box = $('testBox');
+  if (!p) { box.innerHTML = '<div class="bg-slate-950 text-white text-sm rounded-2xl p-6 text-center">等待上傳 .sb3 檔案...</div>'; return; }
+  if (p.empty) { box.innerHTML = '<div class="bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-3">沒有找到可執行的程式。請把積木接在「當綠旗被點擊」下面。</div>'; return; }
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  let h = '<p class="text-slate-500 mb-2">系統會自動幫你的程式輸入測試資料，看看結果對不對。</p>';
+  h += '<div class="space-y-2">' + p.tests.map(t => {
+    const cls = t.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900';
+    return `<div class="rounded-xl border p-3 ${cls}"><div class="font-bold mb-1">${t.ok ? '✔' : '✕'} ${esc(t.title)}</div>${t.lines.map(l => `<div>${esc(l)}</div>`).join('')}${t.why && !t.ok ? `<div class="mt-1 font-semibold">${esc(t.why)}</div>` : ''}</div>`;
+  }).join('') + '</div>';
+  if (p.timedOut) h += '<div class="mt-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3">程式執行太久，可能有無限迴圈或次數太大。</div>';
+  box.innerHTML = h;
+}
+</script>
+</body>
+</html>
