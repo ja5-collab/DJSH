@@ -244,6 +244,7 @@ TASK_IDS.forEach(id => res[id] = { parsed: null, raw: null, fileName: '', submit
 
 const $ = id => document.getElementById(id);
 const FIELDS = ['cls', 'seat', 'name'];
+const FIELD_LABEL = { cls: '班級', seat: '座號', name: '姓名' };
 const CLASS_RE = /^2\d\d$/;   // 班級：2 開頭的三位數，例如 201、215
 const SEAT_MAX = 99;          // 座號：1 到 SEAT_MAX（要改上限只改這裡；Apps Script 裡也有同一個設定）
 
@@ -254,6 +255,11 @@ function sanitize(f) {
   let v = el.value.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/\D/g, '');
   v = f === 'cls' ? v.slice(0, 3) : v.replace(/^0+/, '').slice(0, 2);
   if (el.value !== v) el.value = v;
+}
+
+// 回傳尚未填寫的欄位（例如 ['cls','name']）
+function missingFields() {
+  return FIELDS.filter(f => !$(f).value.trim());
 }
 
 // 回傳 null 表示沒問題；否則回傳 [有問題的欄位, 提示文字]
@@ -367,12 +373,26 @@ function updateTotal() {
 async function submitTask() {
   const r = res[cur];
   if (busy || !r.parsed || !r.raw || r.submitted) return;
+
+  // 1) 檢查是否有沒填的欄位 → 跳出 alert 說明哪些沒寫
+  const miss = missingFields();
+  if (miss.length) {
+    const names = miss.map(f => FIELD_LABEL[f]).join('、');
+    alert(`⚠ 尚未填寫：${names}\n\n請在畫面最上方填好「班級、座號、姓名」後，再按繳交。`);
+    feedback('尚未填寫個人資料', `請填寫：${names}`);
+    $(miss[0]).focus();
+    return;
+  }
+
+  // 2) 有填但格式不對 → 也用 alert 提醒
   const bad = idError();
   if (bad) {
+    alert('⚠ ' + bad[1]);
     feedback('請檢查班級、座號與姓名', bad[1]);
     $(bad[0]).focus();
     return;
   }
+
   const stu = student(), taskId = cur;
   busy = true;
   $('submit').disabled = true; $('submit').innerText = '送出中，請稍候…';
@@ -385,10 +405,12 @@ async function submitTask() {
     if (!out || !out.ok) throw new Error((out && out.error) || '伺服器沒有回應');
     r.submitted = true; r.serverScore = out.score;
     busy = false; refresh();
-    feedback(`任務 ${taskId} 已繳交，得 ${out.score} 分（通過 ${out.passed}/${out.total} 項）`, '以伺服器評分為準，目前總分顯示在右上角。');
+    feedback(`✅ 作業送出！任務 ${taskId} 已繳交，得 ${out.score} 分（通過 ${out.passed}/${out.total} 項）`, '以伺服器評分為準，目前總分顯示在右上角。');
+    alert(`✅ 作業送出！\n\n${stu.className} 班 ${stu.seatNo} 號 ${stu.studentName}\n任務 ${taskId} 已繳交，得 ${out.score} 分（通過 ${out.passed}/${out.total} 項）`);
   } catch (e) {
     busy = false; refresh();
     feedback('傳送失敗', (e.message || '') + '　請檢查網路後再按一次繳交。');
+    alert('❌ 作業送出失敗\n\n' + (e.message || '') + '\n請檢查網路後再按一次繳交。');
   }
 }
 
