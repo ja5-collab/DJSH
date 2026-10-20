@@ -9,6 +9,9 @@
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen pb-10" style="font-family:'Microsoft JhengHei',sans-serif">
 
+<!-- ================= 學生繳交畫面（網址後面沒有 #TEACHER 時顯示） ================= -->
+<div id="student-view">
+
 <header class="bg-orange-500 text-white shadow sticky top-0 z-50">
   <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
     <h1 class="text-xl font-extrabold">✎ Scratch 計算與繪圖作業</h1>
@@ -85,6 +88,73 @@
     <button onclick="closeHint()" class="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 rounded-xl text-sm">我知道了</button>
   </div>
 </div>
+
+</div><!-- /student-view -->
+
+<!-- ================= 教師成績看板（網址後面加 #TEACHER 時顯示） ================= -->
+<div id="teacher-view" class="hidden fixed inset-0 z-[70] overflow-auto bg-slate-950 text-slate-100 p-4 sm:p-8">
+
+  <div id="t-auth" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[80] flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl">
+      <div class="w-12 h-12 bg-amber-500/20 border border-amber-500/30 rounded-xl flex items-center justify-center mx-auto text-xl">🔒</div>
+      <h2 class="text-lg font-bold text-white">教師身份驗證</h2>
+      <p class="text-xs text-slate-400">請輸入教師存取密碼以查看全班繳交狀況</p>
+      <input type="password" id="t-pass" placeholder="請輸入密碼" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 text-center text-white py-2.5 rounded-xl text-sm focus:outline-none focus:border-amber-500">
+      <button onclick="teacherUnlock()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-2.5 rounded-xl text-sm transition">解鎖看板</button>
+      <a href="#" class="block text-xs text-slate-500 hover:text-slate-300">← 回到學生繳交頁</a>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto space-y-6">
+    <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div>
+        <h1 class="text-xl font-bold text-white">Scratch 計算與繪圖作業：教師成績看板</h1>
+        <p class="text-xs text-slate-400 mt-0.5">學生每繳交一題，紀錄會寫入 Google 試算表，此頁每 15 秒自動更新　<a href="#" class="text-amber-400 hover:underline">回學生頁</a></p>
+      </div>
+      <span id="t-live" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-400 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-slate-500"></span>等待解鎖
+      </span>
+    </header>
+
+    <div class="grid grid-cols-1 gap-4 max-w-xs">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+        <div class="text-xs text-slate-400 font-medium mb-1">已繳交學生數</div>
+        <div id="t-stat" class="text-3xl font-black text-white">0</div>
+      </div>
+    </div>
+
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+      <div class="flex items-center justify-between mb-1 gap-2">
+        <h2 class="text-sm font-bold text-slate-200">各題繳交狀況與得分（每人每題取最新一次繳交）</h2>
+        <input id="t-filter" type="text" placeholder="搜尋班級、座號或姓名" class="bg-slate-950 border border-slate-800 text-xs text-white px-3 py-1.5 rounded-lg focus:outline-none focus:border-amber-500 w-44" oninput="teacherRender()">
+      </div>
+      <p class="text-[11px] text-slate-500 mb-3">共 8 題、100 分，各題依檢測項目通過比例給分。綠色 = 該題滿分；黃色 = 已繳交但未滿分（滑鼠移上去看未通過項目）；— = 尚未繳交。「繳交人數」以全班已有紀錄的學生為基準，不受搜尋影響。學生以「班級＋座號＋姓名」辨識。</p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-200">
+          <thead id="t-thead" class="bg-slate-950 text-slate-400 text-[11px] border-b border-slate-800"></thead>
+          <tbody id="t-tbody" class="divide-y divide-slate-800/60">
+            <tr><td class="py-12 text-center text-slate-500">請先輸入密碼解鎖</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+      <h2 class="text-sm font-bold text-slate-200 mb-3">繳交紀錄（最新在最上面）</h2>
+      <div class="overflow-x-auto max-h-96 overflow-y-auto">
+        <table class="w-full text-left text-xs text-slate-200">
+          <thead class="bg-slate-950 text-slate-400 text-[11px] border-b border-slate-800 sticky top-0">
+            <tr>
+              <th class="py-3 px-4">時間</th><th class="py-3 px-4">班級</th><th class="py-3 px-4">座號</th><th class="py-3 px-4">姓名</th>
+              <th class="py-3 px-4">題目</th><th class="py-3 px-4">檔案</th><th class="py-3 px-4">得分</th><th class="py-3 px-4">未通過項目</th>
+            </tr>
+          </thead>
+          <tbody id="t-log" class="divide-y divide-slate-800/60"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div><!-- /teacher-view -->
 
 <script>
 const TASK_IDS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -994,6 +1064,185 @@ function renderTests(p) {
   if (p.timedOut) h += '<div class="mt-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3">程式執行太久，可能有無限迴圈或次數太大。</div>';
   box.innerHTML = h;
 }
+
+/* =====================================================================
+   教師成績看板（網址後面加 #TEACHER 才會出現）
+   密碼由伺服器（Apps Script）驗證；學生就算打開 #TEACHER 也看不到資料。
+   ===================================================================== */
+let tPw = '', tRows = [], tTimer = null, tStarted = false;
+
+const escH = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const tFmtTime = ts => ts ? new Date(ts).toLocaleString('zh-TW', { hour12: false }) : '-';
+
+function tScore(r) {
+  const max = POINTS[Number(r.taskId)] || 0, total = Number(r.total) || 0;
+  return total ? Math.round(max * (Number(r.passed) || 0) / total) : 0;
+}
+
+async function tFetch(pw) {
+  const res = await fetch(`${SHEET_API_URL}?pw=${encodeURIComponent(pw)}&t=${Date.now()}`);
+  return res.json();
+}
+
+function tIndicator(ok) {
+  const el = $('t-live');
+  if (ok) {
+    el.className = 'text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-2';
+    el.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>已連線 Google 試算表（每 15 秒更新）';
+  } else {
+    el.className = 'text-xs font-semibold px-3 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center gap-2';
+    el.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-400"></span>連線失敗，稍後重試';
+  }
+}
+
+// 只留這份作業的紀錄（如果試算表裡有 assignment 欄位的話）
+const tList = list => (list || []).filter(r => !r.assignment || r.assignment === 'firstgrade');
+
+async function teacherRefresh() {
+  try {
+    const data = await tFetch(tPw);
+    if (!data.ok) throw new Error(data.error);
+    tRows = tList(data.list);
+    teacherRender();
+    tIndicator(true);
+  } catch (e) {
+    console.warn('teacher refresh failed:', e);
+    tIndicator(false);
+  }
+}
+
+async function teacherUnlock(auto) {
+  const pw = auto || $('t-pass').value;
+  if (!pw) return;
+  try {
+    const data = await tFetch(pw);
+    if (!data.ok) {
+      if (!auto) alert('密碼錯誤！');
+      try { sessionStorage.removeItem('scratch_tpw'); } catch (e) {}
+      return;
+    }
+    tPw = pw;
+    try { sessionStorage.setItem('scratch_tpw', pw); } catch (e) {}
+    tRows = tList(data.list);
+    $('t-auth').classList.add('hidden');
+    teacherRender();
+    tIndicator(true);
+    clearInterval(tTimer);
+    tTimer = setInterval(teacherRefresh, 15000);
+  } catch (e) {
+    if (!auto) alert('無法連線到試算表，請確認網址、部署權限，以及 Apps Script 是否支援查詢（doGet）。');
+  }
+}
+
+function teacherRender() {
+  const students = {}, info = {};
+  tRows.forEach(r => {
+    const id = Number(r.taskId);
+    if (!TASK_IDS.includes(id)) return;
+    const cls = String(r.className == null ? '' : r.className).trim();
+    const seat = String(r.seatNo == null ? '' : r.seatNo).trim();
+    const nm = String(r.studentName || '未填寫').trim();
+    const key = [cls, seat, nm].join('|');
+    info[key] = { cls, seat, nm };
+    if (!students[key]) students[key] = {};
+    const c = students[key][id];
+    if (!c || (r.timestamp || 0) >= (c.timestamp || 0)) students[key][id] = r;
+  });
+
+  const names = Object.keys(students).sort((a, b) => {
+    const x = info[a], y = info[b];
+    return x.cls.localeCompare(y.cls, 'zh-TW', { numeric: true })
+      || x.seat.localeCompare(y.seat, undefined, { numeric: true })
+      || x.nm.localeCompare(y.nm, 'zh-TW');
+  });
+  $('t-stat').innerText = names.length;
+
+  const totalOf = n => TASK_IDS.reduce((sum, id) => sum + (students[n][id] ? tScore(students[n][id]) : 0), 0);
+  const MAXT = TASK_IDS.reduce((s, id) => s + POINTS[id], 0);
+
+  const kw = $('t-filter').value.trim().toLowerCase();
+  const shown = names.filter(n => `${info[n].cls} ${info[n].seat} ${info[n].nm}`.toLowerCase().includes(kw));
+  const thead = $('t-thead'), tbody = $('t-tbody');
+
+  thead.innerHTML = `<tr>
+    <th class="py-3 px-4 whitespace-nowrap sticky left-0 bg-slate-950 z-10">題目</th>
+    <th class="py-3 px-3 text-center whitespace-nowrap sticky left-[9rem] bg-slate-950 z-10">繳交人數</th>
+    ${shown.map(n => `<th class="py-3 px-3 text-center whitespace-nowrap text-slate-300">
+      <div class="text-[11px] text-slate-500">${escH(info[n].cls)} 班 ${escH(info[n].seat)} 號</div>
+      <div>${escH(info[n].nm)}</div></th>`).join('')}
+  </tr>`;
+
+  if (shown.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="2" class="py-10 text-center text-slate-500">${names.length ? '沒有符合的學生' : '尚無學生繳交紀錄...'}</td></tr>`;
+  } else {
+    const taskRows = TASK_IDS.map(id => {
+      const max = POINTS[id];
+      let submitted = 0, scoreSum = 0;
+      names.forEach(n => { const r = students[n][id]; if (r) { submitted++; scoreSum += tScore(r); } });
+      const avg = submitted ? (scoreSum / submitted).toFixed(1) : '-';
+      const cells = shown.map(n => {
+        const r = students[n][id];
+        if (!r) return '<td class="py-3 px-3 text-center text-slate-600">—</td>';
+        const sc = tScore(r), full = sc === max;
+        const tip = escH(`通過 ${Number(r.passed)}/${Number(r.total)} 項｜${r.fileName || ''}｜${tFmtTime(r.timestamp)}` + (full ? '' : `｜未通過：${r.failed || ''}`));
+        return `<td class="py-3 px-3 text-center" title="${tip}"><span class="inline-block px-2.5 py-1 rounded-lg font-bold whitespace-nowrap ${full ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'}">${full ? '✔ ' : ''}${sc} 分</span></td>`;
+      }).join('');
+      return `<tr class="hover:bg-slate-800/40 transition">
+        <td class="py-3 px-4 font-bold text-white whitespace-nowrap sticky left-0 bg-slate-900 z-10 w-36 min-w-[9rem]">第 ${id} 題<span class="ml-1 text-[11px] font-semibold text-amber-400">（${max} 分）</span><br><span class="font-normal text-[11px] text-slate-400">${escH(tasks[id].short)}</span></td>
+        <td class="py-3 px-3 text-center whitespace-nowrap sticky left-[9rem] bg-slate-900 z-10">
+          <div class="font-black text-base ${submitted ? 'text-amber-400' : 'text-slate-600'}">${submitted} / ${names.length}</div>
+          <div class="text-[11px] text-emerald-400">平均 ${avg} 分</div></td>
+        ${cells}</tr>`;
+    }).join('');
+
+    const totals = names.map(totalOf);
+    const classAvg = totals.length ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(1) : '-';
+    const totalRow = `<tr class="bg-slate-950/70 border-t-2 border-slate-700">
+      <td class="py-3 px-4 font-bold text-white whitespace-nowrap sticky left-0 bg-slate-950 z-10 w-36 min-w-[9rem]">總分<br><span class="font-normal text-[11px] text-slate-400">滿分 ${MAXT} 分</span></td>
+      <td class="py-3 px-3 text-center whitespace-nowrap sticky left-[9rem] bg-slate-950 z-10"><div class="text-[11px] text-slate-400">全班平均</div><div class="font-black text-base text-amber-400">${classAvg}</div></td>
+      ${shown.map(n => { const sum = totalOf(n); return `<td class="py-3 px-3 text-center font-black whitespace-nowrap ${sum === MAXT ? 'text-emerald-400' : 'text-slate-100'}">${sum}</td>`; }).join('')}
+    </tr>`;
+    tbody.innerHTML = taskRows + totalRow;
+  }
+
+  const logs = [...tRows].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  $('t-log').innerHTML = logs.length ? logs.map(r => {
+    const max = POINTS[Number(r.taskId)] || 0, sc = tScore(r);
+    return `<tr class="hover:bg-slate-800/40 transition">
+      <td class="py-2.5 px-4 text-slate-500 font-mono text-[11px] whitespace-nowrap">${tFmtTime(r.timestamp)}</td>
+      <td class="py-2.5 px-4 text-slate-300">${escH(r.className) || '-'}</td>
+      <td class="py-2.5 px-4 text-slate-300">${escH(r.seatNo) || '-'}</td>
+      <td class="py-2.5 px-4 font-bold text-white">${escH(r.studentName) || '未填寫'}</td>
+      <td class="py-2.5 px-4 text-slate-300">第 ${escH(r.taskId)} 題</td>
+      <td class="py-2.5 px-4 text-slate-400">${escH(r.fileName) || '-'}</td>
+      <td class="py-2.5 px-4 font-bold ${sc === max ? 'text-emerald-400' : 'text-amber-400'}">${sc} / ${max}（${Number(r.passed)}/${Number(r.total)} 項）</td>
+      <td class="py-2.5 px-4 text-slate-400">${escH(r.failed) || '—'}</td></tr>`;
+  }).join('') : '<tr><td colspan="8" class="py-6 text-center text-slate-500">尚無紀錄</td></tr>';
+}
+
+// ---------- 依網址切換：後面是 #TEACHER → 教師看板；否則 → 學生繳交頁 ----------
+function route() {
+  const isT = location.hash.replace('#', '').toUpperCase() === 'TEACHER';
+  $('student-view').classList.toggle('hidden', isT);
+  $('teacher-view').classList.toggle('hidden', !isT);
+  document.title = isT ? 'Scratch 作業：教師成績看板' : 'Scratch 計算與繪圖作業繳交系統';
+  if (isT) {
+    if (!tPw) {
+      $('t-auth').classList.remove('hidden');
+      let saved = '';
+      try { saved = sessionStorage.getItem('scratch_tpw') || ''; } catch (e) {}
+      if (saved) teacherUnlock(saved); else setTimeout(() => $('t-pass').focus(), 50);
+    } else if (!tTimer) {
+      teacherRefresh();
+      tTimer = setInterval(teacherRefresh, 15000);
+    }
+  } else {
+    clearInterval(tTimer); tTimer = null;   // 離開看板就停止自動更新
+  }
+}
+$('t-pass').addEventListener('keydown', e => { if (e.key === 'Enter') teacherUnlock(); });
+window.addEventListener('hashchange', route);
+route();
 </script>
 </body>
 </html>
