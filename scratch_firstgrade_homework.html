@@ -196,7 +196,7 @@ const SPEC = {
   5: { type: 'calc', k: 1, f: a => rangeProd(a[0]), data: [[102], [105]], varInit: 7, names: ['N'] },
   6: { type: 'guess', data: [[SECRET], [10, SECRET], [10, 20]] },
   7: { type: 'calc', k: 1, f: a => (a[0] - 32) * 5 / 9, tol: 0.051, data: [[212], [98.6], [50]], names: ['華氏'] },
-  8: { type: 'calc', k: 1, f: a => a[0] * PRICE * (a[0] >= BULK ? DISCOUNT : 1), data: [[3], [6], [10]], names: ['冊數'] },
+  8: { type: 'calc', k: 1, f: a => a[0] * PRICE * (a[0] >= BULK ? DISCOUNT : 1), data: [[3], [5], [6], [10]], names: ['冊數'] },
   9: { type: 'draw' }, 10: { type: 'draw' }, 11: { type: 'draw' }
 };
 
@@ -204,11 +204,11 @@ const CRITERIA = {
   1: ['取得 A、B、C 三個數（詢問並等待，或設定變數）', '先相加再除以 3（用到「＋」與「÷」）', '用「說」顯示平均數', '平均數正確（3 組測試）'],
   2: ['用「詢問並等待」取得美味指數與價格滿意指數', `用加權計算回購指數（美味 × ${W_TASTE} ＋ 價格 × ${W_PRICE}）`, `用「如果…那麼…否則」判斷是否回購（≥ ${BUY_LINE} 想回購）`, '回購指數與判斷結果正確（3 組測試）'],
   3: ['有使用「×」乘法積木', '用變數儲存計算結果', '用「說」顯示結果', '結果正確（1×2×3×4＝24）'],
-  4: ['取得 N（詢問並等待，或設定變數）', '用迴圈重複計算（重複直到…，或重複 N−99 次）', '迴圈內累加：總和加上目前的數、目前的數加 1', '總和正確，且開始前有設初始值（N＝105、200 測試）'],
-  5: ['取得 N（詢問並等待，或設定變數）', '用迴圈重複計算（重複直到…，或重複 N−99 次）', '迴圈內累乘：乘積乘上目前的數、目前的數加 1', '乘積正確，且開始前有設初始值（N＝102、105 測試）'],
+  4: ['取得 N（詢問並等待，或設定變數）', '用迴圈重複計算（重複直到…，或重複 N−99 次）', '迴圈內累加：總和加上目前的數、目前的數加 1', '總和正確，且開始前有設初始值（多組測試）'],
+  5: ['取得 N（詢問並等待，或設定變數）', '用迴圈重複計算（重複直到…，或重複 N−99 次）', '迴圈內累乘：乘積乘上目前的數、目前的數加 1', '乘積正確，且開始前有設初始值（多組測試）'],
   6: [`把數字設為 ${SECRET}（存進變數）`, '用「詢問並等待」讓使用者猜，最多猜兩次', '用「如果…那麼…否則」比較猜的數字', '三種情況都正確（第一次猜中／第二次猜中／兩次都錯）'],
-  7: ['取得華氏溫度（詢問並等待，或設定變數）', '公式：(華氏 − 32) × 5 ÷ 9（用到「−」和「×」或「÷」）', '用「說」顯示攝氏溫度', '換算正確（212、98.6、50 測試）'],
-  8: ['取得購買冊數（詢問並等待，或設定變數）', `用「如果」判斷是否 ${BULK} 冊以上`, `有用到單價 ${PRICE} 與九折（× ${DISCOUNT}）`, `應付金額正確（3、6、10 冊測試）`],
+  7: ['取得華氏溫度（詢問並等待，或設定變數）', '公式：(華氏 − 32) × 5 ÷ 9（用到「−」和「×」或「÷」）', '用「說」顯示攝氏溫度', '換算正確（多組測試）'],
+  8: ['取得購買冊數（詢問並等待，或設定變數）', `用「如果」判斷是否 ${BULK} 冊以上（條件要用 ${BULK} 來比較）`, `有用到單價 ${PRICE} 與九折（× ${DISCOUNT}）`, `應付金額正確（多組測試）`],
   9: ['重複 3 次（三角形有 3 個邊）', '每次轉 120 度（360 ÷ 3）', '有「下筆」，而且在移動之前', '畫出封閉的正三角形'],
   10: ['重複 5 次（星星有 5 個角）', '轉角正確（每次轉 144 度）', '有「下筆」，而且在移動之前', '畫出封閉的五角星（轉 72° 後與原圖重合）'],
   11: ['每次移動的長度都比上一次長（長度 ＝ 長度 ＋ 10）', '每次轉 120 度', '用「重複」積木畫很多次（例如 20 次）', '畫出向外擴散的三角形（線越來越長、轉角都是 120°）']
@@ -251,7 +251,7 @@ function runProg(T, opt) {
   const tg = pickTarget(T);
   const S = { vars: {}, answer: '', says: [], asks: 0, askTexts: [], literalSets: [], setCount: {}, changed: {},
     consts: [], ops: {}, loops: 0, dynLoops: 0, ifRan: false, accum: {}, steps: 0, timedOut: false, overAsk: false, target: tg ? tg.name : null,
-    segs: [], moves: [], turns: [], loopN: [], order: [], x: 0, y: 0, dir: 90, pen: false };
+    segs: [], moves: [], turns: [], loopN: [], order: [], x: 0, y: 0, dir: 90, pen: false, condConsts: [] };
   S.literalInputs = [];
   if (!tg) return S;
   const B = tg.blocks || {};
@@ -312,6 +312,13 @@ function runProg(T, opt) {
     if (S.pen && (Math.abs(nx - S.x) > 1e-9 || Math.abs(ny - S.y) > 1e-9) && S.segs.length < 3000) S.segs.push({ x1: S.x, y1: S.y, x2: nx, y2: ny });
     S.x = nx; S.y = ny;
   }
+  // 記下「如果」條件裡寫的數字（例如第 8 題要用 6 來比較）
+  function condNums(inp) {
+    if (!inp) return;
+    const v = inp[1];
+    if (Array.isArray(v)) { if (v[0] !== 12 && v[0] !== 13 && isNumLike(v[1]) && S.condConsts.length < 200) S.condConsts.push(toN(v[1])); return; }
+    if (typeof v === 'string' && isBlk(B[v])) Object.keys(B[v].inputs || {}).forEach(k => { if (!/^SUBSTACK/.test(k)) condNums(B[v].inputs[k]); });
+  }
   function loop(dynamic, body) {
     S.loops++; if (dynamic) S.dynLoops++;
     loopDepth++;
@@ -330,8 +337,8 @@ function runProg(T, opt) {
         }
         case 'control_repeat_until': loop(true, () => { while (!truthy(ev(i.CONDITION))) { tick(); exec(sub(b, 'SUBSTACK')); } }); break;
         case 'control_forever': loop(false, () => { while (true) { tick(); exec(sub(b, 'SUBSTACK')); } }); break;
-        case 'control_if': S.ifRan = true; if (truthy(ev(i.CONDITION))) exec(sub(b, 'SUBSTACK')); break;
-        case 'control_if_else': S.ifRan = true; exec(truthy(ev(i.CONDITION)) ? sub(b, 'SUBSTACK') : sub(b, 'SUBSTACK2')); break;
+        case 'control_if': S.ifRan = true; condNums(i.CONDITION); if (truthy(ev(i.CONDITION))) exec(sub(b, 'SUBSTACK')); break;
+        case 'control_if_else': S.ifRan = true; condNums(i.CONDITION); exec(truthy(ev(i.CONDITION)) ? sub(b, 'SUBSTACK') : sub(b, 'SUBSTACK2')); break;
         case 'control_stop': throw STOP;
         case 'data_setvariableto': {
           const k = varKey(b), val = ev(i.VALUE);
@@ -507,7 +514,7 @@ function gradeTask(id, project) {
     if (id === 1) checks = [inputsOk, o.operator_add && o.operator_divide, said, testsOk];
     else if (id === 4 || id === 5) checks = [inputsOk, probe.dynLoops > 0, Object.keys(probe.accum).length >= 2, testsOk];
     else if (id === 7) checks = [inputsOk, o.operator_subtract && (o.operator_multiply || o.operator_divide), said, testsOk];
-    else checks = [inputsOk, probe.ifRan, hasConst(probe, PRICE) && (hasConst(probe, DISCOUNT) || hasConst(probe, 90) || hasConst(probe, PRICE * DISCOUNT)), testsOk];
+    else checks = [inputsOk, probe.ifRan && probe.condConsts.some(c => closeTo(c, BULK, 1e-9)), hasConst(probe, PRICE) && (hasConst(probe, DISCOUNT) || hasConst(probe, 90) || hasConst(probe, PRICE * DISCOUNT)), testsOk];
   } else if (spec.type === 'buy') {
     spec.data.forEach((d, n) => {
       const r = runProg(T, { answerFn: buyAnswer(d) });
@@ -582,15 +589,12 @@ const TASKS = {
       <ul class="list-disc list-inside space-y-1 text-xs">
       <li>用「詢問並等待」問 3 次，把 A、B、C 分別存進變數</li>
       <li>平均數 ＝（A ＋ B ＋ C）÷ 3，要先加完再除（注意積木的包法）</li>
-      <li>用「說」積木顯示平均數</li>
-      <li>系統會測試：3、4、8 → 5；10、20、25 → 18.33…；7、8、8 → 7.67…</li></ul>` },
+      <li>用「說」積木顯示平均數</li></ul>` },
   2: { short: '回購指數', desc: `<p class="mb-1 font-bold">將輸入的各項指數換算為回購指數，挑選某項食物判斷你是否想要回購。</p>
       <ul class="list-disc list-inside space-y-1 text-xs">
       <li>指數評分為 1～5 分：美味指數占 ${W_TASTE * 100}％、價格滿意指數占 ${W_PRICE * 100}％</li>
-      <li>（可先問「你想評哪一項食物？」）再用「詢問並等待」問美味指數、價格滿意指數。問題文字請寫清楚「美味」或「價格」</li>
       <li>回購指數 ＝ 美味指數 × ${W_TASTE} ＋ 價格滿意指數 × ${W_PRICE}，用「說」顯示回購指數</li>
-      <li>回購指數 ${BUY_LINE} 分（含）以上視為想要回購：用「如果…那麼…否則」說出「想要回購」或「不想回購」</li>
-      <li>系統會測試：美味 4、價格 2 → 3.2 回購；美味 2、價格 3 → 2.4 不回購；美味 3、價格 3 → 3 回購</li></ul>` },
+      <li>回購指數 ${BUY_LINE} 分（含）以上視為想要回購：用「如果…那麼…否則」說出「想要回購」或「不想回購」</li></ul>` },
   3: { short: '1×2×3×4', desc: `<p class="mb-1 font-bold">試計算 1 × 2 × 3 × 4 的值。</p>
       <ul class="list-disc list-inside space-y-1 text-xs">
       <li>用變數（例如「積」）存放計算結果，可以用「×」積木串起來，或用迴圈一個一個乘</li>
@@ -601,13 +605,13 @@ const TASKS = {
       <li>取得 N（詢問並等待，或設定變數）</li>
       <li>開始前先設：「總和」＝ 0、「目前的數」＝ 100</li>
       <li>重複直到 目前的數 ＞ N：總和 增加 目前的數，目前的數 增加 1</li>
-      <li>最後用「說」顯示總和。系統會測試 N＝105（615）、N＝200（15150）</li></ul>` },
+      <li>最後用「說」顯示總和</li></ul>` },
   5: { short: '100×…×N', desc: `<p class="mb-1 font-bold">試計算 100 × 101 × ⋯⋯ × N 的值（設定 N 大於 100）。</p>
       <ul class="list-disc list-inside space-y-1 text-xs">
       <li>取得 N（詢問並等待，或設定變數）</li>
       <li>開始前先設：「乘積」＝ 1（不是 0！）、「目前的數」＝ 100</li>
       <li>重複直到 目前的數 ＞ N：乘積 設為（乘積 × 目前的數），目前的數 增加 1</li>
-      <li>最後用「說」顯示乘積。系統會測試 N＝102（1030200）、N＝105</li></ul>` },
+      <li>最後用「說」顯示乘積</li></ul>` },
   6: { short: '心電感應', desc: `<p class="mb-1 font-bold">設計一個心電感應的猜數字遊戲。（設定初始值：數字設為 ${SECRET}）</p>
       <ol class="list-decimal list-inside space-y-1 text-xs">
       <li>請將問題拆解為輸入、處理、輸出、判斷、輸出五個階段，並寫出各階段相對應的內容</li>
@@ -616,38 +620,32 @@ const TASKS = {
       <p class="mt-2 mb-1 font-bold text-xs">完成條件：</p>
       <ul class="list-disc list-inside space-y-1 text-xs">
       <li>若第一次輸入數字正確，跳出「你懂我！」的訊息；否則可再重複嘗試輸入一次</li>
-      <li>若第二次輸入正確，一樣跳出「你懂我！」；兩次數字都錯誤，跳出「你猜不透我！」</li>
-      <li>系統會測試三種情況：第一次就猜中、第二次才猜中、兩次都猜錯</li></ul>` },
+      <li>若第二次輸入正確，一樣跳出「你懂我！」；兩次數字都錯誤，跳出「你猜不透我！」</li></ul>` },
   7: { short: '華氏轉攝氏', desc: `<p class="mb-1 font-bold">將華氏溫度轉為攝氏溫度。</p>
       <ul class="list-disc list-inside space-y-1 text-xs">
       <li>用「詢問並等待」取得華氏溫度，存進變數</li>
       <li>攝氏 ＝（華氏 − 32）× 5 ÷ 9</li>
-      <li>用「說」顯示攝氏溫度（可以四捨五入）</li>
-      <li>系統會測試：212 → 100、98.6 → 37、50 → 10</li></ul>` },
+      <li>用「說」顯示攝氏溫度（可以四捨五入）</li></ul>` },
   8: { short: '買書金額', desc: `<p class="mb-1 font-bold">每本售價 ${PRICE} 元，購買 ${BULK} 冊以上打九折，計算購買需付的金額。</p>
       <ul class="list-disc list-inside space-y-1 text-xs">
       <li>用「詢問並等待」取得購買冊數</li>
-      <li>如果 冊數 ≥ ${BULK}（Scratch 可寫成「冊數 ＞ ${BULK - 1}」）：金額 ＝ 冊數 × ${PRICE} × ${DISCOUNT}；否則：金額 ＝ 冊數 × ${PRICE}</li>
-      <li>用「說」顯示應付金額</li>
-      <li>系統會測試：3 冊 → 1200、6 冊 → 2160、10 冊 → 3600</li></ul>` },
+      <li>如果 冊數 ≥ ${BULK}：金額 ＝ 冊數 × ${PRICE} × ${DISCOUNT}；否則：金額 ＝ 冊數 × ${PRICE}（例如買 ${BULK - 1} 冊是 ${PRICE} × ${BULK - 1}，不打折）</li>
+      <li>用「說」顯示應付金額</li></ul>` },
   9: { short: '正三角形', desc: `<p class="mb-1 font-bold">修改圖 1（畫正方形）的程式，改成畫出正三角形。</p>
       <div class="text-xs bg-white border rounded-lg p-2 mb-2 font-mono leading-5">圖 1：當綠旗被點擊 → 筆跡全部清除 → 定位到 x:100 y:100 → 面朝 90 度 → 下筆<br>　　　→ 重複 4 次（右轉 90 度、移動 200 點、等待 1 秒）→ 停筆</div>
       <ul class="list-disc list-inside space-y-1 text-xs">
       <li>三角形有 3 個邊，所以重複 3 次</li>
-      <li>每次要轉幾度？正多邊形的外角 ＝ 360 ÷ 邊數</li>
-      <li>系統會實際畫出你的圖形，檢查是否為 3 條一樣長、首尾相接的線</li></ul>` },
+      <li>每次要轉幾度？正多邊形的外角 ＝ 360 ÷ 邊數</li></ul>` },
   10: { short: '畫星星', desc: `<p class="mb-1 font-bold">畫出一個星星（五角星）。</p>
       <ul class="list-disc list-inside space-y-1 text-xs">
       <li>可參考圖 1 的寫法：定位、面朝 90 度、下筆，再用「重複」畫</li>
       <li>星星有 5 個角，所以重複 5 次；每次移動一樣的長度（例如 150 點）</li>
-      <li>想一想：要轉幾度才會畫成星星而不是五邊形？（提示：轉 5 次剛好繞 2 圈，720 ÷ 5）</li>
-      <li>系統會檢查畫出的圖形：5 條一樣長的線圍成星星，轉 72° 後和原圖重合（只畫星星外框也可以）</li></ul>` },
+      <li>想一想：要轉幾度才會畫成星星而不是五邊形？（提示：轉 5 次剛好繞 2 圈，720 ÷ 5）</li></ul>` },
   11: { short: '擴散的三角形', desc: `<p class="mb-1 font-bold">修改圖 2（擴散的正方形）的程式，改成擴散的三角形。</p>
       <div class="text-xs bg-white border rounded-lg p-2 mb-2 font-mono leading-5">圖 2：當綠旗被點擊 → 筆跡全部清除 → 定位到 x:0 y:0 → 面朝 90 度 → 下筆 → 變數 長度 設為 0<br>　　　→ 重複 20 次（變數 長度 設為 (長度＋10)、移動 長度 點、右轉 90 度、等待 0.5 秒）→ 停筆</div>
       <ul class="list-disc list-inside space-y-1 text-xs">
       <li>長度一樣每次增加 10，讓線越畫越長</li>
-      <li>把轉的角度改成三角形的外角</li>
-      <li>系統會檢查：每條線都比前一條長 10，而且線與線之間都轉 120 度</li></ul>` }
+      <li>把轉的角度改成三角形的外角</li></ul>` }
 };
 
 // ---------- 檢測項目說明（點擊彈窗） ----------
@@ -676,7 +674,7 @@ const HINTS = {
     { tip: '用「詢問並等待」問 3 次，每問完一次就把「詢問的答案」存進變數（下一次詢問會蓋掉答案）。', good: [ask('A 是多少?'), setv('A', ANS), ask('B 是多少?'), setv('B', ANS), ask('C 是多少?'), setv('C', ANS)], bad: [ask('請輸入三個數'), setv('A', ANS)] },
     { tip: '先把三個數加起來，再整個除以 3。積木要「加法包在除法裡面」。', good: [setv('平均', '( ( ( A + B ) + C ) ÷ 3 )')], bad: [setv('平均', '( ( A + B ) + ( C ÷ 3 ) )'), lbl('（只有 C 被除以 3）')] },
     { tip: '算出平均後，用「說」積木顯示出來，系統才抓得到答案。', good: [setv('平均', '( ( ( A + B ) + C ) ÷ 3 )'), say('( 平均 )')], bad: [setv('平均', '( ( ( A + B ) + C ) ÷ 3 )')] },
-    { tip: '系統會代入 3 組數字測試。小數不用四捨五入（要四捨五入也可以，取到小數第 1 位以上）。',
+    { tip: '平均數可能有小數，不用四捨五入（要四捨五入也可以，取到小數第 1 位以上）。',
       good: [flagB(), ask('A 是多少?'), setv('A', ANS), ask('B 是多少?'), setv('B', ANS), ask('C 是多少?'), setv('C', ANS), say('( ( ( A + B ) + C ) ÷ 3 )')], bad: [say('( ( A + B + C ) ÷ 2 )')] }],
   2: [
     { tip: '問題文字要寫出「美味」或「價格」，系統才知道哪一個是哪一個。也可以先問要評哪一項食物。', good: [ask('你想評哪一項食物?'), setv('食物', ANS), ask('美味指數(1~5)?'), setv('美味', ANS), ask('價格滿意指數(1~5)?'), setv('價格', ANS)], bad: [ask('請輸入兩個分數'), setv('美味', ANS)] },
@@ -712,21 +710,23 @@ const HINTS = {
     { tip: '用「如果…那麼…否則」比較「詢問的答案」和「數字」是否相等。第二次的判斷要放在第一次的「否則」裡面。',
       good: [iff('< 詢問的答案 = 數字 >'), say('你懂我！', 1), els(), ask('再猜一次', 1), iff('< 詢問的答案 = 數字 >', 1), say('你懂我！', 2), els(1), say('你猜不透我！', 2)],
       bad: [iff('< 詢問的答案 = 數字 >'), say('你懂我！', 1), els(), say('你猜不透我！', 1), lbl('（猜錯沒有第二次機會）')] },
-    { tip: '系統會測三種情況：第一次就猜中（只問一次，說「你懂我！」）、第二次才猜中（說「你懂我！」）、兩次都錯（說「你猜不透我！」）。',
+    { tip: '想一想三種情況：第一次就猜中（只問一次，說「你懂我！」）、第二次才猜中（說「你懂我！」）、兩次都錯（說「你猜不透我！」）。',
       good: [flagB(), setv('數字', SECRET), ask('猜猜我心裡的數字'), iff('< 詢問的答案 = 數字 >'), say('你懂我！', 1), els(), ask('再猜一次', 1), iff('< 詢問的答案 = 數字 >', 1), say('你懂我！', 2), els(1), say('你猜不透我！', 2)],
       bad: [flagB(), setv('數字', SECRET), ask('猜猜我心裡的數字'), iff('< 詢問的答案 = 數字 >'), say('你懂我！', 1), els(), ask('再猜一次', 1), say('你猜不透我！', 1), lbl('（第二次就算猜對也說猜不透）')] }],
   7: [
     { tip: '用「詢問並等待」取得華氏溫度，存進變數「華氏」。', good: [ask('華氏幾度?'), setv('華氏', ANS)], bad: [say('100')] },
     { tip: '公式是（華氏 − 32）× 5 ÷ 9，「減 32」一定要先算，所以減法要包在最裡面。', good: [setv('攝氏', '( ( ( 華氏 - 32 ) × 5 ) ÷ 9 )')], bad: [setv('攝氏', '( ( 華氏 - ( 32 × 5 ) ) ÷ 9 )')] },
     { tip: '用「說」積木把攝氏溫度顯示出來。', good: [say('( 攝氏 )')], bad: [setv('攝氏', '( ( ( 華氏 - 32 ) × 5 ) ÷ 9 )')] },
-    { tip: '系統會測 212、98.6、50 三個溫度。98.6 算出來是 36.99999…，可以用「四捨五入」讓它變 37。',
+    { tip: '有些溫度算出來會是很長的小數（例如 36.99999…），可以用「四捨五入」讓答案比較整齊。',
       good: [flagB(), ask('華氏幾度?'), setv('華氏', ANS), setv('攝氏', '( ( ( 華氏 - 32 ) × 5 ) ÷ 9 )'), say('( 四捨五入 攝氏 )')], bad: [setv('攝氏', '( ( 華氏 - 32 ) × 1.8 )'), lbl('（攝氏轉華氏才是 × 1.8）')] }],
   8: [
     { tip: '用「詢問並等待」取得購買冊數。', good: [ask('要買幾本?'), setv('冊數', ANS)], bad: [setv('金額', 2400)] },
-    { tip: `「${BULK} 冊以上」包含 ${BULK} 冊。Scratch 沒有「≥」，可以寫「冊數 ＞ ${BULK - 1}」。`, good: [iff(`< 冊數 > ${BULK - 1} >`), setv('金額', `( ( 冊數 × ${PRICE} ) × ${DISCOUNT} )`, 1), els(), setv('金額', `( 冊數 × ${PRICE} )`, 1)], bad: [iff(`< 冊數 > ${BULK} >`), lbl(`（買剛好 ${BULK} 本不會打折）`)] },
+    { tip: `「${BULK} 冊以上」包含 ${BULK} 冊。Scratch 沒有「≥」，條件要用 ${BULK} 來寫：「（冊數 ＞ ${BULK}）或（冊數 ＝ ${BULK}）」，或「不成立（冊數 ＜ ${BULK}）」。只寫「冊數 ＞ ${BULK}」的話，買剛好 ${BULK} 本不會打折。`,
+      good: [iff(`< < 冊數 > ${BULK} > 或 < 冊數 = ${BULK} > >`), setv('金額', `( ( 冊數 × ${PRICE} ) × ${DISCOUNT} )`, 1), els(), setv('金額', `( 冊數 × ${PRICE} )`, 1), lbl('或寫成'), iff(`< 不成立 < 冊數 < ${BULK} > >`)],
+      bad: [iff(`< 冊數 > ${BULK} >`), lbl(`（買剛好 ${BULK} 本不會打折）`), iff(`< 冊數 > ${BULK - 1} >`), lbl(`（條件要用 ${BULK} 來寫）`)] },
     { tip: `程式裡要用到單價 ${PRICE} 和九折 ${DISCOUNT}（打九折就是 × ${DISCOUNT}，不是 − 0.1）。`, good: [setv('金額', `( ( 冊數 × ${PRICE} ) × ${DISCOUNT} )`)], bad: [setv('金額', `( ( 冊數 × ${PRICE} ) - 0.1 )`)] },
-    { tip: '系統會測 3、6、10 冊（1200、2160、3600 元）。最後用「說」顯示金額。',
-      good: [flagB(), ask('要買幾本?'), setv('冊數', ANS), iff(`< 冊數 > ${BULK - 1} >`), setv('金額', `( ( 冊數 × ${PRICE} ) × ${DISCOUNT} )`, 1), els(), setv('金額', `( 冊數 × ${PRICE} )`, 1), say('( 金額 )')],
+    { tip: `買 ${BULK - 1} 冊不打折（${PRICE} × ${BULK - 1}），買 ${BULK} 冊以上才打九折。最後用「說」顯示金額。`,
+      good: [flagB(), ask('要買幾本?'), setv('冊數', ANS), iff(`< 不成立 < 冊數 < ${BULK} > >`), setv('金額', `( ( 冊數 × ${PRICE} ) × ${DISCOUNT} )`, 1), els(), setv('金額', `( 冊數 × ${PRICE} )`, 1), say('( 金額 )')],
       bad: [ask('要買幾本?'), setv('冊數', ANS), say(`( ( 冊數 × ${PRICE} ) × ${DISCOUNT} )`), lbl('（不管幾本都打折）')] }],
   9: [
     { tip: '三角形有 3 個邊，把「重複 4 次」改成「重複 3 次」。', good: [rp(3), trB(120, 1), mv(200, 1), waitB(1, 1)], bad: [rp(4), trB(120, 1), mv(200, 1), lbl('（第 4 次會重畫第一條邊，但次數要配合邊數）')] },
