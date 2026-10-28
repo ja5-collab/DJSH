@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scratch 作業：星星排排站</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen pb-10" style="font-family:'Microsoft JhengHei',sans-serif">
+
+<!-- ================= 學生繳交畫面（網址後面沒有 #teacher 時顯示） ================= -->
+<div id="student-view">
+
+<header class="bg-sky-500 text-white shadow sticky top-0 z-50">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+    <h1 class="text-xl font-extrabold">⭐ Scratch 作業：星星排排站</h1>
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2">
+        <input id="cls" placeholder="班級" maxlength="3" inputmode="numeric" autocomplete="off" class="bg-white/25 placeholder-sky-100 text-white font-semibold px-3 py-2 rounded-xl w-24 focus:outline-none">
+        <input id="seat" placeholder="座號" maxlength="2" inputmode="numeric" autocomplete="off" class="bg-white/25 placeholder-sky-100 text-white font-semibold px-3 py-2 rounded-xl w-16 focus:outline-none">
+        <input id="name" placeholder="姓名" maxlength="20" class="bg-white/25 placeholder-sky-100 text-white font-semibold px-3 py-2 rounded-xl w-28 focus:outline-none">
+      </div>
+      <div class="bg-white text-sky-600 rounded-xl px-4 py-1.5 font-bold">總分 <span id="total" class="text-2xl font-black">0</span> / 100</div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-4 mt-5">
+  <nav id="tabs" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5"></nav>
+
+  <div class="grid lg:grid-cols-12 gap-5">
+    <div class="lg:col-span-7 space-y-5">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border">
+        <div class="flex justify-between items-center mb-3">
+          <h2 id="taskTitle" class="font-bold text-lg"></h2>
+          <span id="badge" class="text-xs px-2.5 py-1 rounded-full font-bold bg-slate-100 text-slate-500">未繳交</span>
+        </div>
+        <div class="text-sm bg-slate-50 p-3 rounded-xl border mb-4">
+          <div class="flex gap-4 items-start">
+            <div class="flex-1 text-xs">
+              <p id="taskIntro" class="text-sm mb-2"></p>
+              <ol id="taskRules" class="list-decimal list-inside space-y-1"></ol>
+            </div>
+            <div class="shrink-0 w-28 text-center">
+              <div id="taskPic" class="bg-white border rounded-lg p-1"></div>
+              <div id="taskPicCap" class="text-[10px] text-slate-400 mt-1"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="drop" class="border-2 border-dashed border-slate-300 rounded-2xl p-5 text-center bg-slate-50">
+          <input type="file" id="file" accept=".sb3" class="hidden">
+          <p class="text-sm font-bold">拖曳或選擇 <span id="dropTask"></span> 的 Scratch 檔 (.sb3)</p>
+          <p id="fname" class="text-xs text-slate-400 my-1">尚未選擇檔案</p>
+          <button id="pick" onclick="document.getElementById('file').click()" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl disabled:bg-slate-300">📂 選擇檔案</button>
+        </div>
+
+        <button id="submit" onclick="submitTask()" class="mt-4 w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold text-sm px-4 py-3 rounded-xl">確認繳交</button>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 shadow-sm border">
+        <h3 class="font-bold mb-3">檢測結果 <span class="text-xs font-normal text-slate-400">（每項 5 分，點任一項可看說明與範例）</span></h3>
+        <div id="checklist" class="space-y-2"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 shadow-sm border">
+        <h3 class="font-bold mb-3">你的積木程式</h3>
+        <div id="blocks" class="bg-slate-900 text-emerald-300 p-3 rounded-xl text-xs font-mono max-h-64 overflow-y-auto"></div>
+      </div>
+    </div>
+
+    <div class="lg:col-span-5">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border lg:sticky lg:top-20">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="font-bold">舞台模擬</h3>
+          <button id="replay" onclick="play()" disabled class="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white disabled:bg-slate-300">▶ 重畫一次</button>
+        </div>
+        <div class="relative aspect-[4/3] bg-slate-950 rounded-2xl overflow-hidden border">
+          <canvas id="cv" width="960" height="720" class="w-full h-full"></canvas>
+          <div id="ov" class="absolute inset-0 bg-slate-950/85 flex items-center justify-center text-white text-sm">等待上傳 .sb3 檔案...</div>
+        </div>
+        <div id="info" class="mt-3 text-xs"></div>
+        <div id="fb" class="mt-4 p-4 rounded-xl bg-slate-50 border">
+          <b id="fbT" class="text-sm">準備就緒</b>
+          <p id="fbX" class="text-xs text-slate-500 mt-1">請上傳你的 .sb3 檔案。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="hint" class="hidden fixed inset-0 z-[60] bg-slate-900/60 flex items-center justify-center p-4" onclick="if(event.target===this)closeHint()">
+  <div class="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl">
+    <div class="flex justify-between items-start gap-3 mb-2">
+      <h3 id="hT" class="font-bold text-slate-800"></h3>
+      <button onclick="closeHint()" class="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
+    </div>
+    <p id="hX" class="text-sm text-slate-600 mb-3"></p>
+    <div id="hB"></div>
+    <button onclick="closeHint()" class="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 rounded-xl text-sm">我知道了</button>
+  </div>
+</div>
+
+</div><!-- /student-view -->
+
+<!-- ================= 教師成績看板（網址後面加 #teacher 時顯示） ================= -->
+<div id="teacher-view" class="hidden fixed inset-0 z-[70] overflow-auto bg-slate-950 text-slate-100 p-4 sm:p-8">
+
+  <div id="t-auth" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[80] flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl">
+      <div class="w-12 h-12 bg-amber-500/20 border border-amber-500/30 rounded-xl flex items-center justify-center mx-auto text-xl">🔒</div>
+      <h2 class="text-lg font-bold text-white">教師身份驗證</h2>
+      <p class="text-xs text-slate-400">請輸入教師存取密碼以查看全班繳交狀況</p>
+      <input type="password" id="t-pass" placeholder="請輸入密碼" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 text-center text-white py-2.5 rounded-xl text-sm focus:outline-none focus:border-amber-500">
+      <button onclick="teacherUnlock()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-2.5 rounded-xl text-sm transition">解鎖看板</button>
+      <a href="#" class="block text-xs text-slate-500 hover:text-slate-300">← 回到學生繳交頁</a>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto space-y-6">
+    <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div>
+        <h1 class="text-xl font-bold text-white">星星排排站：教師成績看板</h1>
+        <p class="text-xs text-slate-400 mt-0.5">學生每繳交一題，紀錄會寫入 Google 試算表，此頁每 15 秒自動更新　<a href="#" class="text-amber-400 hover:underline">回學生頁</a></p>
+      </div>
+      <span id="t-live" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-400 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-slate-500"></span>等待解鎖
+      </span>
+    </header>
+
+    <div class="grid grid-cols-3 gap-4 max-w-xl">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5"><div class="text-xs text-slate-400 mb-1">已繳交學生數</div><div id="t-stat" class="text-3xl font-black text-white">0</div></div>
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5"><div class="text-xs text-slate-400 mb-1">全班平均總分</div><div id="t-avg" class="text-3xl font-black text-amber-400">-</div></div>
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5"><div class="text-xs text-slate-400 mb-1">滿分人數</div><div id="t-full" class="text-3xl font-black text-emerald-400">0</div></div>
+    </div>
+
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+      <div class="flex items-center justify-between mb-1 gap-2">
+        <h2 class="text-sm font-bold text-slate-200">學生成績（每題取最新一次繳交）</h2>
+        <input id="t-filter" type="text" placeholder="搜尋班級、座號或姓名" class="bg-slate-950 border border-slate-800 text-xs text-white px-3 py-1.5 rounded-lg focus:outline-none focus:border-amber-500 w-44" oninput="teacherRender()">
+      </div>
+      <p class="text-[11px] text-slate-500 mb-3">共 4 題，每題 25 分（5 個檢測項目 × 5 分）。分數下方的 ✔ / ✕ 依序是各檢測項目，滑鼠移上去可看項目全名。「—」= 該題尚未繳交。學生以「班級＋座號＋姓名」辨識。</p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-200">
+          <thead id="t-thead" class="bg-slate-950 text-slate-400 text-[11px] border-b border-slate-800"></thead>
+          <tbody id="t-tbody" class="divide-y divide-slate-800/60">
+            <tr><td class="py-12 text-center text-slate-500">請先輸入密碼解鎖</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+      <h2 class="text-sm font-bold text-slate-200 mb-3">繳交紀錄（最新在最上面）</h2>
+      <div class="overflow-x-auto max-h-96 overflow-y-auto">
+        <table class="w-full text-left text-xs text-slate-200">
+          <thead class="bg-slate-950 text-slate-400 text-[11px] border-b border-slate-800 sticky top-0">
+            <tr>
+              <th class="py-3 px-4">時間</th><th class="py-3 px-4">班級</th><th class="py-3 px-4">座號</th><th class="py-3 px-4">姓名</th>
+              <th class="py-3 px-4">題目</th><th class="py-3 px-4">檔案</th><th class="py-3 px-4">得分</th><th class="py-3 px-4">未通過項目</th>
+            </tr>
+          </thead>
+          <tbody id="t-log" class="divide-y divide-slate-800/60"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div><!-- /teacher-view -->
+
+<script>
+// ★ 部署好 Apps Script（Code.gs）後，把網址（…/exec）貼在這裡
+const SHEET_API_URL = "請貼上 Apps Script 部署網址";
+let busy = false;
+const $ = id => document.getElementById(id);
+
+/* =====================================================================
+   評分核心（網頁與 Apps Script 共用，兩邊內容要保持一模一樣）
+   把負責畫圖的角色程式（含自訂積木／函式、變數、迴圈、畫筆）真的跑一遍，
+   記下每一條畫出的線，找出畫好的星星，再檢查隱藏、函式、星星形狀、數量與排列。
+   四題各 5 個檢測項目，每項 5 分，一題 25 分，總分 100 分。
+   ===================================================================== */
+const ASSIGNMENT = 'stars4';
+const STAR_LEN = 40, STAR_TURN = 144;
+const STAR_R = STAR_LEN / (2 * Math.sin(72 * Math.PI / 180)); // 星星五個尖角到中心的距離
+const PTS_PER_CHECK = 5;
+const C_HIDE = '隱藏角色，只顯示畫筆軌跡';
+const C_FUNC = '使用函式「畫星星」（自訂積木），並在主程式呼叫';
+const C_STAR = '每顆星星都正確：5 段、每段 40 點、右轉 144 度（移動時要停筆）';
+const TASKS = [
+  { id: 1, title: '直角三角形星星', icon: '◣',
+    criteria: [C_HIDE, C_FUNC, C_STAR, '共 6 列 21 顆星星（1、2、3、4、5、6 顆）', '排成直角三角形：第 n 列有 n 顆，間距 50 點、靠左對齊'],
+    short: ['隱藏', '函式', '星星', '21 顆', '三角形'] },
+  { id: 2, title: '金字塔星星', icon: '▲',
+    criteria: [C_HIDE, C_FUNC, C_STAR, '共 5 層 25 顆星星（1、3、5、7、9 顆）', '排成置中的金字塔：間距 50 點、每層往下 50 點'],
+    short: ['隱藏', '函式', '星星', '25 顆', '金字塔'] },
+  { id: 3, title: '五邊形星星', icon: '⬟',
+    criteria: [C_HIDE, C_FUNC, C_STAR, '共 15 顆星星', '排成正五邊形：每邊 3 段、每段 50 點、轉 72 度'],
+    short: ['隱藏', '函式', '星星', '15 顆', '五邊形'] },
+  { id: 4, title: '圓形星星', icon: '●',
+    criteria: [C_HIDE, C_FUNC, C_STAR, '共 18 顆星星', '排成圓形：每步 48 點、每次轉 20 度'],
+    short: ['隱藏', '函式', '星星', '18 顆', '圓形'] }
+];
+const TASK_MAX = TASKS[0].criteria.length * PTS_PER_CHECK; // 25
+
+const isBlk = b => !!b && typeof b === 'object' && !Array.isArray(b) && !!b.opcode;
+const toN = x => { if (x === true) return 1; const n = Number(x); return (x === '' || x == null || isNaN(n)) ? 0 : n; };
+const isNumLike = x => typeof x === 'number' || (typeof x === 'string' && x.trim() !== '' && !isNaN(Number(x)));
+const truthy = v => typeof v === 'boolean' ? v : typeof v === 'string' ? !(v === '' || v === '0' || v.toLowerCase() === 'false') : !!v;
+const jsonList = s => { try { const v = JSON.parse(s || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
+
+// 找出負責畫圖的角色：畫筆、動作、自訂積木最多的那一個
+function pickDrawer(T) {
+  const sprites = T.filter(t => !t.isStage);
+  let best = null, bestN = -1;
+  sprites.forEach(t => {
+    const B = t.blocks || {};
+    const n = Object.keys(B).filter(id => isBlk(B[id]) && /^(pen_|motion_|procedures_)/.test(B[id].opcode)).length;
+    if (n > bestN) { best = t; bestN = n; }
+  });
+  return best;
+}
+
+function runDrawer(tg, T, opts) {
+  opts = opts || {};
+  const B = (tg && tg.blocks) || {};
+  const S = { segs: [], moves: [], turns: [], calls: 0, procMoves: 0, procs: 0, steps: 0, asked: 0, timedOut: false,
+    x: toN(tg && tg.x), y: toN(tg && tg.y), dir: tg && tg.direction != null ? toN(tg.direction) : 90,
+    pen: false, color: '#4C97FF', size: 1, visible: !(tg && tg.visible === false), vars: {} };
+  if (!tg) return S;
+  const stage = (T || []).find(t => t.isStage) || {};
+  [stage, tg].forEach(t => Object.keys(t.variables || {}).forEach(k => { const v = t.variables[k]; if (Array.isArray(v)) S.vars[k] = v[1]; }));
+  const answer = opts.answer == null ? '' : opts.answer;
+  const STOP = {}, LIMIT = 200000;
+  const procs = {};
+  Object.keys(B).forEach(id => {
+    const b = B[id];
+    if (!isBlk(b) || b.opcode !== 'procedures_definition') return;
+    const pin = b.inputs && b.inputs.custom_block, pr = pin && B[pin[1]];
+    if (pr && pr.mutation) procs[pr.mutation.proccode] = { id, ids: jsonList(pr.mutation.argumentids), names: jsonList(pr.mutation.argumentnames) };
+  });
+  S.procs = Object.keys(procs).length;
+  const frames = [{}];
+  const varKey = b => { const f = b.fields && b.fields.VARIABLE; return f ? (f[1] || f[0]) : '?'; };
+  const gv = k => k in S.vars ? S.vars[k] : 0;
+
+  function ev(inp) {
+    if (!inp) return 0;
+    const v = inp[1];
+    if (Array.isArray(v)) return v[0] === 12 ? gv(v[2] || v[1]) : v[0] === 13 ? 0 : (v[1] == null ? '' : v[1]);
+    if (typeof v === 'string' && isBlk(B[v])) return evb(B[v]);
+    return Array.isArray(inp[2]) ? inp[2][1] : 0;
+  }
+  function evb(b) {
+    const i = b.inputs || {}, n1 = () => toN(ev(i.NUM1)), n2 = () => toN(ev(i.NUM2));
+    const cmp = f => { const a = ev(i.OPERAND1), c = ev(i.OPERAND2); return (isNumLike(a) && isNumLike(c)) ? f(toN(a), toN(c)) : f(String(a).toLowerCase(), String(c).toLowerCase()); };
+    switch (b.opcode) {
+      case 'operator_add': return n1() + n2();
+      case 'operator_subtract': return n1() - n2();
+      case 'operator_multiply': return n1() * n2();
+      case 'operator_divide': return n1() / n2();
+      case 'operator_mod': { const a = n1(), m = n2(); let r = a % m; if (r / m < 0) r += m; return r; }
+      case 'operator_round': return Math.round(toN(ev(i.NUM)));
+      case 'operator_mathop': {
+        const x = toN(ev(i.NUM)), f = b.fields && b.fields.OPERATOR && b.fields.OPERATOR[0];
+        const r = { abs: Math.abs(x), floor: Math.floor(x), ceiling: Math.ceil(x), sqrt: Math.sqrt(x),
+          sin: Math.sin(x * Math.PI / 180), cos: Math.cos(x * Math.PI / 180) }[f];
+        return r === undefined ? 0 : r;
+      }
+      case 'operator_random': return (toN(ev(i.FROM)) + toN(ev(i.TO))) / 2;
+      case 'operator_join': return String(ev(i.STRING1)) + String(ev(i.STRING2));
+      case 'operator_gt': return cmp((a, c) => a > c);
+      case 'operator_lt': return cmp((a, c) => a < c);
+      case 'operator_equals': return cmp((a, c) => a === c);
+      case 'operator_and': return truthy(ev(i.OPERAND1)) && truthy(ev(i.OPERAND2));
+      case 'operator_or': return truthy(ev(i.OPERAND1)) || truthy(ev(i.OPERAND2));
+      case 'operator_not': return !truthy(ev(i.OPERAND));
+      case 'data_variable': return gv(varKey(b));
+      case 'sensing_answer': return answer;
+      case 'motion_xposition': return S.x;
+      case 'motion_yposition': return S.y;
+      case 'motion_direction': return S.dir;
+      case 'argument_reporter_string_number': case 'argument_reporter_boolean': {
+        const n = b.fields && b.fields.VALUE && b.fields.VALUE[0], f = frames[frames.length - 1];
+        return n in f ? f[n] : 0;
+      }
+      case 'pen_menu_colorParam': return b.fields && b.fields.colorParam ? b.fields.colorParam[0] : '';
+      default: return 0;
+    }
+  }
+  const tick = () => { if (++S.steps > LIMIT) { S.timedOut = true; throw STOP; } };
+  const sub = (b, k) => { const s = b.inputs && b.inputs[k]; return s && typeof s[1] === 'string' ? s[1] : null; };
+  function lineTo(nx, ny) {
+    if (S.pen && (Math.abs(nx - S.x) > 1e-9 || Math.abs(ny - S.y) > 1e-9) && S.segs.length < 5000)
+      S.segs.push({ x1: S.x, y1: S.y, x2: nx, y2: ny, c: S.color, w: S.size });
+    S.x = nx; S.y = ny;
+  }
+  function exec(id) {
+    while (id && isBlk(B[id])) {
+      const b = B[id], i = b.inputs || {};
+      tick();
+      switch (b.opcode) {
+        case 'control_repeat': { const n = Math.max(0, Math.round(toN(ev(i.TIMES)))); for (let c = 0; c < n; c++) { tick(); exec(sub(b, 'SUBSTACK')); } break; }
+        case 'control_repeat_until': while (!truthy(ev(i.CONDITION))) { tick(); exec(sub(b, 'SUBSTACK')); } break;
+        case 'control_forever': while (true) { tick(); exec(sub(b, 'SUBSTACK')); }
+        case 'control_if': if (truthy(ev(i.CONDITION))) exec(sub(b, 'SUBSTACK')); break;
+        case 'control_if_else': exec(truthy(ev(i.CONDITION)) ? sub(b, 'SUBSTACK') : sub(b, 'SUBSTACK2')); break;
+        case 'control_stop': throw STOP;
+        case 'sensing_askandwait': S.asked++; break;
+        case 'data_setvariableto': S.vars[varKey(b)] = ev(i.VALUE); break;
+        case 'data_changevariableby': { const k = varKey(b); S.vars[k] = toN(gv(k)) + toN(ev(i.VALUE)); break; }
+        case 'procedures_call': {
+          const p = procs[b.mutation && b.mutation.proccode];
+          if (!p) break;
+          S.calls++;
+          if (frames.length > 40) break;
+          const args = {};
+          p.ids.forEach((aid, k) => { args[p.names[k]] = i[aid] ? ev(i[aid]) : ''; });
+          frames.push(args);
+          try { exec(B[p.id].next); } finally { frames.pop(); }
+          break;
+        }
+        case 'looks_hide': S.visible = false; break;
+        case 'looks_show': S.visible = true; break;
+        case 'pen_penDown': S.pen = true; break;
+        case 'pen_penUp': S.pen = false; break;
+        case 'pen_clear': S.segs = []; break;
+        case 'pen_setPenColorToColor': { const c = String(ev(i.COLOR)); if (/^#[0-9a-f]{6}$/i.test(c)) S.color = c; break; }
+        case 'pen_setPenSizeTo': S.size = Math.max(1, Math.min(50, toN(ev(i.SIZE)))); break;
+        case 'pen_changePenSizeBy': S.size = Math.max(1, Math.min(50, S.size + toN(ev(i.SIZE)))); break;
+        case 'motion_movesteps': {
+          const d = toN(ev(i.STEPS)), r = (90 - S.dir) * Math.PI / 180;
+          S.moves.push({ len: d, down: S.pen });
+          if (frames.length > 1 && S.pen) S.procMoves++;
+          lineTo(S.x + d * Math.cos(r), S.y + d * Math.sin(r));
+          break;
+        }
+        case 'motion_turnright': { const d = toN(ev(i.DEGREES)); S.dir += d; S.turns.push(d); break; }
+        case 'motion_turnleft': { const d = toN(ev(i.DEGREES)); S.dir -= d; S.turns.push(-d); break; }
+        case 'motion_pointindirection': S.dir = toN(ev(i.DIRECTION)); break;
+        case 'motion_gotoxy': case 'motion_glidesecstoxy': lineTo(toN(ev(i.X)), toN(ev(i.Y))); break;
+        case 'motion_changexby': lineTo(S.x + toN(ev(i.DX)), S.y); break;
+        case 'motion_changeyby': lineTo(S.x, S.y + toN(ev(i.DY))); break;
+        case 'motion_setx': lineTo(toN(ev(i.X)), S.y); break;
+        case 'motion_sety': lineTo(S.x, toN(ev(i.Y))); break;
+      }
+      id = b.next;
+    }
+  }
+  const hats = Object.keys(B).filter(id => isBlk(B[id]) && B[id].topLevel && B[id].opcode === 'event_whenflagclicked');
+  hats.forEach(h => { try { exec(B[h].next); } catch (e) { if (e !== STOP) throw e; } });
+  return S;
+}
+
+// 去掉重複畫的線段（來回走同一條線只算一條）
+function uniqueSegs(segs) {
+  const seen = {}, out = [];
+  segs.forEach(g => {
+    const a = [Math.round(g.x1 * 2) / 2, Math.round(g.y1 * 2) / 2], b = [Math.round(g.x2 * 2) / 2, Math.round(g.y2 * 2) / 2];
+    const k = (a[0] < b[0] || (a[0] === b[0] && a[1] <= b[1])) ? a.concat(b).join(',') : b.concat(a).join(',');
+    if (!seen[k]) { seen[k] = 1; out.push(g); }
+  });
+  return out;
+}
+
+// 從筆跡裡找出星星：長度 40 的線段依端點相連分組，
+// 一組剛好 5 段、5 個尖角、每個尖角接 2 段、尖角都在同一個圓上 → 就是一顆標準的五角星
+function findStars(segs) {
+  const s = uniqueSegs(segs).slice(0, 3000);
+  const L = g => Math.hypot(g.x2 - g.x1, g.y2 - g.y1);
+  const cand = s.filter(g => Math.abs(L(g) - STAR_LEN) <= 0.5);
+  const V = [];
+  const vid = (x, y) => {
+    for (let k = 0; k < V.length; k++) if (Math.abs(V[k].x - x) <= 0.75 && Math.abs(V[k].y - y) <= 0.75) return k;
+    V.push({ x, y }); return V.length - 1;
+  };
+  const E = cand.map(g => [vid(g.x1, g.y1), vid(g.x2, g.y2)]);
+  const par = V.map((v, k) => k);
+  const find = k => { while (par[k] !== k) { par[k] = par[par[k]]; k = par[k]; } return k; };
+  E.forEach(([a, b]) => { par[find(a)] = find(b); });
+  const groups = {};
+  E.forEach((e, k) => { const r = find(e[0]); (groups[r] = groups[r] || []).push(e); });
+  const stars = [];
+  let inStars = 0;
+  Object.keys(groups).forEach(r => {
+    const es = groups[r], deg = {};
+    es.forEach(([a, b]) => { deg[a] = (deg[a] || 0) + 1; deg[b] = (deg[b] || 0) + 1; });
+    const vs = Object.keys(deg).map(Number);
+    if (es.length !== 5 || vs.length !== 5 || !vs.every(v => deg[v] === 2)) return;
+    const cx = vs.reduce((t, v) => t + V[v].x, 0) / 5, cy = vs.reduce((t, v) => t + V[v].y, 0) / 5;
+    if (!vs.every(v => Math.abs(Math.hypot(V[v].x - cx, V[v].y - cy) - STAR_R) <= 0.75)) return;
+    stars.push({ x: cx, y: cy }); inStars += 5;
+  });
+  return { stars, total: s.length, extra: s.length - inStars };
+}
+
+// 預期的星星位置
+function triPts(n) { const p = []; for (let r = 0; r < n; r++) for (let c = 0; c <= r; c++) p.push({ x: 50 * c, y: -50 * r }); return p; }
+function pyrPts() { const p = []; for (let r = 0; r < 5; r++) for (let c = 0; c <= 2 * r; c++) p.push({ x: -50 * r + 50 * c, y: -50 * r }); return p; }
+function polyPts(sides, per, step, turn) {
+  const p = []; let x = 0, y = 0, d = 90;
+  for (let s = 0; s < sides; s++) {
+    for (let k = 0; k < per; k++) { p.push({ x, y }); x += step * Math.sin(d * Math.PI / 180); y += step * Math.cos(d * Math.PI / 180); }
+    d -= turn;
+  }
+  return p;
+}
+const EXPECT = { 1: triPts(6), 2: pyrPts(), 3: polyPts(5, 3, 50, 72), 4: polyPts(18, 1, 48, 20) };
+// 平移後一一對上（方向要對：三角形、金字塔用）
+function matchShift(A, E, tol) {
+  tol = tol || 2;
+  if (!A.length || A.length !== E.length) return false;
+  const c = P => ({ x: P.reduce((t, p) => t + p.x, 0) / P.length, y: P.reduce((t, p) => t + p.y, 0) / P.length });
+  const ca = c(A), ce = c(E), used = E.map(() => false);
+  return A.every(a => {
+    const x = a.x - ca.x + ce.x, y = a.y - ca.y + ce.y;
+    const k = E.findIndex((e, j) => !used[j] && Math.abs(e.x - x) <= tol && Math.abs(e.y - y) <= tol);
+    if (k < 0) return false; used[k] = true; return true;
+  });
+}
+// 兩兩距離全部一樣（可旋轉、可翻面：五邊形、圓形用）
+function matchShape(A, E, tol) {
+  tol = tol || 2;
+  if (!A.length || A.length !== E.length) return false;
+  const D = P => { const d = []; for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) d.push(Math.hypot(P[i].x - P[j].x, P[i].y - P[j].y)); return d.sort((a, b) => a - b); };
+  const da = D(A), de = D(E);
+  return da.every((v, k) => Math.abs(v - de[k]) <= tol);
+}
+
+function gradeProject(project, taskId) {
+  const task = TASKS.find(t => t.id === Number(taskId)) || TASKS[0];
+  const T = (project && Array.isArray(project.targets)) ? project.targets : [];
+  const tg = pickDrawer(T);
+  const run = runDrawer(tg, T);
+  const fs = findStars(run.segs), P = fs.stars, n = P.length;
+  const checks = [
+    !!tg && !run.visible,
+    run.procs > 0 && run.calls > 0 && run.procMoves > 0,
+    n > 0 && fs.extra === 0
+  ];
+  const E = EXPECT[task.id], expectN = E.length;
+  checks.push(n === E.length);
+  checks.push(task.id <= 2 ? matchShift(P, E) : matchShape(P, E));  // 三角形、金字塔方向要對；五邊形、圓形可旋轉
+  const passed = checks.filter(Boolean).length;
+  return {
+    taskId: task.id, checks, passed, total: task.criteria.length, score: passed * PTS_PER_CHECK,
+    failed: task.criteria.filter((c, i) => !checks[i]).join('、'),
+    run, drawer: tg ? tg.name : null, starCount: n, expectN, extraSegs: fs.extra, segCount: fs.total
+  };
+}
+/* ===================== 評分核心結束 ===================== */
+
+
+// ---------- 題目說明 ----------
+const COMMON_RULES = [
+  '隱藏角色，只顯示畫筆移動的軌跡。',
+  '畫筆的顏色、粗細可自訂。',
+  '利用<b>函式（自訂積木）「畫星星」</b>畫一顆星星：面朝 90 度、下筆、重複 5 次（移動 <b>40</b> 點、右轉 <b>144</b> 度）、停筆。'
+];
+const TASK_TEXT = {
+  1: { intro: '用星星排出一個 6 列的直角三角形！',
+       rules: ['共 <b>6</b> 列：第 1 列 1 顆、第 2 列 2 顆……第 6 列 6 顆（共 21 顆）。',
+               '每列都從同一個 x 開始（靠左對齊），提示：從 x = −200、y = 140 開始。',
+               '同一列的星星間距 <b>50</b> 點，每畫完一列往下 <b>50</b> 點。'],
+       cap: '6 列直角三角形', pts: () => EXPECT[1] },
+  2: { intro: '用星星堆出一座 5 層的金字塔！',
+       rules: ['共 <b>5</b> 層，第 n 層有 <b>2n − 1</b> 顆（1、3、5、7、9 顆，共 25 顆）。',
+               '每一層都置中對齊；星星間距 <b>50</b> 點，每層往下 <b>50</b> 點。',
+               '提示：每層的起點 x = 30 − 50 × 列次。'],
+       cap: '5 層金字塔', pts: () => EXPECT[2] },
+  3: { intro: '讓星星沿著正五邊形的邊排排站！',
+       rules: ['正五邊形共 <b>5</b> 邊，每邊畫 <b>3</b> 顆星星（共 15 顆）。',
+               '每畫一顆就移動 <b>50</b> 點；畫完一邊，前進方向轉 <b>72</b> 度。',
+               '提示：用變數「方向」記住前進方向，畫完星星後「面朝 方向」再移動。'],
+       cap: '每邊 3 顆', pts: () => EXPECT[3] },
+  4: { intro: '讓 18 顆星星手牽手圍成一個圓！',
+       rules: ['共畫 <b>18</b> 顆星星。',
+               '每畫一顆就移動 <b>48</b> 點，前進方向轉 <b>20</b> 度（18 × 20 = 360）。',
+               '提示：用變數「方向」記住前進方向，畫完星星後「面朝 方向」再移動。'],
+       cap: '18 顆排成圓', pts: () => EXPECT[4] }
+};
+
+function starPath(cx, cy, r) {
+  const v = [0, 2, 4, 1, 3].map(k => { const a = (-90 + 72 * k) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; });
+  return 'M' + v.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L') + 'Z';
+}
+function patternSVG(id) {
+  const P = TASK_TEXT[id].pts();
+  const xs = P.map(p => p.x), ys = P.map(p => -p.y), m = 30;
+  const x0 = Math.min(...xs) - m, y0 = Math.min(...ys) - m, w = Math.max(...xs) - Math.min(...xs) + 2 * m, h = Math.max(...ys) - Math.min(...ys) + 2 * m;
+  return `<svg viewBox="${x0} ${y0} ${w} ${h}" class="w-full h-24" aria-label="排列示意圖"><g fill="none" stroke="#e11d48" stroke-width="3" stroke-linejoin="round">${P.map(p => `<path d="${starPath(p.x, -p.y, STAR_R)}"/>`).join('')}</g></svg>`;
+}
+
+// ---------- 檢測項目說明（點擊彈窗） ----------
+const BC = { event: '#FFBF00', looks: '#9966FF', control: '#FFAB19', motion: '#4C97FF', pen: '#0FBD8C', proc: '#FF6680', sensing: '#5CB1D6', data: '#FF8C1A' };
+const B_ = (c, t) => (i => [c, t, i || 0]);
+const flagB = B_('event', '當綠旗被點擊'), hideB = B_('looks', '隱藏'), PD = B_('pen', '下筆'), PU = B_('pen', '停筆'), clrB = B_('pen', '筆跡全部清除');
+const mv = (n, i) => ['motion', `移動 ${n} 點`, i || 0];
+const tr = (n, i) => ['motion', `右轉 ${n} 度`, i || 0];
+const face = (n, i) => ['motion', `面朝 ${n} 度`, i || 0];
+const go = (x, y, i) => ['motion', `定位到 x:${x} y:${y}`, i || 0];
+const rp = (n, i) => ['control', `重複 ${n} 次`, i || 0];
+const defB = (n, i) => ['proc', `定義 ${n}`, i || 0];
+const callB = (n, i) => ['proc', n, i || 0];
+const setV = (v, n, i) => ['data', `變數 ${v} 設為 ${n}`, i || 0];
+const chgV = (v, n, i) => ['data', `變數 ${v} 改變 ${n}`, i || 0];
+const lbl = t => ['label', t, 0];
+const STAR_DEF = [defB('畫星星'), face(90), PD(), rp(5), mv(40, 1), tr(144, 1), PU()];
+const MAINS = {
+  1: [flagB(), hideB(), go(-200, 140), clrB(), setV('列次', 1), rp(6),
+      ['motion', 'x 設為 -200', 1], rp('(列次)', 1), callB('畫星星', 2), mv(50, 2), ['motion', 'y 改變 -50', 1], chgV('列次', 1, 1)],
+  2: [flagB(), hideB(), go(-200, 140), clrB(), setV('列次', 1), rp(5),
+      ['motion', 'x 設為 (30 − (50 × 列次))', 1], rp('((2 × 列次) − 1)', 1), callB('畫星星', 2), mv(50, 2), ['motion', 'y 改變 -50', 1], chgV('列次', 1, 1)],
+  3: [flagB(), hideB(), go(-95, -97), clrB(), setV('方向', 90), rp(5), rp(3, 1), callB('畫星星', 2), face('(方向)', 2), mv(50, 2), chgV('方向', -72, 1)],
+  4: [flagB(), hideB(), go(-44, -130), clrB(), setV('方向', 90), rp(18), callB('畫星星', 1), face('(方向)', 1), mv(48, 1), chgV('方向', -20, 1)]
+};
+const HINT_COMMON = [
+  id => ({ tip: '題目只要看見畫筆軌跡，所以程式一開始就用「隱藏」積木把角色藏起來（外觀類）。也可以在角色資訊把「顯示」關掉。',
+    good: [flagB(), hideB(), clrB()], bad: [flagB(), clrB(), lbl('（沒有隱藏，角色會擋在星星上）')] }),
+  id => ({ tip: '到「函式積木」按「建立一個積木」，取名「畫星星」，把畫一顆星星的積木放在「定義 畫星星」下面；主程式再用「畫星星」積木呼叫它。',
+    good: [lbl('函式：畫一顆星星'), ...STAR_DEF, lbl('主程式'), ...MAINS[id]],
+    bad: [lbl('只建立函式卻沒有呼叫（主程式沒有「畫星星」積木）'), flagB(), hideB(), rp(5), mv(50, 1)] }),
+  id => ({ tip: '一顆星星 = 重複 5 次（移動 40 點、右轉 144 度），5 × 144 = 720，剛好轉兩圈回到起點。函式一開始先「面朝 90 度」讓星星都是正的，最後一定要「停筆」，否則移動到下一顆時會多畫出一條線。',
+    good: STAR_DEF, bad: [defB('畫星星'), PD(), rp(5), mv(40, 1), tr(72, 1), lbl('（右轉 72 度畫出來是五邊形，而且最後沒有停筆）')] })
+];
+const HINT_TASK = {
+  1: [
+    { tip: '外層「重複 6 次」= 6 列；用變數「列次」記錄現在是第幾列，內層「重複 (列次) 次」就會一列比一列多一顆，總共 1 + 2 + 3 + 4 + 5 + 6 = 21 顆。',
+      good: MAINS[1], bad: [rp(6), rp(6, 1), lbl('（每列都畫 6 顆，變成長方形，共 36 顆）')] },
+    { tip: '每一列開始前用「x 設為 -200」回到最左邊，畫完一列「y 改變 -50」往下一列，再把「列次」加 1，下一列就會多一顆。同一列的星星之間「移動 50 點」。',
+      good: MAINS[1], bad: [rp(6), rp('(列次)', 1), callB('畫星星', 2), mv(50, 2), ['motion', 'y 改變 -50', 1], lbl('（沒有 x 設為 -200，每列會越來越往右）')] }
+  ],
+  2: [
+    { tip: '外層重複 5 次 = 5 層；第 n 層要畫 2n − 1 顆，所以內層用「重複 ((2 × 列次) − 1) 次」，總共 1 + 3 + 5 + 7 + 9 = 25 顆。',
+      good: MAINS[2], bad: [rp(5), rp('(列次)', 1), lbl('（每層只有 n 顆，會變成直角三角形）')] },
+    { tip: '要置中，每多一層就要往左多退 50 點：起點 x = 30 − 50 × 列次（第 1 層 −20、第 2 層 −70……）。每層畫完「y 改變 -50」往下。',
+      good: MAINS[2], bad: [rp(5), ['motion', 'x 設為 -200', 1], lbl('（每層都從同一個 x 開始，金字塔會歪一邊）')] }
+  ],
+  3: [
+    { tip: '外層重複 5 次 = 5 個邊，內層重複 3 次 = 每邊 3 顆，5 × 3 = 15 顆。',
+      good: MAINS[3], bad: [rp(5), callB('畫星星', 1), lbl('（每邊只畫 1 顆，只有 5 顆）')] },
+    { tip: '因為「畫星星」會把方向改成 90 度，所以要用變數「方向」記住前進方向：畫完星星後「面朝 (方向)」再移動 50 點；每畫完一邊，方向改變 −72（360 ÷ 5 = 72）。',
+      good: MAINS[3], bad: [rp(5), rp(3, 1), callB('畫星星', 2), mv(50, 2), tr(72, 1), lbl('（畫完星星方向已變成 90，右轉 72 沒有用）')] }
+  ],
+  4: [
+    { tip: '重複 18 次，每次畫一顆星星，共 18 顆。',
+      good: MAINS[4], bad: [rp(12), callB('畫星星', 1), lbl('（只有 12 顆）')] },
+    { tip: '用變數「方向」記住前進方向：畫完星星後「面朝 (方向)」、移動 48 點，再把方向改變 −20。18 × 20 = 360，剛好繞一圈回到起點。',
+      good: MAINS[4], bad: [rp(18), callB('畫星星', 1), mv(48, 1), chgV('方向', -20, 1), lbl('（沒有面朝 (方向)，星星會排成一直線）')] }
+  ]
+};
+const getHint = (id, i) => i < 3 ? HINT_COMMON[i](id) : HINT_TASK[id][i - 3];
+
+function hintBlocks(list) {
+  return '<div class="inline-block">' + list.map(([c, t, ind]) => c === 'label'
+    ? `<div class="text-xs font-bold text-slate-500 mt-2 mb-1">${t}</div>`
+    : `<div style="background:${BC[c]};margin-left:${(ind || 0) * 22}px" class="text-white font-bold text-sm px-3 py-2 rounded-md mb-0.5 shadow-sm w-fit whitespace-nowrap">${t}</div>`
+  ).join('') + '</div>';
+}
+function showHint(i) {
+  const h = getHint(cur, i);
+  $('hT').innerText = task().criteria[i];
+  $('hX').innerText = h.tip;
+  let html = '';
+  if (h.good) html += `<div class="mb-3"><div class="text-xs font-bold text-emerald-600 mb-1.5">✔ 正確範例</div><div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 overflow-x-auto">${hintBlocks(h.good)}</div></div>`;
+  if (h.bad) html += `<div><div class="text-xs font-bold text-rose-600 mb-1.5">✕ 常見錯誤</div><div class="bg-rose-50 border border-rose-200 rounded-xl p-3 overflow-x-auto">${hintBlocks(h.bad)}</div></div>`;
+  $('hB').innerHTML = html;
+  $('hint').classList.remove('hidden');
+}
+function closeHint() { $('hint').classList.add('hidden'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHint(); });
+
+// ---------- 每一題的狀態 ----------
+const ST = {};
+TASKS.forEach(t => { ST[t.id] = { parsed: null, raw: null, scene: null, fileName: '', submitted: false, serverScore: 0 }; });
+let cur = 1;
+const task = () => TASKS.find(t => t.id === cur);
+const S = () => ST[cur];
+const taskScore = id => ST[id].submitted ? ST[id].serverScore : ST[id].parsed ? ST[id].parsed.score : 0;
+
+function selectTask(id) {
+  cur = id;
+  cancelAnimationFrame(raf);
+  const t = task(), tx = TASK_TEXT[id];
+  $('taskTitle').innerText = `第 ${id} 題｜${t.title}`;
+  $('dropTask').innerText = `第 ${id} 題`;
+  $('taskIntro').innerText = tx.intro;
+  $('taskRules').innerHTML = ['新建專案，背景與角色可自選。', ...COMMON_RULES, ...tx.rules].map(r => `<li>${r}</li>`).join('');
+  $('taskPic').innerHTML = patternSVG(id);
+  $('taskPicCap').innerText = tx.cap;
+  refresh();
+  if (S().scene) play(); else draw(0);
+}
+
+function renderTabs() {
+  $('tabs').innerHTML = TASKS.map(t => {
+    const s = ST[t.id], on = t.id === cur, sc = taskScore(t.id);
+    const state = s.submitted ? '🔒 已繳交' : s.parsed ? '草稿' : '未上傳';
+    const base = on ? 'bg-sky-500 text-white border-sky-500 shadow-md' : 'bg-white text-slate-700 border-slate-200 hover:border-sky-300';
+    return `<button onclick="selectTask(${t.id})" class="text-left rounded-2xl border-2 px-3 py-2.5 transition ${base}">
+      <div class="text-[11px] font-bold ${on ? 'text-sky-100' : 'text-slate-400'}">第 ${t.id} 題 · ${state}</div>
+      <div class="flex justify-between items-end gap-1"><span class="font-extrabold text-sm">${t.icon} ${t.title}</span>
+      <span class="font-black text-sm whitespace-nowrap">${sc}<span class="text-[10px] font-bold opacity-70">/${TASK_MAX}</span></span></div></button>`;
+  }).join('');
+}
+
+// ---------- 身分欄位 ----------
+const FIELDS = ['cls', 'seat', 'name'];
+const FIELD_LABEL = { cls: '班級', seat: '座號', name: '姓名' };
+const CLASS_RE = /^[1-9]\d\d$/;
+const SEAT_MAX = 99;
+
+function sanitize(f) {
+  const el = $(f);
+  if (f !== 'cls' && f !== 'seat') return;
+  let v = el.value.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/\D/g, '');
+  v = f === 'cls' ? v.slice(0, 3) : v.replace(/^0+/, '').slice(0, 2);
+  if (el.value !== v) el.value = v;
+}
+const missingFields = () => FIELDS.filter(f => !$(f).value.trim());
+function idError() {
+  const c = $('cls').value.trim(), s = $('seat').value.trim();
+  if (!CLASS_RE.test(c)) return ['cls', '班級請輸入三位數字，例如 101、215。'];
+  if (!/^\d{1,2}$/.test(s) || Number(s) < 1 || Number(s) > SEAT_MAX) return ['seat', `座號請輸入 1 到 ${SEAT_MAX} 的數字。`];
+  if (!$('name').value.trim()) return ['name', '請輸入姓名。'];
+  return null;
+}
+const student = () => ({ className: $('cls').value.trim(), seatNo: $('seat').value.trim(), studentName: $('name').value.trim() });
+
+window.addEventListener('DOMContentLoaded', () => {
+  FIELDS.forEach(f => {
+    try { $(f).value = localStorage.getItem('scratch_' + f) || ''; } catch (e) {}
+    sanitize(f);
+    $(f).addEventListener('input', () => { sanitize(f); try { localStorage.setItem('scratch_' + f, $(f).value); } catch (e) {} });
+    $(f).addEventListener('blur', () => {
+      const bad = idError();
+      if (bad && bad[0] === f && $(f).value) feedback('請檢查班級、座號與姓名', bad[1]);
+    });
+  });
+  $('file').addEventListener('change', e => { if (e.target.files[0]) processFile(e.target.files[0]); e.target.value = ''; });
+  const d = $('drop');
+  d.addEventListener('dragover', e => { e.preventDefault(); d.classList.add('bg-blue-50'); });
+  d.addEventListener('dragleave', () => d.classList.remove('bg-blue-50'));
+  d.addEventListener('drop', e => { e.preventDefault(); d.classList.remove('bg-blue-50'); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); });
+  selectTask(1);
+});
+
+// ---------- 畫面更新 ----------
+function feedback(t, x) { $('fbT').innerText = t; $('fbX').innerText = x; }
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function refresh() {
+  const st = S(), p = st.parsed;
+  $('fname').innerText = st.fileName ? '已載入：' + st.fileName : '尚未選擇檔案';
+  const sb = $('submit'), badge = $('badge');
+  $('pick').disabled = st.submitted;
+  $('drop').classList.toggle('opacity-60', st.submitted);
+  if (st.submitted) {
+    sb.disabled = true; sb.innerText = `🔒 第 ${cur} 題已繳交`;
+    sb.className = 'mt-4 w-full bg-emerald-700 text-white font-extrabold text-sm px-4 py-3 rounded-xl cursor-not-allowed';
+    badge.className = 'text-xs px-2.5 py-1 rounded-full font-bold bg-emerald-100 text-emerald-800'; badge.innerText = '已繳交';
+  } else {
+    sb.disabled = !p; sb.innerText = p ? `確認繳交第 ${cur} 題` : '請先上傳 .sb3 檔案';
+    sb.className = 'mt-4 w-full font-extrabold text-sm px-4 py-3 rounded-xl ' + (p ? 'bg-amber-500 hover:bg-amber-600 text-slate-900' : 'bg-slate-300 text-slate-500 cursor-not-allowed');
+    badge.className = 'text-xs px-2.5 py-1 rounded-full font-bold ' + (p ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500');
+    badge.innerText = p ? '草稿測試中' : '未繳交';
+  }
+  $('total').innerText = TASKS.reduce((a, t) => a + taskScore(t.id), 0);
+  $('replay').disabled = !st.scene;
+  $('ov').classList.toggle('hidden', !!st.scene);
+  renderTabs(); renderChecklist(); renderBlocks(); renderInfo();
+}
+
+function renderChecklist() {
+  const st = S(), p = st.parsed;
+  $('checklist').innerHTML = task().criteria.map((c, i) => {
+    let icon = '○', cls = 'bg-slate-50 border-slate-200', tag = '待檢測';
+    if (p) {
+      if (p.checks[i]) { icon = '✔'; cls = 'bg-emerald-50 border-emerald-200 text-emerald-900'; tag = '+5 分'; }
+      else { icon = '✕'; cls = 'bg-rose-50 border-rose-200 text-rose-900'; tag = '未符合'; }
+    }
+    return `<div onclick="showHint(${i})" class="p-3 rounded-xl border flex justify-between items-center gap-2 text-xs font-semibold cursor-pointer hover:shadow-md transition ${cls}">
+      <span>${icon} ${c}</span>
+      <span class="whitespace-nowrap">${tag} <span class="ml-1 inline-block text-[11px] font-bold text-blue-600 bg-white/80 border border-blue-200 rounded-full px-2.5 py-0.5">ⓘ 看說明</span></span></div>`;
+  }).join('');
+  if (st.submitted) { feedback(`✅ 第 ${cur} 題已繳交：${st.serverScore} / ${TASK_MAX} 分`, '以伺服器評分為準。可以切換到其他題繼續繳交。'); return; }
+  if (p) feedback(`第 ${cur} 題得分：${p.score} / ${TASK_MAX} 分（通過 ${p.passed}/${p.total} 項）`,
+    p.passed === p.total ? '全部通過，可以繳交了！' : '點選未符合的項目，可以看到修正範例。');
+  else feedback('準備就緒', `請上傳第 ${cur} 題的 .sb3 檔案。`);
+}
+
+function renderInfo() {
+  const p = S().parsed, box = $('info');
+  if (!p) { box.innerHTML = ''; return; }
+  const r = p.run;
+  const rows = [
+    ['畫圖的角色', esc(p.drawer || '（找不到）') + (p.drawer ? `（最後${r.visible ? '是顯示的' : '已隱藏'}）` : '')],
+    ['自訂積木（函式）', r.procs ? `${r.procs} 個，執行時呼叫了 ${r.calls} 次` : '沒有'],
+    ['畫出的星星', `${p.starCount} 顆（應為 ${p.expectN} 顆）`]
+  ];
+  if (p.extraSegs > 0) rows.push(['不屬於星星的線', `${p.extraSegs} 條（可能是忘了停筆，或星星畫錯）`]);
+  let h = '<div class="bg-slate-50 border rounded-xl p-3 space-y-0.5">' + rows.map(([a, b]) => `<div>${a}：<b>${b}</b></div>`).join('') + '</div>';
+  if (r.timedOut) h += '<div class="mt-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3">程式執行太久，可能有無限迴圈，或函式一直呼叫自己。</div>';
+  box.innerHTML = h;
+}
+
+// ---------- 積木清單 ----------
+function describe(T) {
+  const out = [];
+  const txt = (B, inp) => {
+    if (!inp) return '';
+    const v = inp[1];
+    if (Array.isArray(v)) return v[0] === 12 ? `[${v[1]}]` : String(v[1] == null ? '' : v[1]);
+    if (typeof v === 'string' && B[v] && B[v].opcode) {
+      const b = B[v], i = b.inputs || {};
+      if (/^argument_reporter/.test(b.opcode)) return `(${b.fields.VALUE[0]})`;
+      if (b.opcode === 'sensing_answer') return '(詢問的答案)';
+      if (b.opcode === 'data_variable') return `[${b.fields.VARIABLE[0]}]`;
+      const op = { operator_add: '＋', operator_subtract: '－', operator_multiply: '×', operator_divide: '÷' }[b.opcode];
+      if (op) return `(${txt(B, i.NUM1)} ${op} ${txt(B, i.NUM2)})`;
+      return `<${b.opcode.replace(/^.*?_/, '')}>`;
+    }
+    return Array.isArray(inp[2]) ? String(inp[2][1]) : '';
+  };
+  const pc = s => String(s || '').replace(/%[sbn]/g, '( )');
+  const lab = (B, b) => {
+    const i = b.inputs || {}, v = k => esc(txt(B, i[k]));
+    switch (b.opcode) {
+      case 'event_whenflagclicked': return '【事件】當綠旗被點擊';
+      case 'procedures_definition': { const pr = B[i.custom_block && i.custom_block[1]]; return `【函式】定義 ${esc(pc(pr && pr.mutation && pr.mutation.proccode))}`; }
+      case 'procedures_call': return `【函式】${esc(pc(b.mutation && b.mutation.proccode))}` + Object.keys(i).map(k => ' ' + esc(txt(B, i[k]))).join('');
+      case 'looks_hide': return '【外觀】隱藏';
+      case 'looks_show': return '【外觀】顯示';
+      case 'pen_penDown': return '【畫筆】下筆';
+      case 'pen_penUp': return '【畫筆】停筆';
+      case 'pen_clear': return '【畫筆】筆跡全部清除';
+      case 'pen_setPenColorToColor': return `【畫筆】筆跡顏色設為 ${v('COLOR')}`;
+      case 'pen_setPenSizeTo': return `【畫筆】筆跡寬度設為 ${v('SIZE')}`;
+      case 'sensing_askandwait': return `【偵測】詢問 ${v('QUESTION')} 並等待`;
+      case 'motion_movesteps': return `【動作】移動 ${v('STEPS')} 點`;
+      case 'motion_turnright': return `【動作】右轉 ${v('DEGREES')} 度`;
+      case 'motion_turnleft': return `【動作】左轉 ${v('DEGREES')} 度`;
+      case 'motion_gotoxy': return `【動作】定位到 x:${v('X')} y:${v('Y')}`;
+      case 'motion_setx': return `【動作】x 設為 ${v('X')}`;
+      case 'motion_sety': return `【動作】y 設為 ${v('Y')}`;
+      case 'motion_changexby': return `【動作】x 改變 ${v('DX')}`;
+      case 'motion_changeyby': return `【動作】y 改變 ${v('DY')}`;
+      case 'motion_pointindirection': return `【動作】面朝 ${v('DIRECTION')} 度`;
+      case 'control_repeat': return `【控制】重複 ${v('TIMES')} 次`;
+      case 'control_forever': return '【控制】重複無限次';
+      case 'data_setvariableto': return `【變數】變數 ${esc(b.fields.VARIABLE[0])} 設為 ${v('VALUE')}`;
+      case 'data_changevariableby': return `【變數】變數 ${esc(b.fields.VARIABLE[0])} 改變 ${v('VALUE')}`;
+      default: return `【${b.opcode.split('_')[0]}】${b.opcode.replace(/^.*?_/, '')}`;
+    }
+  };
+  T.forEach(tg => {
+    const B = tg.blocks || {};
+    const tops = Object.keys(B).filter(id => isBlk(B[id]) && B[id].topLevel && !B[id].shadow);
+    if (!tops.length) return;
+    out.push(`<div class="text-amber-300 font-bold mt-2 first:mt-0">■ ${tg.isStage ? '舞台' : '角色：' + esc(tg.name)}</div>`);
+    const walk = (id, d) => {
+      while (id && isBlk(B[id]) && out.length < 500) {
+        const b = B[id];
+        out.push(`<div class="py-0.5" style="padding-left:${d * 16}px">${lab(B, b)}</div>`);
+        const s = b.inputs && b.inputs.SUBSTACK;
+        if (s && typeof s[1] === 'string') walk(s[1], d + 1);
+        id = b.next;
+      }
+    };
+    tops.forEach(id => { walk(id, 1); out.push('<div class="h-1"></div>'); });
+  });
+  return out.join('');
+}
+function renderBlocks() {
+  const st = S();
+  if (!st.raw) { $('blocks').innerHTML = '<span class="text-slate-500">尚未上傳 .sb3 檔案...</span>'; return; }
+  $('blocks').innerHTML = describe(st.raw.targets) || '<span class="text-slate-400">未偵測到程式積木。</span>';
+}
+
+// ---------- 讀檔 ----------
+async function processFile(file) {
+  const id = cur, st = ST[id];
+  if (st.submitted) { feedback('已繳交', `第 ${id} 題已鎖定，無法再修改。`); return; }
+  if (!/\.sb3$/i.test(file.name)) { feedback('檔案格式錯誤', '請上傳副檔名為 .sb3 的檔案。'); return; }
+  try {
+    const z = await JSZip.loadAsync(file);
+    const pj = z.file('project.json');
+    if (!pj) throw new Error('no project.json');
+    const data = JSON.parse(await pj.async('text'));
+    // 送到伺服器的只有積木＋角色基本資料（名稱、位置、造型名稱、變數初始值），不含圖片音效
+    st.raw = { targets: (data.targets || []).map(t => ({
+      isStage: !!t.isStage, name: String(t.name || ''), x: toN(t.x), y: toN(t.y),
+      direction: t.direction == null ? 90 : toN(t.direction), visible: t.visible !== false,
+      currentCostume: toN(t.currentCostume), costumes: (t.costumes || []).map(c => ({ name: String(c.name || '') })),
+      variables: t.variables || {}, blocks: t.blocks || {}
+    })) };
+    st.parsed = gradeProject(st.raw, id);
+    st.fileName = file.name;
+    st.scene = await loadScene(z, data, st.parsed);
+    if (cur === id) { refresh(); play(); }
+  } catch (e) {
+    console.warn(e);
+    feedback('讀取失敗', '檔案可能損壞或不是有效的 Scratch 專案。');
+  }
+}
+
+// ---------- 舞台模擬：.sb3 裡的背景圖片＋實際畫出的筆跡（照順序慢慢畫出來） ----------
+async function loadImg(z, c) {
+  if (!c) return null;
+  const fn = c.md5ext || (c.assetId + '.' + c.dataFormat);
+  const f = z.file(fn);
+  if (!f) return null;
+  const isSvg = /svg$/i.test(c.dataFormat || fn);
+  const blob = isSvg ? new Blob([await f.async('text')], { type: 'image/svg+xml' })
+    : new Blob([await f.async('uint8array')], { type: /jpe?g$/i.test(fn) ? 'image/jpeg' : 'image/png' });
+  return new Promise(ok => {
+    const im = new Image();
+    im.onload = () => ok(im.width ? { img: im, res: c.bitmapResolution || 1, rcx: toN(c.rotationCenterX), rcy: toN(c.rotationCenterY) } : null);
+    im.onerror = () => ok(null);
+    im.src = URL.createObjectURL(blob);
+  });
+}
+async function loadScene(z, data, parsed) {
+  const T = data.targets || [], stage = T.find(t => t.isStage);
+  const bd = stage ? await loadImg(z, (stage.costumes || [])[stage.currentCostume || 0]) : null;
+  const tg = T.find(t => t.name === parsed.drawer && !t.isStage);
+  const spr = tg ? await loadImg(z, (tg.costumes || [])[tg.currentCostume || 0]) : null;
+  return { bd, spr, tg };
+}
+
+const cv = $('cv'), ctx = cv.getContext('2d');
+function draw(k) {
+  ctx.setTransform(2, 0, 0, 2, 0, 0);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 480, 360);
+  const st = S(), sc = st.scene;
+  if (!sc) return;
+  if (sc.bd) { const b = sc.bd; ctx.save(); ctx.translate(240, 180); ctx.scale(1 / b.res, 1 / b.res); ctx.drawImage(b.img, -b.rcx, -b.rcy); ctx.restore(); }
+  const r = st.parsed.run, segs = r.segs.slice(0, k);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  segs.forEach(g => {
+    ctx.strokeStyle = g.c; ctx.lineWidth = g.w;
+    ctx.beginPath(); ctx.moveTo(240 + g.x1, 180 - g.y1); ctx.lineTo(240 + g.x2, 180 - g.y2); ctx.stroke();
+  });
+  // 角色沒有隱藏的話，把它畫在最後的位置上（提醒要隱藏）
+  if (r.visible && sc.spr && sc.tg) {
+    const c = sc.spr, s = (sc.tg.size == null ? 100 : toN(sc.tg.size)) / 100 / c.res;
+    const atEnd = k >= r.segs.length, last = segs[segs.length - 1];
+    const x = atEnd ? r.x : last ? last.x2 : toN(sc.tg.x), y = atEnd ? r.y : last ? last.y2 : toN(sc.tg.y);
+    ctx.save(); ctx.globalAlpha = 0.9; ctx.translate(240 + x, 180 - y); ctx.scale(s, s); ctx.drawImage(c.img, -c.rcx, -c.rcy); ctx.restore();
+  }
+}
+let raf = 0;
+function play() {
+  cancelAnimationFrame(raf);
+  if (!S().scene) return;
+  const total = S().parsed.run.segs.length, dur = Math.min(4000, 600 + total * 25), t0 = performance.now();
+  const step = now => {
+    const f = Math.min(1, (now - t0) / dur);
+    draw(Math.ceil(total * f));
+    if (f < 1) raf = requestAnimationFrame(step);
+  };
+  raf = requestAnimationFrame(step);
+}
+
+// ---------- 繳交 ----------
+async function submitTask() {
+  const id = cur, st = ST[id];
+  if (busy || !st.parsed || !st.raw || st.submitted) return;
+  const miss = missingFields();
+  if (miss.length) {
+    const names = miss.map(f => FIELD_LABEL[f]).join('、');
+    alert(`⚠ 尚未填寫：${names}\n\n請在畫面最上方填好「班級、座號、姓名」後，再按繳交。`);
+    feedback('尚未填寫個人資料', `請填寫：${names}`);
+    $(miss[0]).focus();
+    return;
+  }
+  const bad = idError();
+  if (bad) { alert('⚠ ' + bad[1]); feedback('請檢查班級、座號與姓名', bad[1]); $(bad[0]).focus(); return; }
+  if (!/^https:\/\/script\.google\.com\//.test(SHEET_API_URL)) {
+    alert('❌ 老師還沒有設定成績試算表網址（SHEET_API_URL），目前無法繳交。');
+    feedback('尚未設定繳交網址', '請老師在網頁程式碼中填入 Apps Script 部署網址。');
+    return;
+  }
+
+  const stu = student();
+  busy = true;
+  $('submit').disabled = true; $('submit').innerText = '送出中，請稍候…';
+  try {
+    const out = await fetch(SHEET_API_URL, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ ...stu, assignment: ASSIGNMENT, taskId: id, fileName: st.fileName, project: st.raw })
+    }).then(x => x.json());
+    if (!out || !out.ok) throw new Error((out && out.error) || '伺服器沒有回應');
+    st.submitted = true; st.serverScore = out.score;
+    busy = false; if (cur === id) refresh(); else renderTabs();
+    const left = TASKS.filter(t => !ST[t.id].submitted).map(t => t.id);
+    alert(`✅ 第 ${id} 題成績送出！\n\n${stu.className} 班 ${stu.seatNo} 號 ${stu.studentName}\n得 ${out.score} / ${TASK_MAX} 分（通過 ${out.passed}/${out.total} 項）` +
+      (left.length ? `\n\n還沒繳交：第 ${left.join('、')} 題` : '\n\n四題都繳交完成了！'));
+  } catch (e) {
+    busy = false; if (cur === id) refresh();
+    feedback('傳送失敗', (e.message || '') + '　請檢查網路後再按一次繳交。');
+    alert('❌ 成績送出失敗\n\n' + (e.message || '') + '\n請檢查網路後再按一次繳交。');
+  }
+}
+
+/* =====================================================================
+   教師成績看板（網址後面加 #teacher 才會出現；密碼由 Apps Script 驗證）
+   ===================================================================== */
+let tPw = '', tRows = [], tTimer = null;
+const tFmtTime = ts => ts ? new Date(ts).toLocaleString('zh-TW', { hour12: false }) : '-';
+const tScore = r => isFinite(Number(r.score)) && r.score !== '' ? Number(r.score) : Number(r.passed || 0) * PTS_PER_CHECK;
+const tTask = r => TASKS.find(t => t.id === Number(r.taskId));
+const tChecks = r => { const t = tTask(r) || TASKS[0]; return /^[OX]{5}$/.test(r.checks || '') ? r.checks.split('').map(c => c === 'O') : t.criteria.map(c => !String(r.failed || '').includes(c)); };
+
+async function tFetch(pw) {
+  const res = await fetch(`${SHEET_API_URL}?pw=${encodeURIComponent(pw)}&t=${Date.now()}`);
+  return res.json();
+}
+function tIndicator(ok) {
+  const el = $('t-live');
+  el.className = ok
+    ? 'text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-2'
+    : 'text-xs font-semibold px-3 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center gap-2';
+  el.innerHTML = ok ? '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>已連線 Google 試算表（每 15 秒更新）'
+    : '<span class="w-2 h-2 rounded-full bg-rose-400"></span>連線失敗，稍後重試';
+}
+const tList = list => (list || []).filter(r => r.assignment === ASSIGNMENT && tTask(r));
+
+async function teacherRefresh() {
+  try {
+    const data = await tFetch(tPw);
+    if (!data.ok) throw new Error(data.error);
+    tRows = tList(data.list); teacherRender(); tIndicator(true);
+  } catch (e) { console.warn('teacher refresh failed:', e); tIndicator(false); }
+}
+async function teacherUnlock(auto) {
+  const pw = auto || $('t-pass').value;
+  if (!pw) return;
+  try {
+    const data = await tFetch(pw);
+    if (!data.ok) {
+      if (!auto) alert('密碼錯誤！');
+      try { sessionStorage.removeItem('stars4_tpw'); } catch (e) {}
+      return;
+    }
+    tPw = pw;
+    try { sessionStorage.setItem('stars4_tpw', pw); } catch (e) {}
+    tRows = tList(data.list);
+    $('t-auth').classList.add('hidden');
+    teacherRender(); tIndicator(true);
+    clearInterval(tTimer); tTimer = setInterval(teacherRefresh, 15000);
+  } catch (e) {
+    if (!auto) alert('無法連線到試算表，請確認網址、部署權限（誰可以存取：所有人），以及 Apps Script 是否已重新部署。');
+  }
+}
+
+function teacherRender() {
+  const latest = {}, count = {}, info = {}, lastTs = {};
+  tRows.forEach(r => {
+    const cls = String(r.className == null ? '' : r.className).trim();
+    const seat = String(r.seatNo == null ? '' : r.seatNo).trim();
+    const nm = String(r.studentName || '未填寫').trim();
+    const key = [cls, seat, nm].join('|'), tid = Number(r.taskId);
+    info[key] = { cls, seat, nm };
+    count[key] = (count[key] || 0) + 1;
+    lastTs[key] = Math.max(lastTs[key] || 0, Number(r.timestamp) || 0);
+    latest[key] = latest[key] || {};
+    if (!latest[key][tid] || (r.timestamp || 0) >= (latest[key][tid].timestamp || 0)) latest[key][tid] = r;
+  });
+  const keys = Object.keys(latest).sort((a, b) => {
+    const x = info[a], y = info[b];
+    return x.cls.localeCompare(y.cls, 'zh-TW', { numeric: true }) || x.seat.localeCompare(y.seat, undefined, { numeric: true }) || x.nm.localeCompare(y.nm, 'zh-TW');
+  });
+  const totalOf = k => TASKS.reduce((a, t) => a + (latest[k][t.id] ? tScore(latest[k][t.id]) : 0), 0);
+  const totals = keys.map(totalOf);
+  $('t-stat').innerText = keys.length;
+  $('t-avg').innerText = totals.length ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(1) : '-';
+  $('t-full').innerText = totals.filter(s => s === TASK_MAX * TASKS.length).length;
+
+  const taskStat = TASKS.map(t => {
+    const got = keys.filter(k => latest[k][t.id]);
+    const avg = got.length ? (got.reduce((a, k) => a + tScore(latest[k][t.id]), 0) / got.length).toFixed(1) : '-';
+    return { n: got.length, avg };
+  });
+  $('t-thead').innerHTML = `<tr>
+    <th class="py-3 px-3">班級</th><th class="py-3 px-3">座號</th><th class="py-3 px-3">姓名</th>
+    ${TASKS.map((t, i) => `<th class="py-3 px-3 text-center whitespace-nowrap" title="${esc(t.criteria.map((c, j) => (j + 1) + '. ' + c).join('\n'))}">第 ${t.id} 題 ${t.title}<div class="text-[10px] text-emerald-500 font-normal">${taskStat[i].n} 人繳交・平均 ${taskStat[i].avg}</div></th>`).join('')}
+    <th class="py-3 px-3 text-center">總分</th><th class="py-3 px-3 text-center">繳交次數</th><th class="py-3 px-3">最後繳交</th></tr>`;
+
+  const kw = $('t-filter').value.trim().toLowerCase();
+  const shown = keys.filter(k => `${info[k].cls} ${info[k].seat} ${info[k].nm}`.toLowerCase().includes(kw));
+  const cell = (r, t) => {
+    if (!r) return '<td class="py-2.5 px-3 text-center text-slate-600">—</td>';
+    const sc = tScore(r), ch = tChecks(r), full = sc === TASK_MAX;
+    return `<td class="py-2.5 px-3 text-center">
+      <span class="inline-block px-2 py-0.5 rounded-lg font-bold ${full ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'}">${sc}</span>
+      <div class="mt-1 tracking-wider text-[10px] whitespace-nowrap">${ch.map((ok, i) => `<span class="${ok ? 'text-emerald-400' : 'text-rose-400'}" title="${esc(t.criteria[i])}">${ok ? '✔' : '✕'}</span>`).join('')}</div></td>`;
+  };
+  $('t-tbody').innerHTML = shown.length ? shown.map(k => {
+    const tot = totalOf(k), full = tot === TASK_MAX * TASKS.length;
+    return `<tr class="hover:bg-slate-800/40 transition">
+      <td class="py-2.5 px-3 text-slate-300">${esc(info[k].cls)}</td>
+      <td class="py-2.5 px-3 text-slate-300">${esc(info[k].seat)}</td>
+      <td class="py-2.5 px-3 font-bold text-white whitespace-nowrap">${esc(info[k].nm)}</td>
+      ${TASKS.map(t => cell(latest[k][t.id], t)).join('')}
+      <td class="py-2.5 px-3 text-center"><span class="text-base font-black ${full ? 'text-emerald-400' : 'text-white'}">${tot}</span></td>
+      <td class="py-2.5 px-3 text-center text-slate-400">${count[k]}</td>
+      <td class="py-2.5 px-3 text-slate-500 font-mono text-[11px] whitespace-nowrap">${tFmtTime(lastTs[k])}</td></tr>`;
+  }).join('') : `<tr><td colspan="10" class="py-10 text-center text-slate-500">${keys.length ? '沒有符合的學生' : '尚無學生繳交紀錄...'}</td></tr>`;
+
+  const logs = [...tRows].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  $('t-log').innerHTML = logs.length ? logs.map(r => {
+    const sc = tScore(r), t = tTask(r);
+    return `<tr class="hover:bg-slate-800/40 transition">
+      <td class="py-2.5 px-4 text-slate-500 font-mono text-[11px] whitespace-nowrap">${tFmtTime(r.timestamp)}</td>
+      <td class="py-2.5 px-4 text-slate-300">${esc(r.className) || '-'}</td>
+      <td class="py-2.5 px-4 text-slate-300">${esc(r.seatNo) || '-'}</td>
+      <td class="py-2.5 px-4 font-bold text-white">${esc(r.studentName) || '未填寫'}</td>
+      <td class="py-2.5 px-4 text-slate-300 whitespace-nowrap">第 ${t.id} 題 ${t.title}</td>
+      <td class="py-2.5 px-4 text-slate-400">${esc(r.fileName) || '-'}</td>
+      <td class="py-2.5 px-4 font-bold whitespace-nowrap ${sc === TASK_MAX ? 'text-emerald-400' : 'text-amber-400'}">${sc} / ${TASK_MAX}（${Number(r.passed)}/${Number(r.total)} 項）</td>
+      <td class="py-2.5 px-4 text-slate-400">${esc(r.failed) || '—'}</td></tr>`;
+  }).join('') : '<tr><td colspan="8" class="py-6 text-center text-slate-500">尚無紀錄</td></tr>';
+}
+
+// ---------- 依網址切換：#teacher → 教師看板；否則 → 學生繳交頁 ----------
+function route() {
+  const isT = location.hash.replace('#', '').toUpperCase() === 'TEACHER';
+  $('student-view').classList.toggle('hidden', isT);
+  $('teacher-view').classList.toggle('hidden', !isT);
+  document.title = isT ? '星星排排站：教師成績看板' : 'Scratch 作業：星星排排站';
+  if (isT) {
+    if (!tPw) {
+      $('t-auth').classList.remove('hidden');
+      let saved = '';
+      try { saved = sessionStorage.getItem('stars4_tpw') || ''; } catch (e) {}
+      if (saved) teacherUnlock(saved); else setTimeout(() => $('t-pass').focus(), 50);
+    } else if (!tTimer) {
+      teacherRefresh(); tTimer = setInterval(teacherRefresh, 15000);
+    }
+  } else { clearInterval(tTimer); tTimer = null; }
+}
+$('t-pass').addEventListener('keydown', e => { if (e.key === 'Enter') teacherUnlock(); });
+window.addEventListener('hashchange', route);
+route();
+</script>
+</body>
+</html>
