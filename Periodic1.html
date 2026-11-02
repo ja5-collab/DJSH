@@ -27,7 +27,7 @@
 </header>
 
 <main class="max-w-6xl mx-auto px-4 mt-5">
-  <div id="tabs" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5"></div>
+  <div id="tabs" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5"></div>
 
   <div class="grid lg:grid-cols-12 gap-5">
     <div class="lg:col-span-7 space-y-5">
@@ -66,7 +66,6 @@
           <canvas id="cv" width="480" height="360" class="w-full h-full"></canvas>
           <div id="ov" class="absolute inset-0 bg-slate-950/85 flex items-center justify-center text-white text-sm">等待上傳 .sb3 檔案...</div>
         </div>
-        <p id="stageCap" class="hidden text-xs text-slate-500 mt-2">舞台顯示：階梯數 N＝5 的結果</p>
         <div id="testBox" class="hidden text-xs"></div>
         <div id="fb" class="mt-4 p-4 rounded-xl bg-slate-50 border">
           <b id="fbT" class="text-sm">準備就緒</b>
@@ -157,8 +156,9 @@
 </div><!-- /teacher-view -->
 
 <script>
-const TASK_IDS = [1, 2, 3, 4, 5, 6, 7, 8];
-const POINTS = { 1: 12, 2: 12, 3: 12, 4: 12, 5: 12, 6: 12, 7: 12, 8: 16 };   // 合計 100 分
+const TASK_IDS = [1, 2, 3, 4, 5, 7];   // 原第 6 題（階梯）、第 8 題（雪花）已拿掉；題號 7 為「正六邊形」，畫面上顯示為第 6 題
+const POINTS = { 1: 15, 2: 15, 3: 17, 4: 17, 5: 17, 7: 19 };   // 合計 100 分
+const NO = id => TASK_IDS.indexOf(id) + 1;   // 畫面上顯示的題號
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyYdl_lnUt25QtjApGbl9TAZA9KDDAAe9ioTnH78x6R5v2V3HhmWGrudiTtqgqT6EWR/exec";
 let cur = 1, busy = false;
 
@@ -167,15 +167,14 @@ const DRINK = 35;                          // 第 1 題：每杯飲料價格
 const TICKET_FULL = 200, TICKET_STU = 120; // 第 2 題：全票、學生票
 const SAVE_START = 100, SAVE_WEEK = 50;    // 第 4 題：目前存款、每週存入
 
-// 自動測試設定。num：代入數字測試；cases：票種＋張數；guess：猜數字互動測試；stairs：階梯圖形
+// 自動測試設定。num：代入數字測試；pair：票種＋張數；guess：猜數字互動測試
 const SPEC = {
   1: { type: 'num', f: a => DRINK * a[0], datasets: [[3], [10]] },
   2: { type: 'pair', datasets: [[3, 2], [5, 4], [1, 6]] },   // 全票張數、學生票張數（兩次詢問誰先問都可以）
   3: { type: 'num', f: a => 5 * a[0] * (a[0] + 1), datasets: [[3], [10]], varInit: 13 },   // 10+20+…+10N；變數一開始放「殘留值」，沒設初始值就會算錯
   // 目標金額都用 50 的倍數，「重複直到 存款 ＝ 目標」的寫法也不會卡住。存款從 100（題目）或從 0 開始算都接受，但三組測試要用同一種
   4: { type: 'num', fs: [a => a[0] <= SAVE_START ? 0 : Math.ceil((a[0] - SAVE_START) / SAVE_WEEK), a => Math.ceil(a[0] / SAVE_WEEK)], datasets: [[300], [500], [1000]], varInit: 13 },
-  5: { type: 'guess' },
-  6: { type: 'stairs', datasets: [[3], [5]] }
+  5: { type: 'guess' }
 };
 
 const tasks = {
@@ -258,52 +257,20 @@ const tasks = {
       { name: '猜中後停止詢問並說出訊息（猜錯、猜錯、猜中測試）', check: p => p.testsOk }
     ]
   },
-  6: {
-    short: '階梯設計師',
-    title: '第 6 題｜階梯設計師',
-    desc: `<p class="mb-1 font-bold">輸入階梯數量，利用迴圈畫出連續向上的階梯。</p>
-      <ul class="list-disc list-inside space-y-1 text-xs">
-      <li>取得階梯數量 N（詢問並等待，或設定變數），先「下筆」</li>
-      <li>重複執行 N 次，每一階：向右移動（例如 80 步）→ 左轉 90 度 → 向上移動（例如 30 步）→ 右轉 90 度（回到向右）</li>
-      <li>最後一階可以只畫橫的（不用再往上）。每階橫線長度要一樣、直線長度也要一樣</li>
-      <li>系統會用 N＝3 和 N＝5 測試，右邊舞台顯示 N＝5 的結果</li></ul>`,
-    criteria: [
-      { name: '取得階梯數量 N（詢問並等待，或設定變數）', check: p => p.inputsOk },
-      { name: '使用「重複執行」，次數由 N 決定（不是寫死的數字）', check: p => p.run.loops.some(l => !l.literal) },
-      { name: '有使用「下筆」，且在移動之前', check: p => p.penBeforeMove },
-      { name: '畫出 N 階階梯：橫線、直線交替，每條橫線等長、每條直線等長（N＝3、5 測試）', check: p => p.testsOk }
-    ]
-  },
   7: {
-    short: '大小正方形',
-    title: '第 7 題｜大小正方形',
-    desc: `<p class="mb-1 font-bold">利用變數與迴圈，畫出三個邊長不同的正方形。</p>
+    short: '正六邊形',
+    title: '第 6 題｜正六邊形',
+    desc: `<p class="mb-1 font-bold">利用計次式迴圈（重複執行 6 次），畫出一個正六邊形。</p>
       <ul class="list-disc list-inside space-y-1 text-xs">
-      <li>建立變數「邊長」，開始前設為 40（例如），先「下筆」</li>
-      <li>外層：重複執行 3 次（三個正方形）</li>
-      <li>內層：重複執行 4 次（移動「邊長」步、右轉 90 度）</li>
-      <li>每畫完一個正方形，把「邊長」增加 20（變成 40、60、80）</li>
-      <li>想讓正方形排成一排：畫完先「停筆」、用「x 改變」移開、再「下筆」</li></ul>`,
-    criteria: [
-      { name: '用變數當邊長（「移動」的步數放變數）', check: p => p.run.varMoves > 0 },
-      { name: '巢狀迴圈：外層重複 3 次，內層重複 4 次', check: p => p.run.loops.some(l => l.n === 3 && l.hasChild) && p.run.loops.some(l => l.n === 4) },
-      { name: '三個正方形的邊長各不相同（每個正方形畫完，邊長會改變）', check: p => new Set(p.run.moves.filter(m => m.down).map(m => Math.round(m.len))).size >= 3 },
-      { name: '畫出三個封閉的正方形（模擬繪圖檢查）', check: p => squaresOk(p.run) }
-    ]
-  },
-  8: {
-    short: '雪花設計師',
-    title: '第 8 題｜雪花設計師',
-    desc: `<p class="mb-1 font-bold">利用畫筆、迴圈與旋轉角度，繪製一朵具有對稱線條的雪花。</p>
-      <ul class="list-disc list-inside space-y-1 text-xs">
-      <li>先「下筆」，再重複執行 6 次：移動（例如 80 步）、右轉 60 度（360 ÷ 6）</li>
-      <li>畫完的圖形旋轉 60 度後要和原圖完全重合（6 重對稱）</li>
-      <li>進階挑戰：每條邊再加上分枝，讓它更像雪花（系統一樣會檢查是否 6 重對稱）</li></ul>`,
+      <li>先「下筆」，再用「重複執行 6 次」（六邊形有 6 個邊）</li>
+      <li>迴圈裡：移動（例如 80 步）→ 右轉 60 度</li>
+      <li>每次要轉幾度？正多邊形的外角 ＝ 360 ÷ 邊數 ＝ 360 ÷ 6 ＝ 60 度</li>
+      <li>畫完 6 條邊要回到起點，圍成封閉的正六邊形</li></ul>`,
     criteria: [
       { name: '有使用「下筆」，且在移動之前', check: p => p.penBeforeMove },
-      { name: '重複執行 6 次', check: p => p.run.loops.some(l => l.n === 6) },
+      { name: '使用計次式迴圈「重複執行 6 次」', check: p => p.run.loops.some(l => l.kind === 'control_repeat' && l.n === 6) },
       { name: '迴圈內有移動，並右轉（或左轉）60 度', check: p => p.run.moves.some(m => m.down && m.len !== 0) && p.run.turns.some(t => Math.abs(t) === 60) },
-      { name: '圖形旋轉 60° 後與原圖重合（6 重對稱檢查）', check: p => snowflakeOk(p.run) }
+      { name: '畫出封閉的正六邊形（6 條等長的邊、每次轉 60 度）', check: p => hexagonOk(p.run) }
     ]
   }
 };
@@ -377,29 +344,13 @@ const HINTS = {
       good: [setv('秘密數字', 42), ask('猜一個數字'), ru('< ( 答案 ) = ( 秘密數字 ) >'), say('再猜一次', 1), ask('猜一個數字', 1), say('猜中了！')],
       bad: [['control', '一直重複'], ask('猜一個數字', 1), iff('< ( 答案 ) = ( 秘密數字 ) >', 1), say('猜中了！', 2)] }
   ],
-  6: [
-    { tip: '要先拿到階梯數量：用「詢問…並等待」存進變數 N，或直接「設定 N 為 3」。', good: [ask('幾階？'), setv('N', '( 答案 )')], bad: [rp(3)] },
-    { tip: '重複的次數要放變數 N（不是 3、5 這種寫死的數字），N 是幾就畫幾階。', good: [rp('( N )')], bad: [rp(5)] },
-    { tip: '「下筆」放在迴圈外面、迴圈前面，只要下一次就好。', good: [PD, rp('( N )'), mv(80, 1)], bad: [rp('( N )'), mv(80, 1), PD] },
-    { tip: '每一階：向右 80 → 左轉 90（朝上）→ 向上 30 → 右轉 90（回到向右）。最後的右轉不能少，否則第二階會歪掉。橫線長度要一樣、直線長度也要一樣。',
-      good: [PD, rp('( N )'), mv(80, 1), tl(90, 1), mv(30, 1), tr(90, 1)], bad: [PD, rp('( N )'), mv(80, 1), tl(90, 1), mv(30, 1)] }
-  ],
   7: [
-    { tip: '正方形的邊長要放在變數「邊長」裡，「移動」積木的步數放這個變數。', good: [setv('邊長', 40), mv('( 邊長 )')], bad: [mv(30)] },
-    { tip: '外層重複 3 次（三個正方形），內層重複 4 次（四條邊）。',
-      good: [rp(3), rp(4, 1), mv('( 邊長 )', 2), tr(90, 2)], bad: [rp(12), mv('( 邊長 )', 1), tr(90, 1)] },
-    { tip: '每畫完一個正方形（內層迴圈結束後），要把邊長增加 20，三個正方形才會大小不同。',
-      good: [rp(3), rp(4, 1), mv('( 邊長 )', 2), tr(90, 2), chg('邊長', 20, 1)], bad: [rp(3), rp(4, 1), mv('( 邊長 )', 2), tr(90, 2)] },
-    { tip: '完整程式：下筆、設邊長＝40，外層 3 次，內層 4 次（移動、右轉 90），內層結束後邊長增加 20（想排成一排，可再加「停筆 → x 改變 → 下筆」）。增加邊長不要放進內層，否則一個正方形的四條邊會不一樣長。',
-      good: [PD, setv('邊長', 40), rp(3), rp(4, 1), mv('( 邊長 )', 2), tr(90, 2), chg('邊長', 20, 1)],
-      bad: [PD, setv('邊長', 40), rp(3), rp(4, 1), mv('( 邊長 )', 2), tr(90, 2), chg('邊長', 20, 2)] }
-  ],
-  8: [
-    { tip: '「下筆」放在迴圈外面、迴圈前面，只要下一次就好。', good: [PD, rp(6), mv(80, 1)], bad: [rp(6), mv(80, 1), PD] },
-    { tip: '雪花有 6 個邊（手臂），所以重複執行 6 次。', good: [rp(6), mv(80, 1), tr(60, 1)], bad: [rp(5), mv(80, 1), tr(72, 1)] },
-    { tip: '迴圈裡要有「移動」，並且每次轉 60 度（360 ÷ 6）。', good: [mv(80), tr(60)], bad: [mv(80), tr(90)] },
-    { tip: '「下筆 → 重複 6 次（移動、右轉 60）」會畫出 6 重對稱的圖形。想更像雪花，可以在每條邊加上分枝（移動出去再退回來），只要整張圖轉 60 度後仍然重合就算對。',
-      good: [PD, rp(6), mv(80, 1), tr(60, 1)], bad: [PD, rp(6), mv(80, 1), tr(50, 1)] }
+    { tip: '「下筆」放在迴圈外面、迴圈前面，只要下一次就好，第一條邊才畫得出來。', good: [PD, rp(6), mv(80, 1), tr(60, 1)], bad: [rp(6), mv(80, 1), tr(60, 1), PD] },
+    { tip: '六邊形有 6 個邊，用計次式迴圈「重複執行 6 次」。不要用「重複直到」或「一直重複」，也不要把 6 個移動一個一個排出來。',
+      good: [rp(6), mv(80, 1), tr(60, 1)], bad: [mv(80), tr(60), mv(80), tr(60), mv(80), tr(60), ['control', '…（一個一個排）']] },
+    { tip: '迴圈裡要有「移動」，每次轉的角度是外角：360 ÷ 6 ＝ 60 度。120 度是六邊形的內角，轉 120 度會畫成三角形。', good: [mv(80), tr(60)], bad: [mv(80), tr(120)] },
+    { tip: '完整程式：下筆 → 重複執行 6 次（移動 80 步、右轉 60 度）。每條邊的步數要一樣，畫完會回到起點。',
+      good: [PD, rp(6), mv(80, 1), tr(60, 1)], bad: [PD, rp(5), mv(80, 1), tr(60, 1)] }
   ]
 };
 
@@ -461,7 +412,7 @@ const student = () => ({
 });
 
 function buildTabs() {
-  $('tabs').innerHTML = TASK_IDS.map(id => `<button id="tab${id}" onclick="switchTask(${id})" class="text-left p-3 rounded-2xl bg-white border-2 shadow-sm"><b class="text-sm">第 ${id} 題：${tasks[id].short}</b><div class="text-xs text-slate-500">狀態：<b id="st${id}">未繳交</b></div></button>`).join('');
+  $('tabs').innerHTML = TASK_IDS.map(id => `<button id="tab${id}" onclick="switchTask(${id})" class="text-left p-3 rounded-2xl bg-white border-2 shadow-sm"><b class="text-sm">第 ${NO(id)} 題：${tasks[id].short}</b><div class="text-xs text-slate-500">狀態：<b id="st${id}">未繳交</b></div></button>`).join('');
 }
 
 function calc(p, id) {
@@ -589,8 +540,8 @@ async function submitTask() {
     if (!out || !out.ok) throw new Error((out && out.error) || '伺服器沒有回應');
     r.submitted = true; r.serverScore = out.score;
     busy = false; refresh();
-    feedback(`✅ 成績送出！第 ${taskId} 題已繳交，得 ${out.score} 分（通過 ${out.passed}/${out.total} 項）`, '以伺服器評分為準，目前總分顯示在右上角。');
-    alert(`✅ 成績送出！\n\n${stu.className} 班 ${stu.seatNo} 號 ${stu.studentName}\n第 ${taskId} 題已繳交，得 ${out.score} 分（通過 ${out.passed}/${out.total} 項）`);
+    feedback(`✅ 成績送出！第 ${NO(taskId)} 題已繳交，得 ${out.score} 分（通過 ${out.passed}/${out.total} 項）`, '以伺服器評分為準，目前總分顯示在右上角。');
+    alert(`✅ 成績送出！\n\n${stu.className} 班 ${stu.seatNo} 號 ${stu.studentName}\n第 ${NO(taskId)} 題已繳交，得 ${out.score} 分（通過 ${out.passed}/${out.total} 項）`);
   } catch (e) {
     busy = false; refresh();
     feedback('傳送失敗', (e.message || '') + '　請檢查網路後再按一次繳交。');
@@ -756,7 +707,7 @@ function runProgram(blocks, startId, opt) {
   const sub = (b, k) => { const s = b.inputs && b.inputs[k]; return s && typeof s[1] === 'string' ? s[1] : null; };
   function lineTo(nx, ny) { if (S.pen && (nx !== S.x || ny !== S.y)) S.segs.push({ x1: S.x, y1: S.y, x2: nx, y2: ny }); S.x = nx; S.y = ny; }
   function loop(b, n, literal, body) {
-    const rec = { n, literal, hasChild: false, depth: stack.length };
+    const rec = { n, literal, hasChild: false, depth: stack.length, kind: b.opcode };
     if (stack.length) stack[stack.length - 1].hasChild = true;
     S.loops.push(rec); stack.push(rec);
     try { body(rec); } finally { stack.pop(); }
@@ -848,46 +799,14 @@ function regularSide(segs, n) {
   const d = H.map((h, i) => angDiff(h, H[(i + 1) % n]));
   return d.every(x => near(Math.abs(x), 360 / n, 0.5)) && d.every(x => x * d[0] > 0) ? L[0] : null;
 }
-// 第 7 題：在所有線段裡找「連續 4 條、封閉的正方形」，剛好要有 3 個（多畫的零星線段不扣分）
-function findSquares(run) {
-  const s = run.segs, found = [];
-  for (let i = 0; i + 4 <= s.length;) {
-    const side = regularSide(s.slice(i, i + 4), 4);
-    if (side !== null && side >= 5) { found.push(side); i += 4; } else i++;
-  }
-  return found;
-}
-const squaresOk = run => findSquares(run).length === 3;
-// 第 6 題：N 階階梯。向右、向上交替；橫線剛好 N 條且等長，直線 N 或 N−1 條且等長（最後一階可以只畫橫的）
-function stairsOk(run, n) {
-  if (!(Number.isInteger(n) && n >= 1 && n <= 30)) return false;
-  const { s, L, H, contiguous } = infoOf(run.segs);
-  if (!contiguous || s.length < 2 * n - 1 || s.length > 2 * n) return false;
-  const dir = H.map(h => near(angDiff(h, 0), 0, 1) ? 'E' : near(angDiff(h, 90), 0, 1) ? 'N' : '?');
-  if (dir.some((d, i) => d === '?' || (i > 0 && d === dir[i - 1]))) return false;
-  const E = L.filter((l, i) => dir[i] === 'E'), U = L.filter((l, i) => dir[i] === 'N');
-  return E.length === n && (U.length === n - 1 || U.length === n) && E.every(l => near(l, E[0]) && l >= 5) && U.every(l => near(l, U[0]) && l >= 5);
-}
-// 第 8 題：把整張圖轉 60 度，每個點都要落在原本畫過的線上
-function snowflakeOk(run) {
+// 正六邊形：在所有線段裡找「連續 6 條、封閉、等長、每次轉 60 度」的六邊形（多畫的零星線段不扣分）
+function hexagonOk(run) {
   const s = run.segs;
-  if (s.length < 6 || s.length > 3000) return false;
-  let W = 0, cx = 0, cy = 0;
-  s.forEach(g => { const l = Math.hypot(g.x2 - g.x1, g.y2 - g.y1); W += l; cx += l * (g.x1 + g.x2) / 2; cy += l * (g.y1 + g.y2) / 2; });
-  if (W < 50) return false;
-  cx /= W; cy /= W;
-  const dist = (px, py) => {
-    let m = 1e9;
-    for (const g of s) {
-      const dx = g.x2 - g.x1, dy = g.y2 - g.y1, l2 = dx * dx + dy * dy;
-      let t = l2 ? ((px - g.x1) * dx + (py - g.y1) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t));
-      m = Math.min(m, Math.hypot(px - (g.x1 + t * dx), py - (g.y1 + t * dy)));
-    }
-    return m;
-  };
-  const c = Math.cos(Math.PI / 3), sn = Math.sin(Math.PI / 3);
-  return s.every(g => [[g.x1, g.y1], [g.x2, g.y2], [(g.x1 + g.x2) / 2, (g.y1 + g.y2) / 2]].every(([x, y]) =>
-    dist(cx + (x - cx) * c - (y - cy) * sn, cy + (x - cx) * sn + (y - cy) * c) <= 1.5));
+  for (let i = 0; i + 6 <= s.length; i++) {
+    const side = regularSide(s.slice(i, i + 6), 6);
+    if (side !== null && side >= 5) return true;
+  }
+  return false;
 }
 
 // ---------- 組合：解析一個 .sb3 的 project.json ----------
@@ -931,23 +850,6 @@ function parseScratch(data, id) {
     });
     P.run = P.drawRun = probe;
     P.inputsOk = rows.every(row => row.pool.length > 0);
-    P.testsOk = P.tests.every(t => t.ok);
-  } else if (spec.type === 'stairs') {
-    const probe = go({ answers: spec.datasets[0] });
-    const viaAsk = probe.asks > 0, sets = viaAsk ? spec.datasets : [spec.datasets[0]];
-    let last = probe, allEnough = true;
-    sets.forEach((d, n) => {
-      const r = n === 0 ? probe : go({ answers: d });
-      last = r; timedOut = timedOut || r.timedOut;
-      const pool = (viaAsk ? r.consumed.slice(0, 1) : r.literalInputs).map(x => [x]);
-      allEnough = allEnough && pool.length > 0;
-      const hit = pool.find(c => stairsOk(r, c[0])), N = (hit || pool[0] || [null])[0];
-      P.tests.push({ title: `測試 ${n + 1}：階梯數 N＝${fmt(N)}`, ok: !!hit,
-        lines: [`畫出 ${r.segs.length} 條線（N 階應該有 ${N === null ? '—' : (2 * N - 1) + ' 或 ' + 2 * N} 條）`],
-        why: pool.length ? '' : '找不到輸入的數字（請用「詢問並等待」或「設定變數」）' });
-    });
-    P.run = probe; P.drawRun = last;
-    P.inputsOk = allEnough;
     P.testsOk = P.tests.every(t => t.ok);
   } else if (spec.type === 'pair') {
     // 兩次詢問（全票張數、學生票張數）。依「第一個問題的文字」判斷先問的是哪一種票
@@ -1025,14 +927,13 @@ function renderBlocks() {
     : '<span class="text-slate-400">未偵測到程式積木（請把積木接在「當綠旗被點擊」下面）。</span>';
 }
 
-// ---------- 右側：第 1～5 題顯示自動測試結果，第 6～8 題顯示舞台 ----------
-const isTestView = id => !!SPEC[id] && SPEC[id].type !== 'stairs';
+// ---------- 右側：第 1～5 題顯示自動測試結果，第 6 題（正六邊形）顯示舞台 ----------
+const isTestView = id => !!SPEC[id];
 
 function renderStage() {
   const p = res[cur].parsed, testView = isTestView(cur);
   $('stageT').innerText = testView ? '自動測試' : '舞台模擬';
   $('stageBox').classList.toggle('hidden', testView);
-  $('stageCap').classList.toggle('hidden', testView || cur !== 6);
   $('testBox').classList.toggle('hidden', !testView);
   if (testView) { renderTests(p); return; }
   const cv = $('cv'), ctx = cv.getContext('2d');
@@ -1188,7 +1089,7 @@ function teacherRender() {
         return `<td class="py-3 px-3 text-center" title="${tip}"><span class="inline-block px-2.5 py-1 rounded-lg font-bold whitespace-nowrap ${full ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'}">${full ? '✔ ' : ''}${sc} 分</span></td>`;
       }).join('');
       return `<tr class="hover:bg-slate-800/40 transition">
-        <td class="py-3 px-4 font-bold text-white whitespace-nowrap sticky left-0 bg-slate-900 z-10 w-36 min-w-[9rem]">第 ${id} 題<span class="ml-1 text-[11px] font-semibold text-amber-400">（${max} 分）</span><br><span class="font-normal text-[11px] text-slate-400">${escH(tasks[id].short)}</span></td>
+        <td class="py-3 px-4 font-bold text-white whitespace-nowrap sticky left-0 bg-slate-900 z-10 w-36 min-w-[9rem]">第 ${NO(id)} 題<span class="ml-1 text-[11px] font-semibold text-amber-400">（${max} 分）</span><br><span class="font-normal text-[11px] text-slate-400">${escH(tasks[id].short)}</span></td>
         <td class="py-3 px-3 text-center whitespace-nowrap sticky left-[9rem] bg-slate-900 z-10">
           <div class="font-black text-base ${submitted ? 'text-amber-400' : 'text-slate-600'}">${submitted} / ${names.length}</div>
           <div class="text-[11px] text-emerald-400">平均 ${avg} 分</div></td>
@@ -1205,7 +1106,7 @@ function teacherRender() {
     tbody.innerHTML = taskRows + totalRow;
   }
 
-  const logs = [...tRows].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  const logs = tRows.filter(r => TASK_IDS.includes(Number(r.taskId))).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   $('t-log').innerHTML = logs.length ? logs.map(r => {
     const max = POINTS[Number(r.taskId)] || 0, sc = tScore(r);
     return `<tr class="hover:bg-slate-800/40 transition">
@@ -1213,7 +1114,7 @@ function teacherRender() {
       <td class="py-2.5 px-4 text-slate-300">${escH(r.className) || '-'}</td>
       <td class="py-2.5 px-4 text-slate-300">${escH(r.seatNo) || '-'}</td>
       <td class="py-2.5 px-4 font-bold text-white">${escH(r.studentName) || '未填寫'}</td>
-      <td class="py-2.5 px-4 text-slate-300">第 ${escH(r.taskId)} 題</td>
+      <td class="py-2.5 px-4 text-slate-300">第 ${NO(Number(r.taskId))} 題 ${escH(tasks[Number(r.taskId)].short)}</td>
       <td class="py-2.5 px-4 text-slate-400">${escH(r.fileName) || '-'}</td>
       <td class="py-2.5 px-4 font-bold ${sc === max ? 'text-emerald-400' : 'text-amber-400'}">${sc} / ${max}（${Number(r.passed)}/${Number(r.total)} 項）</td>
       <td class="py-2.5 px-4 text-slate-400">${escH(r.failed) || '—'}</td></tr>`;
