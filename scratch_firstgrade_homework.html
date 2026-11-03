@@ -512,15 +512,27 @@ const TASKS = {
       <li>開始前先設：「乘積」＝ 1（不是 0！）、「目前的數」＝ 100</li>
       <li>重複直到 目前的數 ＞ N：乘積 設為（乘積 × 目前的數），目前的數 增加 1</li>
       <li>最後用「說」顯示乘積</li></ul>` },
-  6: { short: '心電感應', desc: `<p class="mb-1 font-bold">設計一個心電感應的猜數字遊戲。（設定初始值：數字設為 ${SECRET}）</p>
+  6: { short: '心電感應', desc: `<p class="mb-1 font-bold">設計一個心電感應的猜數字遊戲：電腦心裡想著一個數字 ${SECRET}，使用者最多有兩次機會猜中。</p>
+      <p class="mb-1 font-bold text-xs">一、問題分析與流程圖（寫在學習單上繳交，本系統不檢查）</p>
+      <ul class="list-disc list-inside space-y-1 text-xs mb-2">
+      <li>把問題依序拆成：<b>初始值 → 輸入 → 判斷 → 輸出</b>，第一次猜錯時再一次 <b>輸入 → 判斷 → 輸出</b>，寫出每個階段要做什麼</li>
+      <li>依照分析畫出流程圖（要有兩個菱形判斷，第二個判斷接在第一個判斷的「否」後面）</li></ul>
+      <p class="mb-1 font-bold text-xs">二、Scratch 程式（本系統自動檢查）</p>
       <ol class="list-decimal list-inside space-y-1 text-xs">
-      <li>請將問題拆解為輸入、處理、輸出、判斷、輸出五個階段，並寫出各階段相對應的內容</li>
-      <li>依照問題分析內容，繪製出流程圖</li>
-      <li>依照流程圖內容，撰寫出 Scratch 程式碼（本系統檢查這一題）</li></ol>
-      <p class="mt-2 mb-1 font-bold text-xs">完成條件：</p>
-      <ul class="list-disc list-inside space-y-1 text-xs">
-      <li>若第一次輸入數字正確，跳出「你懂我！」的訊息；否則可再重複嘗試輸入一次</li>
-      <li>若第二次輸入正確，一樣跳出「你懂我！」；兩次數字都錯誤，跳出「你猜不透我！」</li></ul>` },
+      <li>開始時用「變數 數字 設為 ${SECRET}」設定初始值</li>
+      <li>用「詢問並等待」讓使用者輸入第一次猜的數字</li>
+      <li>猜對（答案 ＝ 數字）：用「說」積木說出「你懂我！」，程式結束，不再詢問</li>
+      <li>猜錯：再用「詢問並等待」讓使用者猜第二次（只能再猜一次）</li>
+      <li>第二次猜對：說出「你懂我！」；第二次也猜錯：說出「你猜不透我！」</li></ol>
+      <p class="mt-2 mb-1 font-bold text-xs">系統會用下面三種情況測試：</p>
+      <table class="text-xs w-full border border-slate-200 bg-white rounded">
+      <tr class="bg-slate-100"><th class="p-1.5 text-left">情況</th><th class="p-1.5 text-left">依序輸入</th><th class="p-1.5 text-left">應該詢問</th><th class="p-1.5 text-left">最後要說</th></tr>
+      <tr class="border-t"><td class="p-1.5">第一次就猜中</td><td class="p-1.5">${SECRET}</td><td class="p-1.5">1 次</td><td class="p-1.5">你懂我！</td></tr>
+      <tr class="border-t"><td class="p-1.5">第二次才猜中</td><td class="p-1.5">10、${SECRET}</td><td class="p-1.5">2 次</td><td class="p-1.5">你懂我！</td></tr>
+      <tr class="border-t"><td class="p-1.5">兩次都猜錯</td><td class="p-1.5">10、20</td><td class="p-1.5">2 次</td><td class="p-1.5">你猜不透我！</td></tr></table>
+      <ul class="list-disc list-inside space-y-1 text-xs mt-2 text-slate-500">
+      <li>訊息文字要包含「你懂我」或「猜不透」，標點符號不影響</li>
+      <li>第一次猜錯時可以提示「再猜一次」，但不要說「你猜不透我！」（還有第二次機會）</li></ul>` },
   7: { short: '華氏轉攝氏', desc: `<p class="mb-1 font-bold">將華氏溫度轉為攝氏溫度。</p>
       <ul class="list-disc list-inside space-y-1 text-xs">
       <li>用「詢問並等待」取得華氏溫度，存進變數</li>
