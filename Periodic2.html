@@ -170,12 +170,14 @@ const $ = id => document.getElementById(id);
    ===================================================================== */
 const TASK_IDS = [1, 2, 3, 4];
 const POINTS = { 1: 20, 2: 20, 3: 30, 4: 30 };   // 合計 100 分
-const SIDE = 30, GAP = 40, PER_ROW = 4, MAX_ROW = 6, LEN4 = 80, COPIES4 = 36, TURN4 = 10;
+const SIDE = 30, GAP = 40, PER_ROW = 3, MAX_ROW = 6, LEN4 = 80, COPIES4 = 36, TURN4 = 10;
+const STEP_K = 11;   // 第 1～3 題：圖形左右、上下間距 = 邊數 × STEP_K
+const stepOf = (id, N) => STEP_K * Math.round(toN(N));
 
 // 測試資料（依序回答「詢問」）。要改測試數字，改這裡
 const TESTS = {
   1: [{ a: [4, 3] }, { a: [3, 5] }, { a: [6, 2] }],                         // 邊數、個數
-  2: [{ a: [4, 6] }, { a: [3, 9] }, { a: [5, 4] }],                         // 邊數、個數（每列 4 個）
+  2: [{ a: [4, 6] }, { a: [3, 7] }, { a: [5, 4] }],                         // 邊數、個數（每列 3 個）
   3: [{ a: [4, 7, 3] }, { a: [3, 10, 9, 5], over: true }, { a: [6, 8, 6] }], // 邊數、個數、每列幾個（第 2 組先輸入 9 → 太多 → 再輸入 5）
   4: [{ a: [] }]
 };
@@ -183,15 +185,15 @@ const CRITERIA = {
   1: ['用函式（自訂積木）畫正 N 邊形，邊數用參數傳入',
       '用「詢問並等待」取得邊數與個數',
       '用「重複」積木畫出「個數」個圖形（次數由變數決定）',
-      `圖形正確：正 N 邊形（邊長 ${SIDE}）排成一排、間隔 ${GAP}（3 組測試）`],
+      `圖形正確：正 N 邊形（邊長 ${SIDE}）排成一排，每個往右移「邊數 × ${STEP_K}」點（3 組測試）`],
   2: ['用函式（自訂積木）畫正 N 邊形，邊數用參數傳入',
       '用「詢問並等待」取得邊數與個數',
-      `用「如果」判斷：每畫滿 ${PER_ROW} 個就換下一列`,
-      `圖形正確：每列 ${PER_ROW} 個，換列往下 ${GAP} 並回到最左邊（3 組測試）`],
+      `用「如果…那麼…否則」判斷：每畫滿 ${PER_ROW} 個就換下一列`,
+      `圖形正確：每列 ${PER_ROW} 個，左右、上下間距都是「邊數 × ${STEP_K}」點，換列回到最左邊（3 組測試）`],
   3: ['用函式（自訂積木）畫正 N 邊形，邊數用參數傳入',
       '用「詢問並等待」取得邊數、個數與每列幾個',
       `每列超過 ${MAX_ROW} 個時，說「太多了」並重新詢問`,
-      '圖形正確：依「每列幾個」排列（3 組測試）'],
+      `圖形正確：依「每列幾個」排列，左右、上下間距都是「邊數 × ${STEP_K}」點（3 組測試）`],
   4: ['用函式（自訂積木）畫正多邊形，邊數用參數傳入',
       `邊長用變數「長度」（設為 ${LEN4}）`,
       `重複 ${COPIES4} 次，每次右轉 ${TURN4} 度`,
@@ -384,13 +386,13 @@ function sameDrawing(drawn, expect) {
   const A = shiftToOrigin(a), Bx = shiftToOrigin(b);
   return covers(A, Bx, 0.8) && covers(Bx, A, 0.8);
 }
-// 正確答案：cnt 個正 N 邊形（邊長 SIDE），每列 perRow 個，左右間隔 GAP、上下間隔 GAP
-function polySegs(N, cnt, perRow, sign) {
+// 正確答案：cnt 個正 N 邊形（邊長 SIDE），每列 perRow 個，左右間隔 step、上下間隔 step
+function polySegs(N, cnt, perRow, sign, step) {
   const out = [];
   N = Math.round(toN(N)); cnt = Math.round(toN(cnt));
   if (!(N >= 3 && N <= 20 && cnt >= 1 && cnt <= 80 && perRow >= 1)) return out;
   for (let k = 0; k < cnt; k++) {
-    let x = GAP * (k % perRow), y = -GAP * Math.floor(k / perRow), h = 0;
+    let x = step * (k % perRow), y = -step * Math.floor(k / perRow), h = 0;
     for (let s = 0; s < N; s++) {
       const r = h * Math.PI / 180, nx = x + SIDE * Math.cos(r), ny = y + SIDE * Math.sin(r);
       out.push({ x1: x, y1: y, x2: nx, y2: ny }); x = nx; y = ny; h -= sign * 360 / N;
@@ -440,12 +442,13 @@ function gradeTask(id, project) {
       return { title: '執行結果', ok, run: r, expect: flowerSegs(), lines: [`畫出 ${drawn} 條不重複的線（應該 ${want} 條，每條長 ${LEN4}）`, `每段移動長度：${[...new Set(down.map(m => Math.round(m.len * 100) / 100))].slice(0, 5).join('、') || '（沒有畫線）'}`] };
     }
     const N = t.a[0], cnt = t.a[1], perRow = id === 1 ? Infinity : id === 2 ? PER_ROW : t.a[t.a.length - 1];
-    const expect = polySegs(N, cnt, perRow, 1), alt = polySegs(N, cnt, perRow, -1);
+    const step = stepOf(id, N);
+    const expect = polySegs(N, cnt, perRow, 1, step), alt = polySegs(N, cnt, perRow, -1, step);
     let ok = sameDrawing(r.segs, expect) || sameDrawing(r.segs, alt);
     if (id === 3 && ok) ok = r.asks === t.a.length;
     const inLine = id === 3
       ? `輸入：邊數 ${N}、個數 ${cnt}、每列 ${t.over ? t.a[2] + '（太多）→ 再輸入 ' + t.a[3] : t.a[2]}`
-      : `輸入：邊數 ${N}、個數 ${cnt}`;
+      : `輸入：邊數 ${N}、個數 ${cnt}（間距應為 ${N} × ${STEP_K} = ${step} 點）`;
     return { title: `測試 ${n + 1}`, ok, run: r, expect,
       lines: [inLine, `畫出 ${drawn} 條線（應該 ${N * cnt} 條）`, `詢問了 ${r.asks} 次${r.says.length ? '，說了「' + r.says.join('」「').slice(0, 30) + '」' : ''}`] };
   });
@@ -475,26 +478,36 @@ function gradeTask(id, project) {
 // ---------- 題目說明（要改文字，改這裡；評分用的數字在上面評分核心裡） ----------
 const TASKS = {
   1: { short: '正 N 邊形排一排', title: `第 1 題｜正 N 邊形排一排（${POINTS[1]} 分）`,
-    desc: `<p class="mb-1 font-bold">輸入要畫正幾邊形、畫幾個，把它們排成一排。</p>
+    desc: `<p class="mb-1 font-bold">輸入要畫正幾邊形、畫幾個，把它們由左到右排成一排。邊數越多圖形越大，所以間距要跟著邊數變大。</p>
       <ul class="list-disc list-inside space-y-1 text-xs">
-      <li>建立函式（自訂積木）「正N邊形」，加一個參數「邊數」：重複「邊數」次（移動 ${SIDE} 點、右轉 360 ÷ 邊數 度）</li>
-      <li>用「詢問並等待」問：要畫正幾邊形？要畫幾個？分別存進變數</li>
-      <li>重複「個數」次：呼叫 正N邊形（邊數）→ 停筆 → 移動 ${GAP} 點 → 下筆</li>
-      <li>系統會測試：正 4 邊形 3 個、正 3 邊形 5 個、正 6 邊形 2 個</li></ul>` },
-  2: { short: '每列 4 個', title: `第 2 題｜每列 4 個（${POINTS[2]} 分）`,
-    desc: `<p class="mb-1 font-bold">延續第 1 題，但每列只放 ${PER_ROW} 個，放滿就換下一列。</p>
+      <li>建立函式（自訂積木）「正N邊形」，加一個參數「邊數」：重複「邊數」次（移動 <b>${SIDE}</b> 點、右轉 <b>360 ÷ 邊數</b> 度）。邊長一定要是 ${SIDE}，要右轉</li>
+      <li>用「詢問並等待」依序問 2 次：①要畫正幾邊形？②要畫幾個？每問完一次就馬上把「詢問的答案」存進變數（例如「邊數」、「個數」）</li>
+      <li>開始畫之前：<b>定位到 x:-200 y:0</b>（從舞台左邊開始，圖形才不會超出舞台變形）、筆跡全部清除、面朝 90 度（向右）、下筆</li>
+      <li>重複「個數」次（次數要放變數，不能寫死）：呼叫 正N邊形（邊數）→ 停筆 → 移動 <b>( 邊數 × ${STEP_K} )</b> 點 → 下筆</li>
+      <li>間距舉例：正三角形每個往右 ${3 * STEP_K} 點、正方形 ${4 * STEP_K} 點、正五邊形 ${5 * STEP_K} 點、正六邊形 ${6 * STEP_K} 點。注意「邊數 × ${STEP_K}」不是「邊數 × 10 + 1」</li>
+      <li>系統會實際執行你的程式並比對畫出來的線，測試 3 組：正 4 邊形 3 個、正 3 邊形 5 個、正 6 邊形 2 個。圖形之間不能有多餘的線（移動前一定要停筆）</li></ul>` },
+  2: { short: `每列 ${PER_ROW} 個`, title: `第 2 題｜每列 ${PER_ROW} 個（${POINTS[2]} 分）`,
+    desc: `<p class="mb-1 font-bold">延續第 1 題，但每列只放 <b>${PER_ROW}</b> 個，放滿就換到下一列，從最左邊重新開始。</p>
       <ul class="list-disc list-inside space-y-1 text-xs">
-      <li>沿用函式「正N邊形（邊數）」，一樣詢問邊數與個數</li>
-      <li>用一個變數記錄「這一列已經畫了幾個」，每畫完一個就增加 1</li>
-      <li>如果 畫滿 ${PER_ROW} 個 → y 改變 −${GAP}、x 設為 0（回到最左邊）、計數歸 0；否則 → 往右移動 ${GAP} 點</li>
-      <li>移動時要停筆，到新位置再下筆。系統會測試 3 組（例如正 4 邊形 6 個 → 第一列 4 個、第二列 2 個）</li></ul>` },
+      <li>沿用第 1 題的函式「正N邊形（邊數）」（邊長 ${SIDE}、右轉 360 ÷ 邊數 度），一樣依序詢問：①要畫正幾邊形？②要畫幾個？</li>
+      <li>開始時：<b>定位到 x:-200 y:100</b>（舞台左上方，圖形才不會超出舞台變形）、面朝 90 度、下筆</li>
+      <li>另外用一個變數記錄「這一列已經畫了幾個」，開始前設為 0</li>
+      <li>重複「要畫幾個」次：呼叫 正N邊形（邊數）→ 停筆 → 「這一列畫了幾個」改變 1 → 用「如果…那麼…否則」判斷：</li>
+      <li class="ml-5 list-none">• 如果 這一列畫了 = ${PER_ROW}（換列）：y 改變 <b>−( 邊數 × ${STEP_K} )</b>（往下）、<b>x 設為 -200</b>（回到最左邊）、這一列畫了 設為 0、下筆</li>
+      <li class="ml-5 list-none">• 否則（同一列往右）：x 改變 <b>( 邊數 × ${STEP_K} )</b>（或「移動 邊數 × ${STEP_K} 點」）、下筆</li>
+      <li>也就是左右間距、上下間距都是「邊數 × ${STEP_K}」點，和第 1 題一樣</li>
+      <li>系統會測試 3 組：正 4 邊形 6 個（3 + 3）、正 3 邊形 7 個（3 + 3 + 1）、正 5 邊形 4 個（3 + 1）</li></ul>` },
   3: { short: '自訂每列個數', title: `第 3 題｜自訂每列個數（${POINTS[3]} 分）`,
-    desc: `<p class="mb-1 font-bold">每列放幾個改由使用者輸入，但最多只能 ${MAX_ROW} 個。</p>
+    desc: `<p class="mb-1 font-bold">每列放幾個改由使用者輸入，但最多只能 ${MAX_ROW} 個。間距和第 2 題一樣是「邊數 × ${STEP_K}」。</p>
       <ul class="list-disc list-inside space-y-1 text-xs">
-      <li>詢問 3 次：要畫正幾邊形？要畫幾個？每列幾個？</li>
-      <li>如果「每列幾個」大於 ${MAX_ROW}：說「太多了」，再詢問一次「每列幾個？」</li>
-      <li>換列的判斷改成「畫滿 每列個數 個」才換列</li>
-      <li>系統會測試 3 組，其中一組先輸入 9（太多），程式要說話並重新詢問，再輸入 5</li></ul>` },
+      <li>沿用函式「正N邊形（邊數）」（邊長 ${SIDE}、右轉 360 ÷ 邊數 度）</li>
+      <li>依序詢問 3 次：①要畫正幾邊形？②要畫幾個這樣的形狀？③每列幾個？每問完一次就存進變數（例如「邊數」、「個數」、「每列個數」）</li>
+      <li>問完「每列幾個？」後馬上檢查：如果 每列個數 &gt; ${MAX_ROW} → 說出「太多了....」持續 2 秒 → 再詢問一次「每列幾個？」→ 把新的答案重新存進「每列個數」。說話一定要在重新詢問之前</li>
+      <li>開始時：<b>定位到 x:-200 y:100</b>（舞台左上方，圖形才不會超出舞台變形）、面朝 90 度、下筆</li>
+      <li>用變數記錄「這一列已經畫了幾個」（開始前設為 0）。重複「要畫幾個」次：呼叫 正N邊形（邊數）→ 停筆 → 這一列畫了 改變 1 → 如果…那麼…否則：</li>
+      <li class="ml-5 list-none">• 如果 這一列畫了 = 每列個數（變數，不能寫死）：y 改變 <b>−( 邊數 × ${STEP_K} )</b>（往下）、<b>x 設為 -200</b>、這一列畫了 設為 0、下筆</li>
+      <li class="ml-5 list-none">• 否則：移動 <b>( 邊數 × ${STEP_K} )</b> 點、下筆</li>
+      <li>系統會測試 3 組：正 4 邊形 7 個每列 3 個；正 3 邊形 10 個，每列先輸入 9（太多，程式要說話並重新詢問），再輸入 5；正 6 邊形 8 個每列 6 個</li></ul>` },
   4: { short: '旋轉方塊花', title: `第 4 題｜旋轉方塊花（${POINTS[4]} 分）`,
     desc: `<p class="mb-1 font-bold">用函式畫正方形，一邊旋轉一邊重複畫，組成一朵花。</p>
       <ul class="list-disc list-inside space-y-1 text-xs">
@@ -523,7 +536,10 @@ const say = (e, i) => ['looks', `說出 ${e} 持續 2 秒`, i || 0];
 const lbl = t => ['label', t, 0];
 const POLY = [defB('正N邊形 ( 邊數 )'), rp('( 邊數 )'), mv(SIDE, 1), tr('( 360 ÷ 邊數 )', 1)];
 const ASK2 = [ask('要畫正幾邊形?'), setv('邊數', '( 詢問的答案 )'), ask('要畫幾個這樣的形狀?'), setv('個數', '( 詢問的答案 )')];
-const NEWROW = n => [chg('目前個數', 1, 1), iff(`< 目前個數 = ${n} >`, 1), ['motion', `y 改變 -${GAP}`, 2], ['motion', 'x 設為 0', 2], setv('目前個數', 0, 2), PD(2), els(1), mv(GAP, 2), PD(2)];
+const STEPX = `( 邊數 × ${STEP_K} )`;
+const NEWROW = (n, dy, x0, dx) => [chg('目前個數', 1, 1), iff(`< 目前個數 = ${n} >`, 1), ['motion', `y 改變 ${dy}`, 2], ['motion', `x 設為 ${x0}`, 2], setv('目前個數', 0, 2), PD(2), els(1), ['motion', `x 改變 ${dx}`, 2], PD(2)];
+const NEWROW2 = NEWROW(PER_ROW, `( 0 − 邊數 × ${STEP_K} )`, -200, STEPX);
+const NEWROW3 = NEWROW('( 每列個數 )', `( 0 − 邊數 × ${STEP_K} )`, -200, STEPX);
 const FN_HINT = { tip: '到「函式積木」按「建立一個積木」，取名「正N邊形」，再按「添加輸入方塊（數字或文字）」命名「邊數」。在「定義」下面用「邊數」參數決定重複次數和轉的角度，這樣同一個函式就能畫三角形、正方形、六邊形……',
   good: [lbl('函式'), ...POLY, lbl('主程式'), flagB(), PD(), callB('正N邊形 ( 邊數 )')],
   bad: [lbl('沒有參數，只能畫正方形'), defB('正方形'), rp(4), mv(SIDE, 1), tr(90, 1)] };
@@ -531,26 +547,26 @@ const FN_HINT = { tip: '到「函式積木」按「建立一個積木」，取�
 const HINTS = {
   1: [FN_HINT,
     { tip: '用「詢問並等待」問兩次，每次問完馬上把「詢問的答案」存進變數（下一次詢問會蓋掉答案）。', good: ASK2, bad: [ask('要畫正幾邊形、幾個?'), setv('邊數', '( 詢問的答案 )')] },
-    { tip: '重複的次數放變數「個數」，不要寫死。每畫完一個：停筆、往右移動 40、再下筆。', good: [rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), mv(GAP, 1), PD(1)], bad: [rp(3), callB('正N邊形 ( 邊數 )', 1), mv(GAP, 1)] },
-    { tip: `系統會實際執行你的程式並比對圖形：邊長 ${SIDE}、下一個圖形的起點往右 ${GAP}。轉角用 360 ÷ 邊數，移動時記得停筆，否則圖形之間會多出線。`,
-      good: [flagB(), PD(), ...ASK2, rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), mv(GAP, 1), PD(1)],
-      bad: [rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), mv(GAP, 1), lbl('（沒有停筆，圖形之間會連成一條線）')] }],
+    { tip: `重複的次數放變數「個數」，不要寫死。每畫完一個：停筆、往右移動「邊數 × ${STEP_K}」點、再下筆。`, good: [rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), mv(STEPX, 1), PD(1)], bad: [rp(3), callB('正N邊形 ( 邊數 )', 1), mv(STEPX, 1)] },
+    { tip: `系統會實際執行你的程式並比對圖形：邊長 ${SIDE}、下一個圖形的起點往右「邊數 × ${STEP_K}」點（正方形 ${4 * STEP_K}、正六邊形 ${6 * STEP_K}）。轉角用 360 ÷ 邊數，移動時記得停筆，否則圖形之間會多出線。組運算積木時，「×」要放在最外層：邊數 × ${STEP_K}，不要變成 (邊數 × 10) + 1。`,
+      good: [flagB(), ['motion', '定位到 x: -200 y: 0', 0], ['pen', '筆跡全部清除', 0], PD(), ...ASK2, rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), mv(STEPX, 1), PD(1)],
+      bad: [rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), mv(GAP, 1), PD(1), lbl(`（間距寫死 ${GAP}，五邊形、六邊形會重疊）`)] }],
   2: [FN_HINT,
     { tip: '一樣用「詢問並等待」問邊數和個數，各存進一個變數。', good: ASK2, bad: [setv('邊數', 4), setv('個數', 6)] },
-    { tip: `用變數「目前個數」數這一列畫了幾個；用「如果…那麼…否則」判斷：等於 ${PER_ROW} 就換列，否則往右移。`,
-      good: [rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), ...NEWROW(PER_ROW)],
-      bad: [rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), mv(GAP, 1), PD(1), lbl('（沒有換列，全部排成一長排）')] },
-    { tip: `換列時：y 改變 −${GAP}（往下）、x 設為 0（回到最左邊），計數要歸 0。移動時一定要停筆。`,
-      good: [setv('目前個數', 0), rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), ...NEWROW(PER_ROW)],
-      bad: [iff(`< 目前個數 = ${PER_ROW} >`), ['motion', `y 改變 -${GAP}`, 1], lbl('（忘了 x 設為 0 和計數歸 0）')] }],
+    { tip: `用變數「目前個數」數這一列畫了幾個；用「如果…那麼…否則」判斷：等於 ${PER_ROW} 就換列，否則往右移「邊數 × ${STEP_K}」點。`,
+      good: [rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), ...NEWROW2],
+      bad: [rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), mv(STEPX, 1), PD(1), lbl('（沒有換列，全部排成一長排）')] },
+    { tip: `換列時：y 改變 −(邊數 × ${STEP_K})（往下）、x 設為最左邊的 x（例如 -200），計數要歸 0。移動時一定要停筆。左右、上下的間距都是「邊數 × ${STEP_K}」。`,
+      good: [['motion', '定位到 x: -200 y: 100', 0], setv('目前個數', 0), PD(), rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), ...NEWROW2],
+      bad: [iff(`< 目前個數 = ${PER_ROW} >`), ['motion', `y 改變 -${GAP}`, 1], lbl(`（往下寫死 ${GAP}，而且忘了 x 回到最左邊、計數歸 0）`)] }],
   3: [FN_HINT,
     { tip: '要問 3 次：正幾邊形、幾個、每列幾個，分別存進變數。', good: [...ASK2, ask('每列幾個?'), setv('每列個數', '( 詢問的答案 )')], bad: ASK2 },
     { tip: `如果 每列個數 > ${MAX_ROW}：先「說」太多了，再「詢問」一次並重新存進變數。（想一直問到合理為止，也可以用「重複直到 每列個數 < ${MAX_ROW + 1}」）`,
       good: [ask('每列幾個?'), setv('每列個數', '( 詢問的答案 )'), iff(`< 每列個數 > ${MAX_ROW} >`), say('太多了....', 1), ask('每列幾個?', 1), setv('每列個數', '( 詢問的答案 )', 1)],
       bad: [iff(`< 每列個數 > ${MAX_ROW} >`), say('太多了....', 1), lbl('（說完沒有重新詢問，還是用原本太大的數字）')] },
-    { tip: '換列判斷要用變數「每列個數」，不是寫死的 4。',
-      good: [rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), ...NEWROW('每列個數')],
-      bad: [iff(`< 目前個數 = ${PER_ROW} >`, 1)] }],
+    { tip: `換列判斷要用變數「每列個數」，不是寫死的 ${PER_ROW}。間距和第 2 題一樣：往右、往下都是「邊數 × ${STEP_K}」點，換列時 x 設為 -200。`,
+      good: [rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), ...NEWROW3],
+      bad: [iff(`< 目前個數 = ${PER_ROW} >`, 1), lbl('（寫死數字，使用者輸入的每列個數沒有用到）')] }],
   4: [{ tip: '建立函式「軌跡設定」並加一個參數「邊數」，在定義裡用「邊數」決定重複次數與角度。', good: [defB('軌跡設定 ( 邊數 )'), rp('( 邊數 )'), mv('( 長度 )', 1), tr('( 360 ÷ 邊數 )', 1)], bad: [defB('軌跡設定'), rp(4), mv(LEN4, 1), tr(90, 1)] },
     { tip: `建立變數「長度」並在開始時設為 ${LEN4}，函式裡的「移動」放「長度」變數（不要直接打 ${LEN4}）。`, good: [setv('長度', LEN4), lbl('函式裡'), mv('( 長度 )')], bad: [mv(LEN4), lbl('（直接寫數字）')] },
     { tip: `每畫完一個正方形就右轉 ${TURN4} 度，重複 ${COPIES4} 次剛好轉滿一圈（${COPIES4} × ${TURN4} = 360）。`, good: [rp(COPIES4), callB('軌跡設定 ( 4 )', 1), tr(TURN4, 1)], bad: [rp(10), callB('軌跡設定 ( 4 )', 1), tr(36, 1)] },
