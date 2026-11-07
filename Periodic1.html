@@ -156,7 +156,7 @@
 </div><!-- /teacher-view -->
 
 <script>
-const TASK_IDS = [1, 2, 3, 4, 5, 7];   // 原第 6 題（階梯）、第 8 題（雪花）已拿掉；題號 7 為「正六邊形」，畫面上顯示為第 6 題
+const TASK_IDS = [1, 2, 3, 4, 5, 7];   // 原第 6 題（階梯）、第 8 題（雪花）已拿掉；題號 7 為「五角星」，畫面上顯示為第 6 題
 const POINTS = { 1: 15, 2: 15, 3: 17, 4: 17, 5: 17, 7: 19 };   // 合計 100 分
 const NO = id => TASK_IDS.indexOf(id) + 1;   // 畫面上顯示的題號
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyYdl_lnUt25QtjApGbl9TAZA9KDDAAe9ioTnH78x6R5v2V3HhmWGrudiTtqgqT6EWR/exec";
@@ -258,19 +258,20 @@ const tasks = {
     ]
   },
   7: {
-    short: '正六邊形',
-    title: '第 6 題｜正六邊形',
-    desc: `<p class="mb-1 font-bold">利用計次式迴圈（重複執行 6 次），畫出一個正六邊形。</p>
+    short: '五角星',
+    title: '第 6 題｜五角星',
+    desc: `<p class="mb-1 font-bold">利用計次式迴圈（重複執行 5 次），畫出一顆五角星。</p>
       <ul class="list-disc list-inside space-y-1 text-xs">
-      <li>先「下筆」，再用「重複執行 6 次」（六邊形有 6 個邊）</li>
-      <li>迴圈裡：移動（例如 80 步）→ 右轉 60 度</li>
-      <li>每次要轉幾度？正多邊形的外角 ＝ 360 ÷ 邊數 ＝ 360 ÷ 6 ＝ 60 度</li>
-      <li>畫完 6 條邊要回到起點，圍成封閉的正六邊形</li></ul>`,
+      <li>先「下筆」（可以用「筆跡顏色設為」「筆跡寬度設為」換顏色、加粗，不是必要）</li>
+      <li>用「重複執行 5 次」（星星有 5 個角）</li>
+      <li>迴圈裡：移動（例如 200 步）→ 右轉 144 度（想看畫的過程，可以加「等待 1 秒」）</li>
+      <li>為什麼是 144 度？星星的尖角是 36 度，所以每次要轉 180 − 36 ＝ 144 度；轉 5 次共轉 720 度（繞兩圈）回到起點</li>
+      <li>畫完 5 條一樣長的線要回到起點，圍成封閉的五角星。最後可以「停筆」</li></ul>`,
     criteria: [
       { name: '有使用「下筆」，且在移動之前', check: p => p.penBeforeMove },
-      { name: '使用計次式迴圈「重複執行 6 次」', check: p => p.run.loops.some(l => l.kind === 'control_repeat' && l.n === 6) },
-      { name: '迴圈內有移動，並右轉（或左轉）60 度', check: p => p.run.moves.some(m => m.down && m.len !== 0) && p.run.turns.some(t => Math.abs(t) === 60) },
-      { name: '畫出封閉的正六邊形（6 條等長的邊、每次轉 60 度）', check: p => hexagonOk(p.run) }
+      { name: '使用計次式迴圈「重複執行 5 次」', check: p => p.run.loops.some(l => l.kind === 'control_repeat' && l.n === 5) },
+      { name: '迴圈內有移動，並右轉（或左轉）144 度', check: p => p.run.moves.some(m => m.down && m.len !== 0) && p.run.turns.some(t => Math.abs(t) === 144) },
+      { name: '畫出封閉的五角星（5 條等長的線、每次轉 144 度）', check: p => starOk(p.run) }
     ]
   }
 };
@@ -345,12 +346,12 @@ const HINTS = {
       bad: [['control', '一直重複'], ask('猜一個數字', 1), iff('< ( 答案 ) = ( 秘密數字 ) >', 1), say('猜中了！', 2)] }
   ],
   7: [
-    { tip: '「下筆」放在迴圈外面、迴圈前面，只要下一次就好，第一條邊才畫得出來。', good: [PD, rp(6), mv(80, 1), tr(60, 1)], bad: [rp(6), mv(80, 1), tr(60, 1), PD] },
-    { tip: '六邊形有 6 個邊，用計次式迴圈「重複執行 6 次」。不要用「重複直到」或「一直重複」，也不要把 6 個移動一個一個排出來。',
-      good: [rp(6), mv(80, 1), tr(60, 1)], bad: [mv(80), tr(60), mv(80), tr(60), mv(80), tr(60), ['control', '…（一個一個排）']] },
-    { tip: '迴圈裡要有「移動」，每次轉的角度是外角：360 ÷ 6 ＝ 60 度。120 度是六邊形的內角，轉 120 度會畫成三角形。', good: [mv(80), tr(60)], bad: [mv(80), tr(120)] },
-    { tip: '完整程式：下筆 → 重複執行 6 次（移動 80 步、右轉 60 度）。每條邊的步數要一樣，畫完會回到起點。',
-      good: [PD, rp(6), mv(80, 1), tr(60, 1)], bad: [PD, rp(5), mv(80, 1), tr(60, 1)] }
+    { tip: '「下筆」放在迴圈外面、迴圈前面，只要下一次就好，第一條線才畫得出來。', good: [PD, rp(5), mv(200, 1), tr(144, 1)], bad: [rp(5), mv(200, 1), tr(144, 1), PD] },
+    { tip: '星星有 5 個角，用計次式迴圈「重複執行 5 次」。不要用「重複直到」或「一直重複」，也不要把 5 個移動一個一個排出來。',
+      good: [rp(5), mv(200, 1), tr(144, 1)], bad: [mv(200), tr(144), mv(200), tr(144), ['control', '…（一個一個排）']] },
+    { tip: '星星的尖角是 36 度，所以每次要轉 180 − 36 ＝ 144 度。轉 72 度（360 ÷ 5）會畫成五邊形，不是星星。', good: [mv(200), tr(144)], bad: [mv(200), tr(72)] },
+    { tip: '完整程式：下筆 → 重複執行 5 次（移動 200 步、右轉 144 度）。每次移動的步數要一樣，畫完會回到起點。',
+      good: [PD, rp(5), mv(200, 1), tr(144, 1)], bad: [PD, rp(5), mv(200, 1), tr(140, 1)] }
   ]
 };
 
@@ -799,11 +800,17 @@ function regularSide(segs, n) {
   const d = H.map((h, i) => angDiff(h, H[(i + 1) % n]));
   return d.every(x => near(Math.abs(x), 360 / n, 0.5)) && d.every(x => x * d[0] > 0) ? L[0] : null;
 }
-// 正六邊形：在所有線段裡找「連續 6 條、封閉、等長、每次轉 60 度」的六邊形（多畫的零星線段不扣分）
-function hexagonOk(run) {
+// 五角星：在所有線段裡找「連續 5 條、封閉、等長、每次都往同一邊轉 144 度」的星星（多畫的零星線段不扣分）
+function starSide(segs) {
+  const { s, L, H, closed } = infoOf(segs);
+  if (s.length !== 5 || !closed || !L.every(l => near(l, L[0]))) return null;
+  const d = H.map((h, i) => angDiff(h, H[(i + 1) % 5]));
+  return d.every(x => near(Math.abs(x), 144, 0.5)) && d.every(x => x * d[0] > 0) ? L[0] : null;
+}
+function starOk(run) {
   const s = run.segs;
-  for (let i = 0; i + 6 <= s.length; i++) {
-    const side = regularSide(s.slice(i, i + 6), 6);
+  for (let i = 0; i + 5 <= s.length; i++) {
+    const side = starSide(s.slice(i, i + 5));
     if (side !== null && side >= 5) return true;
   }
   return false;
@@ -927,7 +934,7 @@ function renderBlocks() {
     : '<span class="text-slate-400">未偵測到程式積木（請把積木接在「當綠旗被點擊」下面）。</span>';
 }
 
-// ---------- 右側：第 1～5 題顯示自動測試結果，第 6 題（正六邊形）顯示舞台 ----------
+// ---------- 右側：第 1～5 題顯示自動測試結果，第 6 題（五角星）顯示舞台 ----------
 const isTestView = id => !!SPEC[id];
 
 function renderStage() {
