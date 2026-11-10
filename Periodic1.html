@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>第二次實作評量</title>
+<title>一年級第二次實作評量</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
@@ -29,8 +29,7 @@
 <main class="max-w-6xl mx-auto px-4 mt-5">
   <div id="tabs" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5"></div>
 
-  <div class="grid lg:grid-cols-12 gap-5">
-    <div class="lg:col-span-7 space-y-5">
+  <div class="max-w-3xl mx-auto space-y-5">
       <div class="bg-white rounded-2xl p-5 shadow-sm border">
         <div class="flex justify-between items-center mb-3">
           <h2 id="ttitle" class="font-bold text-lg"></h2>
@@ -40,53 +39,23 @@
 
         <div id="drop" class="border-2 border-dashed border-slate-300 rounded-2xl p-5 text-center bg-slate-50">
           <input type="file" id="file" accept=".sb3" class="hidden">
-          <p class="text-sm font-bold">拖曳或選擇 Scratch 檔 (.sb3)</p>
+          <p class="text-sm font-bold">拖曳或選擇本題的 Scratch 檔 (.sb3)</p>
           <p id="fname" class="text-xs text-slate-400 my-1">尚未選擇檔案</p>
-          <button id="pick" onclick="document.getElementById('file').click()" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl">📂 選擇檔案</button>
+          <button id="pick" onclick="startUpload()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 text-sm font-extrabold px-6 py-3 rounded-xl">📤 上傳並繳交本題</button>
+          <p class="text-[11px] text-rose-500 mt-2">每題只能上傳一次，上傳後就無法修改</p>
         </div>
-
-        <button id="submit" onclick="submitTask()" class="mt-4 w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold text-sm px-4 py-3 rounded-xl">確認繳交本題</button>
       </div>
 
       <div class="bg-white rounded-2xl p-5 shadow-sm border">
-        <h3 class="font-bold mb-3">檢測結果 <span class="text-xs font-normal text-slate-400">（點任一項可看說明與範例）</span></h3>
-        <div id="checklist" class="space-y-2"></div>
-      </div>
-
-      <div class="bg-white rounded-2xl p-5 shadow-sm border">
-        <h3 class="font-bold mb-3">你的積木程式</h3>
-        <div id="blocks" class="bg-slate-900 text-emerald-300 p-3 rounded-xl text-xs font-mono max-h-48 overflow-y-auto"></div>
-      </div>
-    </div>
-
-    <div class="lg:col-span-5">
-      <div class="bg-white rounded-2xl p-5 shadow-sm border lg:sticky lg:top-20">
-        <h3 id="stageT" class="font-bold mb-3">舞台模擬</h3>
-        <div id="stageBox" class="relative aspect-[4/3] bg-slate-950 rounded-2xl overflow-hidden">
-          <canvas id="cv" width="480" height="360" class="w-full h-full"></canvas>
-          <div id="ov" class="absolute inset-0 bg-slate-950/85 flex items-center justify-center text-white text-sm">等待上傳 .sb3 檔案...</div>
-        </div>
-        <div id="testBox" class="hidden text-xs"></div>
+        <h3 class="font-bold mb-3">該題分數</h3>
+        <div id="scoreBox"></div>
         <div id="fb" class="mt-4 p-4 rounded-xl bg-slate-50 border">
           <b id="fbT" class="text-sm">準備就緒</b>
-          <p id="fbX" class="text-xs text-slate-500 mt-1">請上傳本題的 .sb3 檔案。</p>
+          <p id="fbX" class="text-xs text-slate-500 mt-1">請按「上傳並繳交本題」選擇本題的 .sb3 檔案。</p>
         </div>
       </div>
-    </div>
   </div>
 </main>
-
-<div id="hint" class="hidden fixed inset-0 z-[60] bg-slate-900/60 flex items-center justify-center p-4" onclick="if(event.target===this)closeHint()">
-  <div class="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl">
-    <div class="flex justify-between items-start gap-3 mb-2">
-      <h3 id="hT" class="font-bold text-slate-800"></h3>
-      <button onclick="closeHint()" class="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
-    </div>
-    <p id="hX" class="text-sm text-slate-600 mb-3"></p>
-    <div id="hB"></div>
-    <button onclick="closeHint()" class="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 rounded-xl text-sm">我知道了</button>
-  </div>
-</div>
 
 </div><!-- /student-view -->
 
@@ -355,25 +324,6 @@ const HINTS = {
   ]
 };
 
-function hintBlocks(list) {
-  return '<div class="inline-block">' + list.map(([c, t, ind]) =>
-    `<div style="background:${BC[c]};margin-left:${(ind || 0) * 22}px" class="text-white font-bold text-sm px-3 py-2 rounded-md mb-0.5 shadow-sm w-fit whitespace-nowrap">${t}</div>`
-  ).join('') + '</div>';
-}
-
-function showHint(i) {
-  const c = tasks[cur].criteria[i], h = (HINTS[cur] || [])[i];
-  if (!h) return;
-  $('hT').innerText = c.name;
-  $('hX').innerText = h.tip;
-  let html = '';
-  html += `<div class="mb-3"><div class="text-xs font-bold text-emerald-600 mb-1.5">✔ 正確範例</div><div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 overflow-x-auto">${hintBlocks(h.good)}</div></div>`;
-  if (h.bad) html += `<div><div class="text-xs font-bold text-rose-600 mb-1.5">✕ 常見錯誤</div><div class="bg-rose-50 border border-rose-200 rounded-xl p-3 overflow-x-auto">${hintBlocks(h.bad)}</div></div>`;
-  $('hB').innerHTML = html;
-  $('hint').classList.remove('hidden');
-}
-function closeHint() { $('hint').classList.add('hidden'); }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHint(); });
 
 const res = {};
 TASK_IDS.forEach(id => res[id] = { parsed: null, raw: null, fileName: '', submitted: false, serverScore: 0 });
@@ -453,45 +403,33 @@ function switchTask(id) {
   $('ttitle').innerText = tasks[id].title;
   $('tdesc').innerHTML = tasks[id].desc;
   refresh();
+  if (!busy) feedback(res[id].submitted ? `第 ${NO(id)} 題已繳交` : '準備就緒', res[id].submitted ? '每題只能上傳一次，已鎖定無法再修改。' : '請按「上傳並繳交本題」選擇本題的 .sb3 檔案。');
 }
 
 function refresh() {
-  const r = res[cur], p = r.parsed;
-  $('fname').innerText = r.fileName ? '已載入：' + r.fileName : '尚未選擇檔案';
-  const sb = $('submit'), badge = $('badge');
-  $('pick').disabled = r.submitted;
+  const r = res[cur];
+  $('fname').innerText = r.fileName ? (r.submitted ? '已繳交：' : '') + r.fileName : '尚未選擇檔案';
+  const pk = $('pick'), badge = $('badge');
+  pk.disabled = r.submitted || busy;
   $('drop').classList.toggle('opacity-60', r.submitted);
   if (r.submitted) {
-    sb.disabled = true; sb.innerText = '🔒 本題已繳交';
-    sb.className = 'mt-4 w-full bg-emerald-700 text-white font-extrabold text-sm px-4 py-3 rounded-xl cursor-not-allowed';
-    badge.className = 'text-xs px-2.5 py-1 rounded-full font-bold bg-emerald-100 text-emerald-800';
-    badge.innerText = '已繳交';
+    pk.innerText = '🔒 本題已繳交';
+    pk.className = 'bg-emerald-700 text-white text-sm font-extrabold px-6 py-3 rounded-xl cursor-not-allowed';
+    badge.className = 'text-xs px-2.5 py-1 rounded-full font-bold bg-emerald-100 text-emerald-800'; badge.innerText = '已繳交';
   } else {
-    sb.disabled = !p; sb.innerText = p ? '確認繳交本題' : '請先上傳 .sb3 檔案';
-    sb.className = 'mt-4 w-full font-extrabold text-sm px-4 py-3 rounded-xl ' + (p ? 'bg-amber-500 hover:bg-amber-600 text-slate-900' : 'bg-slate-300 text-slate-500 cursor-not-allowed');
-    badge.className = 'text-xs px-2.5 py-1 rounded-full font-bold ' + (p ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500');
-    badge.innerText = p ? '草稿測試中' : '未繳交';
+    pk.innerText = busy ? '送出中，請稍候…' : '📤 上傳並繳交本題';
+    pk.className = 'text-sm font-extrabold px-6 py-3 rounded-xl ' + (busy ? 'bg-slate-300 text-slate-500 cursor-wait' : 'bg-amber-500 hover:bg-amber-600 text-slate-900');
+    badge.className = 'text-xs px-2.5 py-1 rounded-full font-bold bg-slate-100 text-slate-500'; badge.innerText = '未繳交';
   }
-  renderChecklist(); renderBlocks(); renderStage(); updateTotal();
+  renderScore(); updateTotal();
 }
 
-function renderChecklist() {
-  const p = res[cur].parsed;
-  $('checklist').innerHTML = tasks[cur].criteria.map((c, i) => {
-    let icon = '○', cls = 'bg-slate-50 border-slate-200', tag = '待檢測';
-    if (p) {
-      if (c.check(p)) { icon = '✔'; cls = 'bg-emerald-50 border-emerald-200 text-emerald-900'; tag = '符合'; }
-      else { icon = '✕'; cls = 'bg-rose-50 border-rose-200 text-rose-900'; tag = '未符合'; }
-    }
-    return `<div onclick="showHint(${i})" class="p-3 rounded-xl border flex justify-between items-center gap-2 text-xs font-semibold cursor-pointer hover:shadow-md transition ${cls}">
-      <span>${icon} ${c.name}</span>
-      <span class="whitespace-nowrap">${tag} <span class="ml-1 inline-block text-[11px] font-bold text-blue-600 bg-white/80 border border-blue-200 rounded-full px-2.5 py-0.5">ⓘ 看說明</span></span></div>`;
-  }).join('');
-  if (p) {
-    const r = calc(p, cur);
-    feedback(`本題得分：${r.score} / ${POINTS[cur]} 分（通過 ${r.passed}/${r.total} 項）`,
-      r.passed === r.total ? '全部通過，可以繳交了！' : '點選未符合的項目，可以看到修正範例。');
-  } else feedback('準備就緒', '請上傳本題的 .sb3 檔案。');
+// 「該題分數」：只顯示伺服器回傳的分數
+function renderScore() {
+  const r = res[cur];
+  $('scoreBox').innerHTML = !r.submitted
+    ? '<div class="text-sm text-slate-400">本題尚未繳交</div>'
+    : `<div class="text-4xl font-black ${r.serverScore === POINTS[cur] ? 'text-emerald-600' : 'text-amber-600'}">${r.serverScore}<span class="text-lg font-bold text-slate-400"> / ${POINTS[cur]} 分</span></div>`;
 }
 
 function feedback(t, x) { $('fbT').innerText = t; $('fbX').innerText = x; }
@@ -499,57 +437,80 @@ function feedback(t, x) { $('fbT').innerText = t; $('fbX').innerText = x; }
 function updateTotal() {
   let sum = 0;
   TASK_IDS.forEach(id => {
-    const r = res[id], s = r.parsed ? calc(r.parsed, id) : null;
-    const sc = r.submitted ? r.serverScore : (s ? s.score : null);
-    if (sc !== null) sum += sc;
+    const r = res[id];
+    if (r.submitted) sum += r.serverScore;
     const el = $('st' + id);
-    el.innerText = r.submitted ? `已繳交・${sc}/${POINTS[id]} 分` : s ? `草稿・${sc}/${POINTS[id]} 分` : '未繳交';
-    el.className = r.submitted ? 'text-emerald-600' : s ? 'text-amber-600' : '';
+    el.innerText = r.submitted ? `已繳交・${r.serverScore}/${POINTS[id]} 分` : '未繳交';
+    el.className = r.submitted ? 'text-emerald-600' : '';
   });
   $('total').innerText = sum;
 }
 
-async function submitTask() {
-  const r = res[cur];
-  if (busy || !r.parsed || !r.raw || r.submitted) return;
-
-  // 1) 檢查是否有沒填的欄位 → 跳出 alert 說明哪些沒寫
+// ---------- 上傳即繳交（每題一次） ----------
+// 檢查班級、座號、姓名；有問題就跳出提示並回傳 false
+function checkId() {
   const miss = missingFields();
   if (miss.length) {
     const names = miss.map(f => FIELD_LABEL[f]).join('、');
-    alert(`⚠ 尚未填寫：${names}\n\n請在畫面最上方填好「班級、座號、姓名」後，再按繳交。`);
+    alert(`⚠ 尚未填寫：${names}\n\n請在畫面最上方填好「班級、座號、姓名」後，再上傳。`);
     feedback('尚未填寫個人資料', `請填寫：${names}`);
     $(miss[0]).focus();
-    return;
+    return false;
   }
-
-  // 2) 有填但格式不對 → 也用 alert 提醒
   const bad = idError();
-  if (bad) {
-    alert('⚠ ' + bad[1]);
-    feedback('請檢查班級、座號與姓名', bad[1]);
-    $(bad[0]).focus();
+  if (bad) { alert('⚠ ' + bad[1]); feedback('請檢查班級、座號與姓名', bad[1]); $(bad[0]).focus(); return false; }
+  return true;
+}
+
+function startUpload() {
+  if (busy || res[cur].submitted) return;
+  if (!checkId()) return;
+  $('file').click();
+}
+
+async function processFile(file) {
+  if (busy) return;
+  if (res[cur].submitted) { feedback('本題已繳交', '每題只能上傳一次，已鎖定無法再修改。'); return; }
+  if (!checkId()) return;
+  if (!/\.sb3$/i.test(file.name)) { feedback('檔案格式錯誤', '請上傳副檔名為 .sb3 的檔案。'); return; }
+  const taskId = cur;
+  let raw;
+  try {
+    const z = await JSZip.loadAsync(file);
+    const f = z.file('project.json');
+    if (!f) throw new Error('no project.json');
+    const data = JSON.parse(await f.async('text'));
+    // 只保留積木內容（不含造型、音效），這是唯一會送到伺服器的資料
+    raw = { targets: (data.targets || []).map(t => ({ isStage: !!t.isStage, blocks: t.blocks || {} })) };
+  } catch (e) {
+    feedback('讀取失敗', '檔案可能損壞或不是有效的 Scratch 專案，請重新選擇檔案。');
     return;
   }
 
-  const stu = student(), taskId = cur;
-  busy = true;
-  $('submit').disabled = true; $('submit').innerText = '送出中，請稍候…';
+  const stu = student();
+  if (!confirm(`確定要繳交第 ${NO(taskId)} 題嗎？\n\n${stu.className} 班 ${stu.seatNo} 號 ${stu.studentName}\n檔案：${file.name}\n\n每題只能上傳一次，繳交後就無法修改。`)) {
+    feedback('已取消', '尚未繳交，確定好檔案後再按「上傳並繳交本題」。');
+    return;
+  }
+
+  busy = true; refresh();
+  feedback('送出中，請稍候…', `正在繳交第 ${NO(taskId)} 題：${file.name}`);
   try {
-    // 只送「身分＋檔名＋積木資料」，分數由伺服器自己算；畫面上的分數只是草稿預覽
+    // 只送「身分＋檔名＋積木資料」，分數由伺服器計算
     const out = await fetch(SHEET_API_URL, {
       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ ...stu, assignment: 'firstgrade', taskId, fileName: r.fileName, project: r.raw })
+      body: JSON.stringify({ ...stu, assignment: 'firstgrade', taskId, fileName: file.name, project: raw })
     }).then(x => x.json());
     if (!out || !out.ok) throw new Error((out && out.error) || '伺服器沒有回應');
-    r.submitted = true; r.serverScore = out.score;
+    const r = res[taskId];
+    r.raw = raw; r.fileName = file.name; r.submitted = true; r.serverScore = out.score;
     busy = false; refresh();
-    feedback(`✅ 成績送出！第 ${NO(taskId)} 題已繳交，得 ${out.score} 分（通過 ${out.passed}/${out.total} 項）`, '以伺服器評分為準，目前總分顯示在右上角。');
-    alert(`✅ 成績送出！\n\n${stu.className} 班 ${stu.seatNo} 號 ${stu.studentName}\n第 ${NO(taskId)} 題已繳交，得 ${out.score} 分（通過 ${out.passed}/${out.total} 項）`);
+    feedback(`✅ 成績送出！第 ${NO(taskId)} 題已繳交，得 ${out.score} 分`, '目前總分顯示在右上角。');
+    alert(`✅ 成績送出！\n\n${stu.className} 班 ${stu.seatNo} 號 ${stu.studentName}\n第 ${NO(taskId)} 題已繳交，得 ${out.score} 分`);
   } catch (e) {
     busy = false; refresh();
-    feedback('傳送失敗', (e.message || '') + '　請檢查網路後再按一次繳交。');
-    alert('❌ 成績送出失敗\n\n' + (e.message || '') + '\n請檢查網路後再按一次繳交。');
+    feedback('傳送失敗，本題尚未繳交', (e.message || '') + '　請檢查網路後，再按一次「上傳並繳交本題」。');
+    alert('❌ 成績送出失敗，本題尚未繳交\n\n' + (e.message || '') + '\n請檢查網路後再上傳一次。');
   }
 }
 
@@ -908,72 +869,6 @@ function parseScratch(data, id) {
   const o = P.run.order, pd = o.indexOf('pen'), mvI = o.indexOf('move');
   P.penBeforeMove = pd !== -1 && mvI !== -1 && pd < mvI;
   return P;
-}
-
-function processFile(file) {
-  if (res[cur].submitted) { feedback('本題已繳交', '已鎖定，無法再修改。'); return; }
-  if (!file.name.endsWith('.sb3')) { feedback('檔案格式錯誤', '請上傳副檔名為 .sb3 的檔案。'); return; }
-  const taskId = cur;
-  JSZip.loadAsync(file).then(z => {
-    const f = z.file('project.json');
-    if (!f) throw new Error('no project.json');
-    return f.async('text');
-  }).then(txt => {
-    const data = JSON.parse(txt);
-    res[taskId].parsed = parseScratch(data, taskId);
-    // 只保留積木內容（不含造型、音效），這是唯一會送到伺服器的資料
-    res[taskId].raw = { targets: (data.targets || []).map(t => ({ isStage: !!t.isStage, blocks: t.blocks || {} })) };
-    res[taskId].fileName = file.name;
-    refresh();
-  }).catch(() => feedback('讀取失敗', '檔案可能損壞或不是有效的 Scratch 專案。'));
-}
-
-function renderBlocks() {
-  const p = res[cur].parsed;
-  if (!p) { $('blocks').innerHTML = '<span class="text-slate-500">尚未上傳 .sb3 檔案...</span>'; return; }
-  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  $('blocks').innerHTML = p.lines.length
-    ? p.lines.map(l => `<div class="py-0.5" style="padding-left:${l.d * 16}px">${esc(l.t)}</div>`).join('')
-    : '<span class="text-slate-400">未偵測到程式積木（請把積木接在「當綠旗被點擊」下面）。</span>';
-}
-
-// ---------- 右側：第 1～5 題顯示自動測試結果，第 6 題（五角星）顯示舞台 ----------
-const isTestView = id => !!SPEC[id];
-
-function renderStage() {
-  const p = res[cur].parsed, testView = isTestView(cur);
-  $('stageT').innerText = testView ? '自動測試' : '舞台模擬';
-  $('stageBox').classList.toggle('hidden', testView);
-  $('testBox').classList.toggle('hidden', !testView);
-  if (testView) { renderTests(p); return; }
-  const cv = $('cv'), ctx = cv.getContext('2d');
-  ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, 480, 360);
-  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1;
-  for (let x = 0; x <= 480; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 360); ctx.stroke(); }
-  for (let y = 0; y <= 360; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(480, y); ctx.stroke(); }
-  ctx.strokeStyle = '#334155'; ctx.beginPath(); ctx.moveTo(240, 0); ctx.lineTo(240, 360); ctx.moveTo(0, 180); ctx.lineTo(480, 180); ctx.stroke();
-  $('ov').classList.toggle('hidden', !!p);
-  if (!p) return;
-  const run = p.drawRun || p.run;
-  ctx.strokeStyle = '#4C97FF'; ctx.lineWidth = 2; ctx.lineCap = 'round';
-  ctx.beginPath();
-  run.segs.forEach(g => { ctx.moveTo(240 + g.x1, 180 - g.y1); ctx.lineTo(240 + g.x2, 180 - g.y2); });
-  ctx.stroke();
-  ctx.fillStyle = '#FFAB19'; ctx.beginPath(); ctx.arc(240 + run.x, 180 - run.y, 4, 0, 7); ctx.fill();   // 小貓最後停的位置
-}
-
-function renderTests(p) {
-  const box = $('testBox');
-  if (!p) { box.innerHTML = '<div class="bg-slate-950 text-white text-sm rounded-2xl p-6 text-center">等待上傳 .sb3 檔案...</div>'; return; }
-  if (p.empty) { box.innerHTML = '<div class="bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-3">沒有找到可執行的程式。請把積木接在「當綠旗被點擊」下面。</div>'; return; }
-  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  let h = '<p class="text-slate-500 mb-2">系統會自動幫你的程式輸入測試資料，看看結果對不對。</p>';
-  h += '<div class="space-y-2">' + p.tests.map(t => {
-    const cls = t.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900';
-    return `<div class="rounded-xl border p-3 ${cls}"><div class="font-bold mb-1">${t.ok ? '✔' : '✕'} ${esc(t.title)}</div>${t.lines.map(l => `<div>${esc(l)}</div>`).join('')}${t.why && !t.ok ? `<div class="mt-1 font-semibold">${esc(t.why)}</div>` : ''}</div>`;
-  }).join('') + '</div>';
-  if (p.timedOut) h += '<div class="mt-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3">程式執行太久，可能有無限迴圈或次數太大。</div>';
-  box.innerHTML = h;
 }
 
 /* =====================================================================
