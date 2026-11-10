@@ -52,17 +52,25 @@
               <li>隱藏角色，只顯示畫筆移動的軌跡。</li>
               <li>畫筆的顏色、粗細可自訂。</li>
               <li>利用<b>函式（自訂積木）</b>繪製雪花，單一雪花的分支如右圖：
-                <div class="pl-4 mt-1">(1) 長度皆為 <b>30</b> 點。<br>(2) 分支的旋轉角度皆為 <b>45</b> 度。</div></li>
+                <div class="pl-4 mt-1">(1) 長度皆為 <b>30</b> 點。<br>(2) 分支的旋轉角度為 <b>45</b> 度或 <b>60</b> 度（兩種都可以）。</div></li>
               <li>雪花共有 <b>6</b> 支分支（每畫完一支轉 60 度）。</li>
             </ol>
-            <svg viewBox="-40 -100 80 105" class="w-20 shrink-0" aria-label="單一分支示意圖">
+            <svg viewBox="-30 -116 150 132" class="w-36 shrink-0" aria-label="單一分支示意圖：45 度與 60 度">
               <g stroke="#0284c7" stroke-width="3" stroke-linecap="round" fill="none">
                 <path d="M0 0 V-90"/>
                 <path d="M0 -30 l-21.2 -21.2 M0 -30 l21.2 -21.2"/>
                 <path d="M0 -60 l-21.2 -21.2 M0 -60 l21.2 -21.2"/>
                 <path d="M0 -90 l-21.2 -21.2 M0 -90 l21.2 -21.2"/>
               </g>
+              <g stroke="#0284c7" stroke-width="3" stroke-linecap="round" fill="none" transform="translate(90 0)">
+                <path d="M0 0 V-90"/>
+                <path d="M0 -30 l-26 -15 M0 -30 l26 -15"/>
+                <path d="M0 -60 l-26 -15 M0 -60 l26 -15"/>
+                <path d="M0 -90 l-26 -15 M0 -90 l26 -15"/>
+              </g>
               <text x="6" y="-14" font-size="9" fill="#475569">30</text>
+              <text x="0" y="13" font-size="10" font-weight="bold" fill="#475569" text-anchor="middle">45°</text>
+              <text x="90" y="13" font-size="10" font-weight="bold" fill="#475569" text-anchor="middle">60°</text>
             </svg>
           </div>
         </div>
@@ -207,10 +215,10 @@ const CRITERIA = [
   '舞台背景使用範例背景 Light',
   '隱藏角色，只顯示畫筆軌跡',
   '使用函式（自訂積木）畫分支，並在主程式呼叫',
-  '分支每段長度皆為 30 點、旋轉角度為 45 度',
+  '分支每段長度皆為 30 點、旋轉角度為 45 或 60 度',
   '畫出 6 支分支的雪花（旋轉 60° 後與原圖重合）'
 ];
-const SEG_LEN = 30, BRANCH_ANGLE = 45;
+const SEG_LEN = 30;   // 分支角度可為 45 或 60 度，由 branchAngle() 從畫出的線判斷
 const MC_COUNT = 4, MC_PTS = 5, SNOW_PTS = 100 - MC_COUNT * MC_PTS;   // 選擇題 4 × 5 = 20 分，實作 80 分（5 項，每項 16 分）
 const LIGHT_RE = /light|燈光/i;
 const isBlk = b => !!b && typeof b === 'object' && !Array.isArray(b) && !!b.opcode;
@@ -364,6 +372,20 @@ function uniqueSegs(segs) {
   });
   return out;
 }
+// 從畫出的線判斷分支角度：把每條線的方向除以 60 取餘數（6 支分支各差 60°，會疊在一起）。
+// 45 度分支 → 剩下主幹 s、s+45、s−45(=s+15) 三種方向；60 度分支 → 分支和其他主幹同方向，只剩 1 種。
+// 用畫出的線來判斷，主程式「右轉 60 度」不會被誤當成分支角度。回傳 45、60，都不是則回傳 0。
+function branchAngle(s) {
+  const d60 = (a, b) => { const d = Math.abs(a - b) % 60; return Math.min(d, 60 - d); };
+  const dirs = [];
+  s.forEach(g => {
+    const a = ((Math.atan2(g.y2 - g.y1, g.x2 - g.x1) * 180 / Math.PI) % 60 + 60) % 60;
+    if (!dirs.some(x => d60(x, a) < 1)) dirs.push(a);
+  });
+  if (dirs.length === 1) return 60;
+  if (dirs.length === 3 && dirs.some(b => [15, 45].every(o => dirs.some(x => d60(x, b + o) < 1)))) return 45;
+  return 0;
+}
 // 把整張圖轉 60 度，每個點都要落在原本畫過的線上
 function sixFold(s) {
   if (s.length < 6 || s.length > 3000) return false;
@@ -401,14 +423,14 @@ function gradeProject(project) {
     !!tg && !run.visible,
     run.procs > 0 && run.calls > 0 && run.procMoves > 0,
     down.length > 0 && down.every(lenOk) && down.some(m => Math.abs(Math.abs(m.len) - SEG_LEN) <= 0.5)
-      && run.turns.some(t => Math.abs(Math.abs(t) - BRANCH_ANGLE) <= 0.01),
+      && uniq.length >= 24 && branchAngle(uniq) > 0,
     uniq.length >= 24 && sixFold(uniq)
   ];
   const passed = checks.filter(Boolean).length;
   return {
     checks, passed, total: CRITERIA.length, score: Math.round(SNOW_PTS * passed / CRITERIA.length),   // score = 實作分數（滿分 SNOW_PTS）
     failed: CRITERIA.filter((c, i) => !checks[i]).join('、'),
-    run, backdrop, drawer: tg ? tg.name : null, segCount: uniq.length,
+    run, backdrop, drawer: tg ? tg.name : null, segCount: uniq.length, angle: branchAngle(uniq),
     badLens: down.filter(m => !lenOk(m)).map(m => m.len).slice(0, 5)
   };
 }
@@ -428,6 +450,7 @@ const defB = (n, i) => ['proc', `定義 ${n}`, i || 0];
 const callB = (n, i) => ['proc', n, i || 0];
 const lbl = t => ['label', t, 0];
 const BRANCH = [defB('畫分支'), rp(3), mv(30, 1), tl(45, 1), mv(30, 1), mv(-30, 1), tr(90, 1), mv(30, 1), mv(-30, 1), tl(45, 1), mv(-90)];
+const PAIR = a => [rp(3), mv(30, 1), tl(a, 1), mv(30, 1), mv(-30, 1), tr(a * 2, 1), mv(30, 1), mv(-30, 1), tl(a, 1)];
 const MAIN = [flagB(), hideB(), clrB(), PD(), rp(6), callB('畫分支', 1), tr(60, 1)];
 
 const HINTS = [
@@ -438,9 +461,9 @@ const HINTS = [
   { tip: '到「函式積木」（自訂積木）按「建立一個積木」，取名例如「畫分支」，把畫一支分支的積木放在「定義 畫分支」下面。主程式再用「畫分支」積木呼叫它。',
     good: [lbl('函式：畫一支分支'), ...BRANCH, lbl('主程式'), ...MAIN],
     bad: [lbl('只建立函式卻沒有呼叫（主程式沒有「畫分支」積木）'), flagB(), hideB(), PD(), rp(6), tr(60, 1)] },
-  { tip: '每一段都是 30 點：主幹每走 30 點長出一對小分支，小分支也是 30 點（畫出去再退回來 −30）。小分支和主幹夾 45 度：先左轉 45、畫完右轉 90、畫完再左轉 45 回到原方向。最後退回中心可以用 −90（=3 段 30）。',
-    good: [rp(3), mv(30, 1), tl(45, 1), mv(30, 1), mv(-30, 1), tr(90, 1), mv(30, 1), mv(-30, 1), tl(45, 1)],
-    bad: [rp(3), mv(30, 1), tl(60, 1), mv(20, 1), mv(-20, 1), tr(120, 1), mv(20, 1), mv(-20, 1), tl(60, 1)] },
+  { tip: '每一段都是 30 點：主幹每走 30 點長出一對小分支，小分支也是 30 點（畫出去再退回來 −30）。小分支和主幹夾 45 度或 60 度都可以：45 度是先左轉 45、畫完右轉 90、畫完再左轉 45 回到原方向；60 度則是左轉 60、右轉 120、左轉 60。同一朵雪花請用同一種角度。最後退回中心可以用 −90（=3 段 30）。',
+    good: [lbl('45 度版本'), ...PAIR(45), lbl('60 度版本'), ...PAIR(60)],
+    bad: [lbl('長度不是 30、角度不是 45 或 60'), rp(3), mv(30, 1), tl(30, 1), mv(20, 1), mv(-20, 1), tr(60, 1), mv(20, 1), mv(-20, 1), tl(30, 1)] },
   { tip: '雪花有 6 支分支，360 ÷ 6 = 60，所以「重複 6 次：畫分支、右轉 60 度」。每支分支畫完一定要回到中心、方向也要轉回原來的方向，下一支才不會歪掉。',
     good: MAIN, bad: [flagB(), hideB(), PD(), rp(5), callB('畫分支', 1), tr(72, 1)] }
 ];
@@ -584,7 +607,8 @@ function renderInfo() {
     ['背景', esc(p.backdrop || '（沒有）')],
     ['畫圖的角色', esc(p.drawer || '（找不到）') + (p.drawer ? `（最後${r.visible ? '是顯示的' : '已隱藏'}）` : '')],
     ['自訂積木（函式）', r.procs ? `${r.procs} 個，執行時呼叫了 ${r.calls} 次` : '沒有'],
-    ['畫出的線段', `${p.segCount} 條（重複走過的只算一次）`]
+    ['畫出的線段', `${p.segCount} 條（重複走過的只算一次）`],
+    ['分支角度', p.angle ? `${p.angle} 度` : '不是 45 或 60 度（或雪花還沒畫完整）']
   ];
   if (p.badLens.length) rows.push(['不是 30 的倍數的移動', p.badLens.map(x => Math.round(x * 100) / 100).join('、') + ' 點']);
   let h = '<div class="bg-slate-50 border rounded-xl p-3 space-y-0.5">' + rows.map(([a, b]) => `<div>${a}：<b>${b}</b></div>`).join('') + '</div>';
