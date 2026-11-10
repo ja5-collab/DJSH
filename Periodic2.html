@@ -29,8 +29,8 @@
 <main class="max-w-6xl mx-auto px-4 mt-5">
   <div id="tabs" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5"></div>
 
-  <div class="grid lg:grid-cols-12 gap-5">
-    <div class="lg:col-span-7 space-y-5">
+  <div class="max-w-3xl mx-auto">
+    <div class="space-y-5">
       <div class="bg-white rounded-2xl p-5 shadow-sm border">
         <div class="flex justify-between items-center mb-3">
           <h2 id="ttitle" class="font-bold text-lg"></h2>
@@ -40,54 +40,27 @@
 
         <div id="drop" class="border-2 border-dashed border-slate-300 rounded-2xl p-5 text-center bg-slate-50">
           <input type="file" id="file" accept=".sb3" class="hidden">
-          <p class="text-sm font-bold">拖曳或選擇 Scratch 檔 (.sb3)</p>
+          <p class="text-sm font-bold">拖曳或選擇本題的 Scratch 檔 (.sb3)</p>
           <p id="fname" class="text-xs text-slate-400 my-1">尚未選擇檔案</p>
-          <button id="pick" onclick="document.getElementById('file').click()" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl">📂 選擇檔案</button>
+          <button id="pick" onclick="startUpload()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 text-sm font-extrabold px-6 py-3 rounded-xl">📤 上傳並繳交本題</button>
+          <p class="text-[11px] text-rose-500 mt-2">每題只能上傳一次，上傳後就無法修改</p>
         </div>
 
-        <button id="submit" onclick="submitTask()" class="mt-4 w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold text-sm px-4 py-3 rounded-xl">確認繳交本題</button>
       </div>
 
       <div class="bg-white rounded-2xl p-5 shadow-sm border">
-        <h3 class="font-bold mb-3">檢測結果 <span class="text-xs font-normal text-slate-400">（點任一項可看說明與範例）</span></h3>
-        <div id="checklist" class="space-y-2"></div>
-      </div>
-
-      <div class="bg-white rounded-2xl p-5 shadow-sm border">
-        <h3 class="font-bold mb-3">你的積木程式</h3>
-        <div id="blocks" class="bg-slate-900 text-emerald-300 p-3 rounded-xl text-xs font-mono max-h-64 overflow-y-auto"></div>
-      </div>
-    </div>
-
-    <div class="lg:col-span-5">
-      <div class="bg-white rounded-2xl p-5 shadow-sm border lg:sticky lg:top-20">
-        <h3 class="font-bold mb-3">舞台模擬 <span id="stageSub" class="text-xs font-normal text-slate-400"></span></h3>
-        <div class="relative aspect-[4/3] bg-white rounded-2xl overflow-hidden border">
-          <canvas id="cv" width="960" height="720" class="w-full h-full"></canvas>
-          <div id="ov" class="absolute inset-0 bg-slate-950/85 flex items-center justify-center text-white text-sm">等待上傳 .sb3 檔案...</div>
-        </div>
-        <p class="text-[11px] text-slate-500 mt-1.5"><span class="inline-block w-3 h-0.5 bg-slate-300 align-middle mr-1"></span>灰色虛線＝正確答案　<span class="inline-block w-3 h-0.5 bg-blue-500 align-middle mr-1"></span>藍色＝你畫的（點下方測試可切換）</p>
-        <div id="testBox" class="mt-3 text-xs space-y-2"></div>
+        <h3 class="font-bold mb-3">該題分數</h3>
+        <div id="checklist"></div>
         <div id="fb" class="mt-4 p-4 rounded-xl bg-slate-50 border">
           <b id="fbT" class="text-sm">準備就緒</b>
           <p id="fbX" class="text-xs text-slate-500 mt-1">請上傳本題的 .sb3 檔案。</p>
         </div>
       </div>
+
     </div>
+
   </div>
 </main>
-
-<div id="hint" class="hidden fixed inset-0 z-[60] bg-slate-900/60 flex items-center justify-center p-4" onclick="if(event.target===this)closeHint()">
-  <div class="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl">
-    <div class="flex justify-between items-start gap-3 mb-2">
-      <h3 id="hT" class="font-bold text-slate-800"></h3>
-      <button onclick="closeHint()" class="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
-    </div>
-    <p id="hX" class="text-sm text-slate-600 mb-3"></p>
-    <div id="hB"></div>
-    <button onclick="closeHint()" class="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 rounded-xl text-sm">我知道了</button>
-  </div>
-</div>
 
 </div><!-- /student-view -->
 
@@ -517,83 +490,6 @@ const TASKS = {
       <li>下筆後重複 ${COPIES4} 次：呼叫 軌跡設定（4）→ 右轉 ${TURN4} 度</li></ul>` }
 };
 
-// ---------- 檢測項目說明（點擊彈窗） ----------
-const BC = { event: '#FFBF00', looks: '#9966FF', control: '#FFAB19', motion: '#4C97FF', pen: '#0FBD8C', proc: '#FF6680', sensing: '#5CB1D6', data: '#FF8C1A' };
-const B_ = (c, t) => (i => [c, t, i || 0]);
-const flagB = B_('event', '當綠旗被點擊');
-const PD = B_('pen', '下筆'), PU = B_('pen', '停筆');
-const mv = (n, i) => ['motion', `移動 ${n} 點`, i || 0];
-const tr = (n, i) => ['motion', `右轉 ${n} 度`, i || 0];
-const rp = (n, i) => ['control', `重複 ${n} 次`, i || 0];
-const iff = (c, i) => ['control', `如果 ${c} 那麼`, i || 0];
-const els = i => ['control', '否則', i || 0];
-const defB = (n, i) => ['proc', `定義 ${n}`, i || 0];
-const callB = (n, i) => ['proc', n, i || 0];
-const ask = (q, i) => ['sensing', `詢問 ${q} 並等待`, i || 0];
-const setv = (v, e, i) => ['data', `變數 ${v} 設為 ${e}`, i || 0];
-const chg = (v, e, i) => ['data', `變數 ${v} 改變 ${e}`, i || 0];
-const say = (e, i) => ['looks', `說出 ${e} 持續 2 秒`, i || 0];
-const lbl = t => ['label', t, 0];
-const POLY = [defB('正N邊形 ( 邊數 )'), rp('( 邊數 )'), mv(SIDE, 1), tr('( 360 ÷ 邊數 )', 1)];
-const ASK2 = [ask('要畫正幾邊形?'), setv('邊數', '( 詢問的答案 )'), ask('要畫幾個這樣的形狀?'), setv('個數', '( 詢問的答案 )')];
-const STEPX = `( 邊數 × ${STEP_K} )`;
-const NEWROW = (n, dy, x0, dx) => [chg('目前個數', 1, 1), iff(`< 目前個數 = ${n} >`, 1), ['motion', `y 改變 ${dy}`, 2], ['motion', `x 設為 ${x0}`, 2], setv('目前個數', 0, 2), PD(2), els(1), ['motion', `x 改變 ${dx}`, 2], PD(2)];
-const NEWROW2 = NEWROW(PER_ROW, `( 0 − 邊數 × ${STEP_K} )`, -200, STEPX);
-const NEWROW3 = NEWROW('( 每列個數 )', `( 0 − 邊數 × ${STEP_K} )`, -200, STEPX);
-const FN_HINT = { tip: '到「函式積木」按「建立一個積木」，取名「正N邊形」，再按「添加輸入方塊（數字或文字）」命名「邊數」。在「定義」下面用「邊數」參數決定重複次數和轉的角度，這樣同一個函式就能畫三角形、正方形、六邊形……',
-  good: [lbl('函式'), ...POLY, lbl('主程式'), flagB(), PD(), callB('正N邊形 ( 邊數 )')],
-  bad: [lbl('沒有參數，只能畫正方形'), defB('正方形'), rp(4), mv(SIDE, 1), tr(90, 1)] };
-
-const HINTS = {
-  1: [FN_HINT,
-    { tip: '用「詢問並等待」問兩次，每次問完馬上把「詢問的答案」存進變數（下一次詢問會蓋掉答案）。', good: ASK2, bad: [ask('要畫正幾邊形、幾個?'), setv('邊數', '( 詢問的答案 )')] },
-    { tip: `重複的次數放變數「個數」，不要寫死。每畫完一個：停筆、往右移動「邊數 × ${STEP_K}」點、再下筆。`, good: [rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), mv(STEPX, 1), PD(1)], bad: [rp(3), callB('正N邊形 ( 邊數 )', 1), mv(STEPX, 1)] },
-    { tip: `系統會實際執行你的程式並比對圖形：邊長 ${SIDE}、下一個圖形的起點往右「邊數 × ${STEP_K}」點（正方形 ${4 * STEP_K}、正六邊形 ${6 * STEP_K}）。轉角用 360 ÷ 邊數，移動時記得停筆，否則圖形之間會多出線。組運算積木時，「×」要放在最外層：邊數 × ${STEP_K}，不要變成 (邊數 × 10) + 1。`,
-      good: [flagB(), ['motion', '定位到 x: -200 y: 0', 0], ['pen', '筆跡全部清除', 0], PD(), ...ASK2, rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), mv(STEPX, 1), PD(1)],
-      bad: [rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), mv(GAP, 1), PD(1), lbl(`（間距寫死 ${GAP}，五邊形、六邊形會重疊）`)] }],
-  2: [FN_HINT,
-    { tip: '一樣用「詢問並等待」問邊數和個數，各存進一個變數。', good: ASK2, bad: [setv('邊數', 4), setv('個數', 6)] },
-    { tip: `用變數「目前個數」數這一列畫了幾個；用「如果…那麼…否則」判斷：等於 ${PER_ROW} 就換列，否則往右移「邊數 × ${STEP_K}」點。`,
-      good: [rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), ...NEWROW2],
-      bad: [rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), mv(STEPX, 1), PD(1), lbl('（沒有換列，全部排成一長排）')] },
-    { tip: `換列時：y 改變 −(邊數 × ${STEP_K})（往下）、x 設為最左邊的 x（例如 -200），計數要歸 0。移動時一定要停筆。左右、上下的間距都是「邊數 × ${STEP_K}」。`,
-      good: [['motion', '定位到 x: -200 y: 100', 0], setv('目前個數', 0), PD(), rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), ...NEWROW2],
-      bad: [iff(`< 目前個數 = ${PER_ROW} >`), ['motion', `y 改變 -${GAP}`, 1], lbl(`（往下寫死 ${GAP}，而且忘了 x 回到最左邊、計數歸 0）`)] }],
-  3: [FN_HINT,
-    { tip: '要問 3 次：正幾邊形、幾個、每列幾個，分別存進變數。', good: [...ASK2, ask('每列幾個?'), setv('每列個數', '( 詢問的答案 )')], bad: ASK2 },
-    { tip: `如果 每列個數 > ${MAX_ROW}：先「說」太多了，再「詢問」一次並重新存進變數。（想一直問到合理為止，也可以用「重複直到 每列個數 < ${MAX_ROW + 1}」）`,
-      good: [ask('每列幾個?'), setv('每列個數', '( 詢問的答案 )'), iff(`< 每列個數 > ${MAX_ROW} >`), say('太多了....', 1), ask('每列幾個?', 1), setv('每列個數', '( 詢問的答案 )', 1)],
-      bad: [iff(`< 每列個數 > ${MAX_ROW} >`), say('太多了....', 1), lbl('（說完沒有重新詢問，還是用原本太大的數字）')] },
-    { tip: `換列判斷要用變數「每列個數」，不是寫死的 ${PER_ROW}。間距和第 2 題一樣：往右、往下都是「邊數 × ${STEP_K}」點，換列時 x 設為 -200。`,
-      good: [rp('( 個數 )'), callB('正N邊形 ( 邊數 )', 1), PU(1), ...NEWROW3],
-      bad: [iff(`< 目前個數 = ${PER_ROW} >`, 1), lbl('（寫死數字，使用者輸入的每列個數沒有用到）')] }],
-  4: [{ tip: '建立函式「軌跡設定」並加一個參數「邊數」，在定義裡用「邊數」決定重複次數與角度。', good: [defB('軌跡設定 ( 邊數 )'), rp('( 邊數 )'), mv('( 長度 )', 1), tr('( 360 ÷ 邊數 )', 1)], bad: [defB('軌跡設定'), rp(4), mv(LEN4, 1), tr(90, 1)] },
-    { tip: `建立變數「長度」並在開始時設為 ${LEN4}，函式裡的「移動」放「長度」變數（不要直接打 ${LEN4}）。`, good: [setv('長度', LEN4), lbl('函式裡'), mv('( 長度 )')], bad: [mv(LEN4), lbl('（直接寫數字）')] },
-    { tip: `每畫完一個正方形就右轉 ${TURN4} 度，重複 ${COPIES4} 次剛好轉滿一圈（${COPIES4} × ${TURN4} = 360）。`, good: [rp(COPIES4), callB('軌跡設定 ( 4 )', 1), tr(TURN4, 1)], bad: [rp(10), callB('軌跡設定 ( 4 )', 1), tr(36, 1)] },
-    { tip: '完整程式如下。系統會檢查畫出的圖形：每條線長 80，而且整個圖案每轉 10° 都和原圖重合。',
-      good: [flagB(), ['pen', '筆跡全部清除', 0], setv('長度', LEN4), callB('鉛筆設定'), PD(), rp(COPIES4), callB('軌跡設定 ( 4 )', 1), tr(TURN4, 1), PU()],
-      bad: [flagB(), PD(), rp(COPIES4), callB('軌跡設定 ( 4 )', 1), tr(TURN4, 1), lbl('（沒有設定 長度，長度是 0，什麼都畫不出來）')] }]
-};
-
-function hintBlocks(list) {
-  return '<div class="inline-block">' + list.map(([c, t, ind]) => c === 'label'
-    ? `<div class="text-xs font-bold text-slate-500 mt-2 mb-1">${t}</div>`
-    : `<div style="background:${BC[c]};margin-left:${(ind || 0) * 22}px" class="text-white font-bold text-sm px-3 py-2 rounded-md mb-0.5 shadow-sm w-fit whitespace-nowrap">${t}</div>`
-  ).join('') + '</div>';
-}
-function showHint(i) {
-  const h = HINTS[cur][i];
-  $('hT').innerText = CRITERIA[cur][i];
-  $('hX').innerText = h.tip;
-  let html = '';
-  if (h.good) html += `<div class="mb-3"><div class="text-xs font-bold text-emerald-600 mb-1.5">✔ 正確範例</div><div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 overflow-x-auto">${hintBlocks(h.good)}</div></div>`;
-  if (h.bad) html += `<div><div class="text-xs font-bold text-rose-600 mb-1.5">✕ 常見錯誤</div><div class="bg-rose-50 border border-rose-200 rounded-xl p-3 overflow-x-auto">${hintBlocks(h.bad)}</div></div>`;
-  $('hB').innerHTML = html;
-  $('hint').classList.remove('hidden');
-}
-function closeHint() { $('hint').classList.add('hidden'); }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHint(); });
-
 // ---------- 狀態 ----------
 const res = {};
 TASK_IDS.forEach(id => res[id] = { parsed: null, raw: null, fileName: '', submitted: false, serverScore: 0, view: 0 });
@@ -653,243 +549,118 @@ function switchTask(id) {
   $('ttitle').innerText = TASKS[id].title;
   $('tdesc').innerHTML = TASKS[id].desc;
   refresh();
+  if (!busy) feedback(res[id].submitted ? `第 ${id} 題已繳交` : '準備就緒', res[id].submitted ? '每題只能上傳一次，已鎖定無法再修改。' : '請按「上傳並繳交本題」選擇本題的 .sb3 檔案。');
 }
 
 function feedback(t, x) { $('fbT').innerText = t; $('fbX').innerText = x; }
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function refresh() {
-  const r = res[cur], p = r.parsed;
-  $('fname').innerText = r.fileName ? '已載入：' + r.fileName : '尚未選擇檔案';
-  const sb = $('submit'), badge = $('badge');
-  $('pick').disabled = r.submitted;
+  const r = res[cur];
+  $('fname').innerText = r.fileName ? (r.submitted ? '已繳交：' : '') + r.fileName : '尚未選擇檔案';
+  const pk = $('pick'), badge = $('badge');
+  pk.disabled = r.submitted || busy;
   $('drop').classList.toggle('opacity-60', r.submitted);
   if (r.submitted) {
-    sb.disabled = true; sb.innerText = '🔒 本題已繳交';
-    sb.className = 'mt-4 w-full bg-emerald-700 text-white font-extrabold text-sm px-4 py-3 rounded-xl cursor-not-allowed';
+    pk.innerText = '🔒 本題已繳交';
+    pk.className = 'bg-emerald-700 text-white text-sm font-extrabold px-6 py-3 rounded-xl cursor-not-allowed';
     badge.className = 'text-xs px-2.5 py-1 rounded-full font-bold bg-emerald-100 text-emerald-800'; badge.innerText = '已繳交';
   } else {
-    sb.disabled = !p; sb.innerText = p ? '確認繳交本題' : '請先上傳 .sb3 檔案';
-    sb.className = 'mt-4 w-full font-extrabold text-sm px-4 py-3 rounded-xl ' + (p ? 'bg-amber-500 hover:bg-amber-600 text-slate-900' : 'bg-slate-300 text-slate-500 cursor-not-allowed');
-    badge.className = 'text-xs px-2.5 py-1 rounded-full font-bold ' + (p ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-500');
-    badge.innerText = p ? '草稿測試中' : '未繳交';
+    pk.innerText = busy ? '送出中，請稍候…' : '📤 上傳並繳交本題';
+    pk.className = 'text-sm font-extrabold px-6 py-3 rounded-xl ' + (busy ? 'bg-slate-300 text-slate-500 cursor-wait' : 'bg-amber-500 hover:bg-amber-600 text-slate-900');
+    badge.className = 'text-xs px-2.5 py-1 rounded-full font-bold bg-slate-100 text-slate-500'; badge.innerText = '未繳交';
   }
-  renderChecklist(); renderBlocks(); renderStage(); updateTotal();
+  renderChecklist(); updateTotal();
 }
 
 function renderChecklist() {
-  const r = res[cur], p = r.parsed;
-  $('checklist').innerHTML = CRITERIA[cur].map((c, i) => {
-    let icon = '○', cls = 'bg-slate-50 border-slate-200', tag = '待檢測';
-    if (p) {
-      if (p.checks[i]) { icon = '✔'; cls = 'bg-emerald-50 border-emerald-200 text-emerald-900'; tag = '符合'; }
-      else { icon = '✕'; cls = 'bg-rose-50 border-rose-200 text-rose-900'; tag = '未符合'; }
-    }
-    return `<div onclick="showHint(${i})" class="p-3 rounded-xl border flex justify-between items-center gap-2 text-xs font-semibold cursor-pointer hover:shadow-md transition ${cls}">
-      <span>${icon} ${c}</span>
-      <span class="whitespace-nowrap">${tag} <span class="ml-1 inline-block text-[11px] font-bold text-blue-600 bg-white/80 border border-blue-200 rounded-full px-2.5 py-0.5">ⓘ 看說明</span></span></div>`;
-  }).join('');
-  if (r.submitted) return;
-  if (p) feedback(`本題得分：${p.score} / ${POINTS[cur]} 分（通過 ${p.passed}/${p.total} 項）`,
-    p.passed === p.total ? '全部通過，可以繳交了！' : '點選未符合的項目，可以看到修正範例。');
-  else feedback('準備就緒', '請上傳本題的 .sb3 檔案。');
+  const r = res[cur];
+  $('checklist').innerHTML = !r.submitted
+    ? '<div class="text-sm text-slate-400">本題尚未繳交</div>'
+    : `<div class="text-4xl font-black ${r.serverScore === POINTS[cur] ? 'text-emerald-600' : 'text-amber-600'}">${r.serverScore}<span class="text-lg font-bold text-slate-400"> / ${POINTS[cur]} 分</span></div>`;
 }
 
 function updateTotal() {
   let sum = 0;
   TASK_IDS.forEach(id => {
-    const r = res[id], s = r.parsed;
-    const sc = r.submitted ? r.serverScore : (s ? s.score : null);
-    if (sc !== null) sum += sc;
+    const r = res[id];
+    if (r.submitted) sum += r.serverScore;
     const el = $('st' + id);
-    el.innerText = r.submitted ? `已繳交・${sc}/${POINTS[id]} 分` : s ? `草稿・${sc}/${POINTS[id]} 分` : '未繳交';
-    el.className = r.submitted ? 'text-emerald-600' : s ? 'text-amber-600' : '';
+    el.innerText = r.submitted ? `已繳交・${r.serverScore}/${POINTS[id]} 分` : '未繳交';
+    el.className = r.submitted ? 'text-emerald-600' : '';
   });
   $('total').innerText = sum;
 }
 
-// ---------- 積木清單 ----------
-function describe(T) {
-  const out = [];
-  const txt = (B, inp) => {
-    if (!inp) return '';
-    const v = inp[1];
-    if (Array.isArray(v)) return v[0] === 12 ? `[${v[1]}]` : String(v[1] == null ? '' : v[1]);
-    if (typeof v === 'string' && B[v] && B[v].opcode) {
-      const b = B[v], i = b.inputs || {};
-      if (/^argument_reporter/.test(b.opcode)) return `(${b.fields.VALUE[0]})`;
-      if (b.opcode === 'sensing_answer') return '(詢問的答案)';
-      const op = { operator_add: '＋', operator_subtract: '－', operator_multiply: '×', operator_divide: '÷' }[b.opcode];
-      if (op) return `(${txt(B, i.NUM1)} ${op} ${txt(B, i.NUM2)})`;
-      const cp = { operator_gt: '>', operator_lt: '<', operator_equals: '=' }[b.opcode];
-      if (cp) return `<${txt(B, i.OPERAND1)} ${cp} ${txt(B, i.OPERAND2)}>`;
-      return `<${b.opcode.replace(/^.*?_/, '')}>`;
-    }
-    return Array.isArray(inp[2]) ? String(inp[2][1]) : '';
-  };
-  const pc = s => String(s || '').replace(/%[sbn]/g, '( )');
-  const lab = (B, b) => {
-    const i = b.inputs || {}, v = k => esc(txt(B, i[k]));
-    switch (b.opcode) {
-      case 'event_whenflagclicked': return '【事件】當綠旗被點擊';
-      case 'procedures_definition': { const pr = B[i.custom_block && i.custom_block[1]]; return `【函式】定義 ${esc(pc(pr && pr.mutation && pr.mutation.proccode))}`; }
-      case 'procedures_call': return `【函式】${esc(pc(b.mutation && b.mutation.proccode))}` + Object.keys(i).map(k => ' ' + esc(txt(B, i[k]))).join('');
-      case 'sensing_askandwait': return `【偵測】詢問 ${v('QUESTION')} 並等待`;
-      case 'looks_say': return `【外觀】說出 ${v('MESSAGE')}`;
-      case 'looks_sayforsecs': return `【外觀】說出 ${v('MESSAGE')} 持續 ${v('SECS')} 秒`;
-      case 'pen_penDown': return '【畫筆】下筆';
-      case 'pen_penUp': return '【畫筆】停筆';
-      case 'pen_clear': return '【畫筆】筆跡全部清除';
-      case 'pen_setPenColorToColor': return `【畫筆】筆跡顏色設為 ${v('COLOR')}`;
-      case 'pen_setPenSizeTo': return `【畫筆】筆跡寬度設為 ${v('SIZE')}`;
-      case 'motion_movesteps': return `【動作】移動 ${v('STEPS')} 點`;
-      case 'motion_turnright': return `【動作】右轉 ${v('DEGREES')} 度`;
-      case 'motion_turnleft': return `【動作】左轉 ${v('DEGREES')} 度`;
-      case 'motion_gotoxy': return `【動作】定位到 x:${v('X')} y:${v('Y')}`;
-      case 'motion_changeyby': return `【動作】y 改變 ${v('DY')}`;
-      case 'motion_changexby': return `【動作】x 改變 ${v('DX')}`;
-      case 'motion_setx': return `【動作】x 設為 ${v('X')}`;
-      case 'motion_sety': return `【動作】y 設為 ${v('Y')}`;
-      case 'motion_pointindirection': return `【動作】面朝 ${v('DIRECTION')} 度`;
-      case 'control_repeat': return `【控制】重複 ${v('TIMES')} 次`;
-      case 'control_repeat_until': return `【控制】重複直到 ${v('CONDITION')}`;
-      case 'control_forever': return '【控制】重複無限次';
-      case 'control_if': return `【控制】如果 ${v('CONDITION')} 那麼`;
-      case 'control_if_else': return `【控制】如果 ${v('CONDITION')} 那麼`;
-      case 'data_setvariableto': return `【變數】變數 ${esc(b.fields.VARIABLE[0])} 設為 ${v('VALUE')}`;
-      case 'data_changevariableby': return `【變數】變數 ${esc(b.fields.VARIABLE[0])} 改變 ${v('VALUE')}`;
-      default: return `【${b.opcode.split('_')[0]}】${b.opcode.replace(/^.*?_/, '')}`;
-    }
-  };
-  T.forEach(tg => {
-    const B = tg.blocks || {};
-    const tops = Object.keys(B).filter(id => isBlk(B[id]) && B[id].topLevel && !B[id].shadow);
-    if (!tops.length) return;
-    out.push(`<div class="text-amber-300 font-bold mt-2 first:mt-0">■ ${tg.isStage ? '舞台' : '角色：' + esc(tg.name)}</div>`);
-    const walk = (id, d) => {
-      while (id && isBlk(B[id]) && out.length < 500) {
-        const b = B[id];
-        out.push(`<div class="py-0.5" style="padding-left:${d * 16}px">${lab(B, b)}</div>`);
-        const s1 = b.inputs && b.inputs.SUBSTACK, s2 = b.inputs && b.inputs.SUBSTACK2;
-        if (s1 && typeof s1[1] === 'string') walk(s1[1], d + 1);
-        if (b.opcode === 'control_if_else') {
-          out.push(`<div class="py-0.5" style="padding-left:${d * 16}px">【控制】否則</div>`);
-          if (s2 && typeof s2[1] === 'string') walk(s2[1], d + 1);
-        }
-        id = b.next;
-      }
-    };
-    tops.forEach(id => { walk(id, 1); out.push('<div class="h-1"></div>'); });
-  });
-  return out.join('');
-}
-function renderBlocks() {
-  const r = res[cur];
-  if (!r.raw) { $('blocks').innerHTML = '<span class="text-slate-500">尚未上傳 .sb3 檔案...</span>'; return; }
-  $('blocks').innerHTML = describe(r.raw.targets) || '<span class="text-slate-400">未偵測到程式積木。</span>';
+// ---------- 上傳即繳交（每題一次） ----------
+// 檢查班級、座號、姓名；有問題就提示並回傳 false
+function checkId() {
+  const miss = missingFields();
+  if (miss.length) {
+    const names = miss.map(f => FIELD_LABEL[f]).join('、');
+    alert(`⚠ 尚未填寫：${names}\n\n請在畫面最上方填好「班級、座號、姓名」後，再上傳。`);
+    feedback('尚未填寫個人資料', `請填寫：${names}`);
+    $(miss[0]).focus();
+    return false;
+  }
+  const bad = idError();
+  if (bad) { alert('⚠ ' + bad[1]); feedback('請檢查班級、座號與姓名', bad[1]); $(bad[0]).focus(); return false; }
+  return true;
 }
 
-// ---------- 讀檔 ----------
+function startUpload() {
+  if (busy || res[cur].submitted) return;
+  if (!checkId()) return;
+  $('file').click();
+}
+
 async function processFile(file) {
-  if (res[cur].submitted) { feedback('本題已繳交', '已鎖定，無法再修改。'); return; }
+  if (busy) return;
+  if (res[cur].submitted) { feedback('本題已繳交', '每題只能上傳一次，已鎖定無法再修改。'); return; }
+  if (!checkId()) return;
   if (!/\.sb3$/i.test(file.name)) { feedback('檔案格式錯誤', '請上傳副檔名為 .sb3 的檔案。'); return; }
   const taskId = cur;
+  let raw;
   try {
     const z = await JSZip.loadAsync(file);
     const pj = z.file('project.json');
     if (!pj) throw new Error('no project.json');
     const data = JSON.parse(await pj.async('text'));
     // 送到伺服器的只有積木＋角色基本資料（名稱、位置、變數初始值），不含造型、音效
-    const raw = { targets: (data.targets || []).map(t => ({
+    raw = { targets: (data.targets || []).map(t => ({
       isStage: !!t.isStage, name: String(t.name || ''), x: toN(t.x), y: toN(t.y),
       direction: t.direction == null ? 90 : toN(t.direction), visible: t.visible !== false,
       variables: t.variables || {}, blocks: t.blocks || {}
     })) };
-    res[taskId].raw = raw;
-    res[taskId].parsed = gradeTask(taskId, raw);
-    res[taskId].fileName = file.name;
-    res[taskId].view = 0;
-    if (cur === taskId) refresh(); else updateTotal();
   } catch (e) {
     console.warn(e);
-    feedback('讀取失敗', '檔案可能損壞或不是有效的 Scratch 專案。');
-  }
-}
-
-// ---------- 舞台：畫出某一組測試的結果（灰色虛線為正確答案，平移到和你的圖形對齊） ----------
-function viewTest(n) { res[cur].view = n; renderStage(); }
-
-function renderStage() {
-  const r = res[cur], p = r.parsed, cv = $('cv'), ctx = cv.getContext('2d');
-  ctx.setTransform(2, 0, 0, 2, 0, 0);
-  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 480, 360);
-  ctx.strokeStyle = '#f1f5f9'; ctx.lineWidth = 1;
-  for (let x = 0; x <= 480; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 360); ctx.stroke(); }
-  for (let y = 0; y <= 360; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(480, y); ctx.stroke(); }
-  ctx.strokeStyle = '#e2e8f0'; ctx.beginPath(); ctx.moveTo(240, 0); ctx.lineTo(240, 360); ctx.moveTo(0, 180); ctx.lineTo(480, 180); ctx.stroke();
-  $('ov').classList.toggle('hidden', !!p);
-  if (!p) { $('testBox').innerHTML = ''; $('stageSub').innerText = ''; return; }
-  const t = p.tests[r.view] || p.tests[0], run = t.run;
-  $('stageSub').innerText = `（${t.title}）`;
-  const drawn = uniqueSegs(run.segs);
-  // 正確答案：平移到和你畫的圖左下角對齊；你沒畫東西時，從畫筆最後的起點附近開始
-  if (t.expect && t.expect.length) {
-    const box = s => s.reduce((m, g) => ({ x: Math.min(m.x, g.x1, g.x2), y: Math.min(m.y, g.y1, g.y2) }), { x: Infinity, y: Infinity });
-    const be = box(t.expect), bd = drawn.length ? box(drawn) : be;
-    const dx = bd.x - be.x, dy = bd.y - be.y;
-    ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-    ctx.beginPath();
-    t.expect.forEach(g => { ctx.moveTo(240 + g.x1 + dx, 180 - g.y1 - dy); ctx.lineTo(240 + g.x2 + dx, 180 - g.y2 - dy); });
-    ctx.stroke(); ctx.restore();
-  }
-  ctx.lineCap = 'round';
-  run.segs.forEach(g => {
-    ctx.strokeStyle = '#2563eb'; ctx.lineWidth = Math.min(4, Math.max(1.5, g.w));
-    ctx.beginPath(); ctx.moveTo(240 + g.x1, 180 - g.y1); ctx.lineTo(240 + g.x2, 180 - g.y2); ctx.stroke();
-  });
-  ctx.fillStyle = '#FFAB19'; ctx.beginPath(); ctx.arc(240 + run.x, 180 - run.y, 4, 0, 7); ctx.fill();
-
-  let h = p.tests.map((x, n) => {
-    const cls = x.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900';
-    const sel = n === r.view ? ' ring-2 ring-teal-400' : '';
-    return `<div onclick="viewTest(${n})" class="rounded-xl border p-3 cursor-pointer ${cls}${sel}"><div class="font-bold mb-1">${x.ok ? '✔' : '✕'} ${esc(x.title)}${n === r.view ? '　<span class="font-normal text-teal-700">← 舞台顯示中</span>' : ''}</div>${x.lines.map(l => `<div>${esc(l)}</div>`).join('')}</div>`;
-  }).join('');
-  if (p.timedOut) h += '<div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3">程式執行太久，可能有無限迴圈，或函式一直呼叫自己。</div>';
-  $('testBox').innerHTML = h;
-}
-
-// ---------- 繳交 ----------
-async function submitTask() {
-  const r = res[cur];
-  if (busy || !r.parsed || !r.raw || r.submitted) return;
-  const miss = missingFields();
-  if (miss.length) {
-    const names = miss.map(f => FIELD_LABEL[f]).join('、');
-    alert(`⚠ 尚未填寫：${names}\n\n請在畫面最上方填好「班級、座號、姓名」後，再按繳交。`);
-    feedback('尚未填寫個人資料', `請填寫：${names}`);
-    $(miss[0]).focus();
+    feedback('讀取失敗', '檔案可能損壞或不是有效的 Scratch 專案，請重新選擇檔案。');
     return;
   }
-  const bad = idError();
-  if (bad) { alert('⚠ ' + bad[1]); feedback('請檢查班級、座號與姓名', bad[1]); $(bad[0]).focus(); return; }
 
-  const stu = student(), taskId = cur;
-  busy = true;
-  $('submit').disabled = true; $('submit').innerText = '送出中，請稍候…';
+  const stu = student();
+  if (!confirm(`確定要繳交第 ${taskId} 題嗎？\n\n${stu.className} 班 ${stu.seatNo} 號 ${stu.studentName}\n檔案：${file.name}\n\n每題只能上傳一次，繳交後就無法修改。`)) {
+    feedback('已取消', '尚未繳交，確定好檔案後再按「上傳並繳交本題」。');
+    return;
+  }
+
+  busy = true; refresh();
+  feedback('送出中，請稍候…', `正在繳交第 ${taskId} 題：${file.name}`);
   try {
     const out = await fetch(SHEET_API_URL, {
       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ ...stu, assignment: ASSIGNMENT, taskId, fileName: r.fileName, project: r.raw })
+      body: JSON.stringify({ ...stu, assignment: ASSIGNMENT, taskId, fileName: file.name, project: raw })
     }).then(x => x.json());
     if (!out || !out.ok) throw new Error((out && out.error) || '伺服器沒有回應');
-    r.submitted = true; r.serverScore = out.score;
+    const r = res[taskId];
+    r.raw = raw; r.fileName = file.name; r.submitted = true; r.serverScore = out.score;
     busy = false; refresh();
-    feedback(`✅ 成績送出！第 ${taskId} 題已繳交，得 ${out.score} 分（通過 ${out.passed}/${out.total} 項）`, '以伺服器評分為準，目前總分顯示在右上角。');
-    alert(`✅ 成績送出！\n\n${stu.className} 班 ${stu.seatNo} 號 ${stu.studentName}\n第 ${taskId} 題已繳交，得 ${out.score} 分（通過 ${out.passed}/${out.total} 項）`);
+    feedback(`✅ 成績送出！第 ${taskId} 題已繳交，得 ${out.score} 分`, '目前總分顯示在右上角。');
+    alert(`✅ 成績送出！\n\n${stu.className} 班 ${stu.seatNo} 號 ${stu.studentName}\n第 ${taskId} 題已繳交，得 ${out.score} 分`);
   } catch (e) {
     busy = false; refresh();
-    feedback('傳送失敗', (e.message || '') + '　請檢查網路後再按一次繳交。');
-    alert('❌ 成績送出失敗\n\n' + (e.message || '') + '\n請檢查網路後再按一次繳交。');
+    feedback('傳送失敗，本題尚未繳交', (e.message || '') + '　請檢查網路後，再按一次「上傳並繳交本題」。');
+    alert('❌ 成績送出失敗，本題尚未繳交\n\n' + (e.message || '') + '\n請檢查網路後再上傳一次。');
   }
 }
 
