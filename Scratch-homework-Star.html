@@ -29,8 +29,7 @@
 <main class="max-w-6xl mx-auto px-4 mt-5">
   <nav id="tabs" class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5"></nav>
 
-  <div class="grid lg:grid-cols-12 gap-5">
-    <div class="lg:col-span-7 space-y-5">
+  <div class="grid lg:grid-cols-2 gap-5 items-start">
       <div class="bg-white rounded-2xl p-5 shadow-sm border">
         <div class="flex justify-between items-center mb-3">
           <h2 id="taskTitle" class="font-bold text-lg"></h2>
@@ -59,34 +58,15 @@
         <button id="submit" onclick="submitTask()" class="mt-4 w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold text-sm px-4 py-3 rounded-xl">確認繳交</button>
       </div>
 
-      <div class="bg-white rounded-2xl p-5 shadow-sm border">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border lg:sticky lg:top-20">
         <h3 class="font-bold mb-3">檢測結果 <span class="text-xs font-normal text-slate-400">（每項 <span id="ptsEach">6</span> 分，點任一項可看說明與範例）</span></h3>
         <div id="checklist" class="space-y-2"></div>
-      </div>
-
-      <div class="bg-white rounded-2xl p-5 shadow-sm border">
-        <h3 class="font-bold mb-3">你的積木程式</h3>
-        <div id="blocks" class="bg-slate-900 text-emerald-300 p-3 rounded-xl text-xs font-mono max-h-64 overflow-y-auto"></div>
-      </div>
-    </div>
-
-    <div class="lg:col-span-5">
-      <div class="bg-white rounded-2xl p-5 shadow-sm border lg:sticky lg:top-20">
-        <div class="flex justify-between items-center mb-3">
-          <h3 class="font-bold">舞台模擬</h3>
-          <button id="replay" onclick="play()" disabled class="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white disabled:bg-slate-300">▶ 重畫一次</button>
-        </div>
-        <div class="relative aspect-[4/3] bg-slate-950 rounded-2xl overflow-hidden border">
-          <canvas id="cv" width="960" height="720" class="w-full h-full"></canvas>
-          <div id="ov" class="absolute inset-0 bg-slate-950/85 flex items-center justify-center text-white text-sm">等待上傳 .sb3 檔案...</div>
-        </div>
-        <div id="info" class="mt-3 text-xs"></div>
+        <div id="info" class="mt-4 text-xs"></div>
         <div id="fb" class="mt-4 p-4 rounded-xl bg-slate-50 border">
           <b id="fbT" class="text-sm">準備就緒</b>
           <p id="fbX" class="text-xs text-slate-500 mt-1">請上傳你的 .sb3 檔案。</p>
         </div>
       </div>
-    </div>
   </div>
 </main>
 
@@ -558,7 +538,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHint();
 
 // ---------- 每一題的狀態 ----------
 const ST = {};
-TASKS.forEach(t => { ST[t.id] = { parsed: null, raw: null, scene: null, fileName: '', submitted: false, serverScore: 0 }; });
+TASKS.forEach(t => { ST[t.id] = { parsed: null, raw: null, fileName: '', submitted: false, serverScore: 0 }; });
 let cur = 1;
 const task = () => TASKS.find(t => t.id === cur);
 const S = () => ST[cur];
@@ -566,7 +546,6 @@ const taskScore = id => ST[id].submitted ? ST[id].serverScore : ST[id].parsed ? 
 
 function selectTask(id) {
   cur = id;
-  cancelAnimationFrame(raf);
   const t = task(), tx = TASK_TEXT[id];
   $('taskTitle').innerText = `第 ${id} 題｜${t.title}`;
   $('dropTask').innerText = `第 ${id} 題`;
@@ -576,7 +555,6 @@ function selectTask(id) {
   $('taskPicCap').innerText = tx.cap;
   $('ptsEach').innerText = t.pts;
   refresh();
-  if (S().scene) play(); else draw(0);
 }
 
 function renderTabs() {
@@ -656,9 +634,7 @@ function refresh() {
     badge.innerText = p ? '草稿測試中' : '未繳交';
   }
   $('total').innerText = TASKS.reduce((a, t) => a + taskScore(t.id), 0);
-  $('replay').disabled = !st.scene;
-  $('ov').classList.toggle('hidden', !!st.scene);
-  renderTabs(); renderChecklist(); renderBlocks(); renderInfo();
+  renderTabs(); renderChecklist(); renderInfo();
 }
 
 function renderChecklist() {
@@ -694,79 +670,6 @@ function renderInfo() {
   box.innerHTML = h;
 }
 
-// ---------- 積木清單 ----------
-function describe(T) {
-  const out = [];
-  const txt = (B, inp) => {
-    if (!inp) return '';
-    const v = inp[1];
-    if (Array.isArray(v)) return v[0] === 12 ? `[${v[1]}]` : String(v[1] == null ? '' : v[1]);
-    if (typeof v === 'string' && B[v] && B[v].opcode) {
-      const b = B[v], i = b.inputs || {};
-      if (/^argument_reporter/.test(b.opcode)) return `(${b.fields.VALUE[0]})`;
-      if (b.opcode === 'sensing_answer') return '(詢問的答案)';
-      if (b.opcode === 'data_variable') return `[${b.fields.VARIABLE[0]}]`;
-      const op = { operator_add: '＋', operator_subtract: '－', operator_multiply: '×', operator_divide: '÷' }[b.opcode];
-      if (op) return `(${txt(B, i.NUM1)} ${op} ${txt(B, i.NUM2)})`;
-      return `<${b.opcode.replace(/^.*?_/, '')}>`;
-    }
-    return Array.isArray(inp[2]) ? String(inp[2][1]) : '';
-  };
-  const pc = s => String(s || '').replace(/%[sbn]/g, '( )');
-  const lab = (B, b) => {
-    const i = b.inputs || {}, v = k => esc(txt(B, i[k]));
-    switch (b.opcode) {
-      case 'event_whenflagclicked': return '【事件】當綠旗被點擊';
-      case 'procedures_definition': { const pr = B[i.custom_block && i.custom_block[1]]; return `【函式】定義 ${esc(pc(pr && pr.mutation && pr.mutation.proccode))}`; }
-      case 'procedures_call': return `【函式】${esc(pc(b.mutation && b.mutation.proccode))}` + Object.keys(i).map(k => ' ' + esc(txt(B, i[k]))).join('');
-      case 'looks_hide': return '【外觀】隱藏';
-      case 'looks_show': return '【外觀】顯示';
-      case 'pen_penDown': return '【畫筆】下筆';
-      case 'pen_penUp': return '【畫筆】停筆';
-      case 'pen_clear': return '【畫筆】筆跡全部清除';
-      case 'pen_setPenColorToColor': return `【畫筆】筆跡顏色設為 ${v('COLOR')}`;
-      case 'pen_setPenSizeTo': return `【畫筆】筆跡寬度設為 ${v('SIZE')}`;
-      case 'sensing_askandwait': return `【偵測】詢問 ${v('QUESTION')} 並等待`;
-      case 'motion_movesteps': return `【動作】移動 ${v('STEPS')} 點`;
-      case 'motion_turnright': return `【動作】右轉 ${v('DEGREES')} 度`;
-      case 'motion_turnleft': return `【動作】左轉 ${v('DEGREES')} 度`;
-      case 'motion_gotoxy': return `【動作】定位到 x:${v('X')} y:${v('Y')}`;
-      case 'motion_setx': return `【動作】x 設為 ${v('X')}`;
-      case 'motion_sety': return `【動作】y 設為 ${v('Y')}`;
-      case 'motion_changexby': return `【動作】x 改變 ${v('DX')}`;
-      case 'motion_changeyby': return `【動作】y 改變 ${v('DY')}`;
-      case 'motion_pointindirection': return `【動作】面朝 ${v('DIRECTION')} 度`;
-      case 'control_repeat': return `【控制】重複 ${v('TIMES')} 次`;
-      case 'control_forever': return '【控制】重複無限次';
-      case 'data_setvariableto': return `【變數】變數 ${esc(b.fields.VARIABLE[0])} 設為 ${v('VALUE')}`;
-      case 'data_changevariableby': return `【變數】變數 ${esc(b.fields.VARIABLE[0])} 改變 ${v('VALUE')}`;
-      default: return `【${b.opcode.split('_')[0]}】${b.opcode.replace(/^.*?_/, '')}`;
-    }
-  };
-  T.forEach(tg => {
-    const B = tg.blocks || {};
-    const tops = Object.keys(B).filter(id => isBlk(B[id]) && B[id].topLevel && !B[id].shadow);
-    if (!tops.length) return;
-    out.push(`<div class="text-amber-300 font-bold mt-2 first:mt-0">■ ${tg.isStage ? '舞台' : '角色：' + esc(tg.name)}</div>`);
-    const walk = (id, d) => {
-      while (id && isBlk(B[id]) && out.length < 500) {
-        const b = B[id];
-        out.push(`<div class="py-0.5" style="padding-left:${d * 16}px">${lab(B, b)}</div>`);
-        const s = b.inputs && b.inputs.SUBSTACK;
-        if (s && typeof s[1] === 'string') walk(s[1], d + 1);
-        id = b.next;
-      }
-    };
-    tops.forEach(id => { walk(id, 1); out.push('<div class="h-1"></div>'); });
-  });
-  return out.join('');
-}
-function renderBlocks() {
-  const st = S();
-  if (!st.raw) { $('blocks').innerHTML = '<span class="text-slate-500">尚未上傳 .sb3 檔案...</span>'; return; }
-  $('blocks').innerHTML = describe(st.raw.targets) || '<span class="text-slate-400">未偵測到程式積木。</span>';
-}
-
 // ---------- 讀檔 ----------
 async function processFile(file) {
   const id = cur, st = ST[id];
@@ -786,70 +689,11 @@ async function processFile(file) {
     })) };
     st.parsed = gradeProject(st.raw, id);
     st.fileName = file.name;
-    st.scene = await loadScene(z, data, st.parsed);
-    if (cur === id) { refresh(); play(); }
+    if (cur === id) refresh();
   } catch (e) {
     console.warn(e);
     feedback('讀取失敗', '檔案可能損壞或不是有效的 Scratch 專案。');
   }
-}
-
-// ---------- 舞台模擬：.sb3 裡的背景圖片＋實際畫出的筆跡（照順序慢慢畫出來） ----------
-async function loadImg(z, c) {
-  if (!c) return null;
-  const fn = c.md5ext || (c.assetId + '.' + c.dataFormat);
-  const f = z.file(fn);
-  if (!f) return null;
-  const isSvg = /svg$/i.test(c.dataFormat || fn);
-  const blob = isSvg ? new Blob([await f.async('text')], { type: 'image/svg+xml' })
-    : new Blob([await f.async('uint8array')], { type: /jpe?g$/i.test(fn) ? 'image/jpeg' : 'image/png' });
-  return new Promise(ok => {
-    const im = new Image();
-    im.onload = () => ok(im.width ? { img: im, res: c.bitmapResolution || 1, rcx: toN(c.rotationCenterX), rcy: toN(c.rotationCenterY) } : null);
-    im.onerror = () => ok(null);
-    im.src = URL.createObjectURL(blob);
-  });
-}
-async function loadScene(z, data, parsed) {
-  const T = data.targets || [], stage = T.find(t => t.isStage);
-  const bd = stage ? await loadImg(z, (stage.costumes || [])[stage.currentCostume || 0]) : null;
-  const tg = T.find(t => t.name === parsed.drawer && !t.isStage);
-  const spr = tg ? await loadImg(z, (tg.costumes || [])[tg.currentCostume || 0]) : null;
-  return { bd, spr, tg };
-}
-
-const cv = $('cv'), ctx = cv.getContext('2d');
-function draw(k) {
-  ctx.setTransform(2, 0, 0, 2, 0, 0);
-  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 480, 360);
-  const st = S(), sc = st.scene;
-  if (!sc) return;
-  if (sc.bd) { const b = sc.bd; ctx.save(); ctx.translate(240, 180); ctx.scale(1 / b.res, 1 / b.res); ctx.drawImage(b.img, -b.rcx, -b.rcy); ctx.restore(); }
-  const r = st.parsed.run, segs = r.segs.slice(0, k);
-  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  segs.forEach(g => {
-    ctx.strokeStyle = g.c; ctx.lineWidth = g.w;
-    ctx.beginPath(); ctx.moveTo(240 + g.x1, 180 - g.y1); ctx.lineTo(240 + g.x2, 180 - g.y2); ctx.stroke();
-  });
-  // 角色沒有隱藏的話，把它畫在最後的位置上（提醒要隱藏）
-  if (r.visible && sc.spr && sc.tg) {
-    const c = sc.spr, s = (sc.tg.size == null ? 100 : toN(sc.tg.size)) / 100 / c.res;
-    const atEnd = k >= r.segs.length, last = segs[segs.length - 1];
-    const x = atEnd ? r.x : last ? last.x2 : toN(sc.tg.x), y = atEnd ? r.y : last ? last.y2 : toN(sc.tg.y);
-    ctx.save(); ctx.globalAlpha = 0.9; ctx.translate(240 + x, 180 - y); ctx.scale(s, s); ctx.drawImage(c.img, -c.rcx, -c.rcy); ctx.restore();
-  }
-}
-let raf = 0;
-function play() {
-  cancelAnimationFrame(raf);
-  if (!S().scene) return;
-  const total = S().parsed.run.segs.length, dur = Math.min(4000, 600 + total * 25), t0 = performance.now();
-  const step = now => {
-    const f = Math.min(1, (now - t0) / dur);
-    draw(Math.ceil(total * f));
-    if (f < 1) raf = requestAnimationFrame(step);
-  };
-  raf = requestAnimationFrame(step);
 }
 
 // ---------- 繳交 ----------
