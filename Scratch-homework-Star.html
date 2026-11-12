@@ -27,7 +27,7 @@
 </header>
 
 <main class="max-w-6xl mx-auto px-4 mt-5">
-  <nav id="tabs" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5"></nav>
+  <nav id="tabs" class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5"></nav>
 
   <div class="grid lg:grid-cols-12 gap-5">
     <div class="lg:col-span-7 space-y-5">
@@ -60,7 +60,7 @@
       </div>
 
       <div class="bg-white rounded-2xl p-5 shadow-sm border">
-        <h3 class="font-bold mb-3">檢測結果 <span class="text-xs font-normal text-slate-400">（每項 5 分，點任一項可看說明與範例）</span></h3>
+        <h3 class="font-bold mb-3">檢測結果 <span class="text-xs font-normal text-slate-400">（每項 <span id="ptsEach">6</span> 分，點任一項可看說明與範例）</span></h3>
         <div id="checklist" class="space-y-2"></div>
       </div>
 
@@ -140,7 +140,7 @@
         <h2 class="text-sm font-bold text-slate-200">學生成績（每題取最新一次繳交）</h2>
         <input id="t-filter" type="text" placeholder="搜尋班級、座號或姓名" class="bg-slate-950 border border-slate-800 text-xs text-white px-3 py-1.5 rounded-lg focus:outline-none focus:border-amber-500 w-44" oninput="teacherRender()">
       </div>
-      <p class="text-[11px] text-slate-500 mb-3">共 4 題，每題 25 分（5 個檢測項目 × 5 分）。分數下方的 ✔ / ✕ 依序是各檢測項目，滑鼠移上去可看項目全名。「—」= 該題尚未繳交。學生以「班級＋座號＋姓名」辨識。</p>
+      <p class="text-[11px] text-slate-500 mb-3">共 3 題，每題 5 個檢測項目：第 1、2 題每項 6 分（各 30 分），第 3 題每項 8 分（40 分），總分 100 分。分數下方的 ✔ / ✕ 依序是各檢測項目，滑鼠移上去可看項目全名。「—」= 該題尚未繳交。學生以「班級＋座號＋姓名」辨識。</p>
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs text-slate-200">
           <thead id="t-thead" class="bg-slate-950 text-slate-400 text-[11px] border-b border-slate-800"></thead>
@@ -178,30 +178,27 @@ const $ = id => document.getElementById(id);
    評分核心（網頁與 Apps Script 共用，兩邊內容要保持一模一樣）
    把負責畫圖的角色程式（含自訂積木／函式、變數、迴圈、畫筆）真的跑一遍，
    記下每一條畫出的線，找出畫好的星星，再檢查隱藏、函式、星星形狀、數量與排列。
-   四題各 5 個檢測項目，每項 5 分，一題 25 分，總分 100 分。
+   三題各 5 個檢測項目：第 1、2 題每項 6 分（各 30 分），第 3 題每項 8 分（40 分），總分 100 分。
    ===================================================================== */
-const ASSIGNMENT = 'stars4';
+const ASSIGNMENT = 'stars3';
 const STAR_LEN = 40, STAR_TURN = 144;
 const STAR_R = STAR_LEN / (2 * Math.sin(72 * Math.PI / 180)); // 星星五個尖角到中心的距離
-const PTS_PER_CHECK = 5;
 const C_HIDE = '隱藏角色，只顯示畫筆軌跡';
 const C_FUNC = '使用函式「畫星星」（自訂積木），並在主程式呼叫';
 const C_STAR = '每顆星星都正確：5 段、每段 40 點、右轉 144 度（移動時要停筆）';
 const TASKS = [
-  { id: 1, title: '直角三角形星星', icon: '◣',
+  { id: 1, title: '直角三角形星星', icon: '◣', pts: 6,
     criteria: [C_HIDE, C_FUNC, C_STAR, '共 6 列 21 顆星星（1、2、3、4、5、6 顆）', '排成直角三角形：第 n 列有 n 顆，間距 50 點、靠左對齊'],
     short: ['隱藏', '函式', '星星', '21 顆', '三角形'] },
-  { id: 2, title: '倒三角形星星', icon: '◤',
+  { id: 2, title: '倒三角形星星', icon: '◤', pts: 6,
     criteria: [C_HIDE, C_FUNC, C_STAR, '共 6 列 21 顆星星（6、5、4、3、2、1 顆）', '排成倒三角形：第 n 列有 7 − n 顆，間距 50 點、靠左對齊'],
     short: ['隱藏', '函式', '星星', '21 顆', '倒三角形'] },
-  { id: 3, title: '五邊形星星', icon: '⬟',
-    criteria: [C_HIDE, C_FUNC, C_STAR, '共 15 顆星星', '排成正五邊形：每邊 3 段、每段 50 點、轉 72 度'],
-    short: ['隱藏', '函式', '星星', '15 顆', '五邊形'] },
-  { id: 4, title: '圓形星星', icon: '●',
+  { id: 3, title: '圓形星星', icon: '●', pts: 8,
     criteria: [C_HIDE, C_FUNC, C_STAR, '共 18 顆星星', '排成圓形：每步 48 點、每次轉 20 度'],
     short: ['隱藏', '函式', '星星', '18 顆', '圓形'] }
 ];
-const TASK_MAX = TASKS[0].criteria.length * PTS_PER_CHECK; // 25
+const taskMax = id => { const t = TASKS.find(t => t.id === Number(id)) || TASKS[0]; return t.criteria.length * t.pts; }; // 30、30、40
+const TOTAL_MAX = TASKS.reduce((a, t) => a + taskMax(t.id), 0); // 100
 
 const isBlk = b => !!b && typeof b === 'object' && !Array.isArray(b) && !!b.opcode;
 const toN = x => { if (x === true) return 1; const n = Number(x); return (x === '' || x == null || isNaN(n)) ? 0 : n; };
@@ -405,7 +402,7 @@ function polyPts(sides, per, step, turn) {
   }
   return p;
 }
-const EXPECT = { 1: triPts(6), 2: invTriPts(6), 3: polyPts(5, 3, 50, 72), 4: polyPts(18, 1, 48, 20) };
+const EXPECT = { 1: triPts(6), 2: invTriPts(6), 3: polyPts(18, 1, 48, 20) };
 // 平移後一一對上（方向要對：三角形、倒三角形用）
 function matchShift(A, E, tol) {
   tol = tol || 2;
@@ -418,7 +415,7 @@ function matchShift(A, E, tol) {
     if (k < 0) return false; used[k] = true; return true;
   });
 }
-// 兩兩距離全部一樣（可旋轉、可翻面：五邊形、圓形用）
+// 兩兩距離全部一樣（可旋轉、可翻面：圓形用）
 function matchShape(A, E, tol) {
   tol = tol || 2;
   if (!A.length || A.length !== E.length) return false;
@@ -440,10 +437,10 @@ function gradeProject(project, taskId) {
   ];
   const E = EXPECT[task.id], expectN = E.length;
   checks.push(n === E.length);
-  checks.push(task.id <= 2 ? matchShift(P, E) : matchShape(P, E));  // 三角形、倒三角形方向要對；五邊形、圓形可旋轉
+  checks.push(task.id <= 2 ? matchShift(P, E) : matchShape(P, E));  // 三角形、倒三角形方向要對；圓形可旋轉
   const passed = checks.filter(Boolean).length;
   return {
-    taskId: task.id, checks, passed, total: task.criteria.length, score: passed * PTS_PER_CHECK,
+    taskId: task.id, checks, passed, total: task.criteria.length, score: passed * task.pts,
     failed: task.criteria.filter((c, i) => !checks[i]).join('、'),
     run, drawer: tg ? tg.name : null, starCount: n, expectN, extraSegs: fs.extra, segCount: fs.total
   };
@@ -469,16 +466,11 @@ const TASK_TEXT = {
                '同一列的星星間距 <b>50</b> 點，每畫完一列往下 <b>50</b> 點。',
                '提示：變數「列次」從 6 開始，每畫完一列改變 −1。'],
        cap: '6 列倒三角形', pts: () => EXPECT[2] },
-  3: { intro: '讓星星沿著正五邊形的邊排排站！',
-       rules: ['正五邊形共 <b>5</b> 邊，每邊畫 <b>3</b> 顆星星（共 15 顆）。',
-               '每畫一顆就移動 <b>50</b> 點；畫完一邊，前進方向轉 <b>72</b> 度。',
-               '提示：用變數「方向」記住前進方向，畫完星星後「面朝 方向」再移動。'],
-       cap: '每邊 3 顆', pts: () => EXPECT[3] },
-  4: { intro: '讓 18 顆星星手牽手圍成一個圓！',
+  3: { intro: '讓 18 顆星星手牽手圍成一個圓！',
        rules: ['共畫 <b>18</b> 顆星星。',
-               '每畫一顆就移動 <b>48</b> 點，前進方向轉 <b>20</b> 度（18 × 20 = 360）。',
+               '每畫一顆就移動 <b>48</b> 點，前進方向轉 <b>20</b> 度。為什麼是 20？繞一圈回到原點總共要轉 360 度，360 ÷ 18 = 20。',
                '提示：用變數「方向」記住前進方向，畫完星星後「面朝 方向」再移動。'],
-       cap: '18 顆排成圓', pts: () => EXPECT[4] }
+       cap: '18 顆排成圓', pts: () => EXPECT[3] }
 };
 
 function starPath(cx, cy, r) {
@@ -512,8 +504,7 @@ const MAINS = {
       ['motion', 'x 設為 -200', 1], rp('(列次)', 1), callB('畫星星', 2), mv(50, 2), ['motion', 'y 改變 -50', 1], chgV('列次', 1, 1)],
   2: [flagB(), hideB(), go(-200, 140), clrB(), setV('列次', 6), rp(6),
       ['motion', 'x 設為 -200', 1], rp('(列次)', 1), callB('畫星星', 2), mv(50, 2), ['motion', 'y 改變 -50', 1], chgV('列次', -1, 1)],
-  3: [flagB(), hideB(), go(-95, -97), clrB(), setV('方向', 90), rp(5), rp(3, 1), callB('畫星星', 2), face('(方向)', 2), mv(50, 2), chgV('方向', -72, 1)],
-  4: [flagB(), hideB(), go(-44, -130), clrB(), setV('方向', 90), rp(18), callB('畫星星', 1), face('(方向)', 1), mv(48, 1), chgV('方向', -20, 1)]
+  3: [flagB(), hideB(), go(-44, -130), clrB(), setV('方向', 90), rp(18), callB('畫星星', 1), face('(方向)', 1), mv(48, 1), chgV('方向', -20, 1)]
 };
 const HINT_COMMON = [
   id => ({ tip: '題目只要看見畫筆軌跡，所以程式一開始就用「隱藏」積木把角色藏起來（外觀類）。也可以在角色資訊把「顯示」關掉。',
@@ -522,7 +513,7 @@ const HINT_COMMON = [
     good: [lbl('函式：畫一顆星星'), ...STAR_DEF, lbl('主程式'), ...MAINS[id]],
     bad: [lbl('只建立函式卻沒有呼叫（主程式沒有「畫星星」積木）'), flagB(), hideB(), rp(5), mv(50, 1)] }),
   id => ({ tip: '一顆星星 = 重複 5 次（移動 40 點、右轉 144 度），5 × 144 = 720，剛好轉兩圈回到起點。函式一開始先「面朝 90 度」讓星星都是正的，最後一定要「停筆」，否則移動到下一顆時會多畫出一條線。',
-    good: STAR_DEF, bad: [defB('畫星星'), PD(), rp(5), mv(40, 1), tr(72, 1), lbl('（右轉 72 度畫出來是五邊形，而且最後沒有停筆）')] })
+    good: STAR_DEF, bad: [defB('畫星星'), PD(), rp(5), mv(40, 1), tr(72, 1), lbl('（右轉 72 度畫出來是五邊形，不是星星，而且最後沒有停筆）')] })
 ];
 const HINT_TASK = {
   1: [
@@ -538,16 +529,10 @@ const HINT_TASK = {
       good: MAINS[2], bad: [setV('列次', 6), rp(6), rp('(列次)', 1), callB('畫星星', 2), mv(50, 2), ['motion', 'y 改變 -50', 1], chgV('列次', -1, 1), lbl('（沒有 x 設為 -200，每列會接在上一列後面，排成斜的）')] }
   ],
   3: [
-    { tip: '外層重複 5 次 = 5 個邊，內層重複 3 次 = 每邊 3 顆，5 × 3 = 15 顆。',
-      good: MAINS[3], bad: [rp(5), callB('畫星星', 1), lbl('（每邊只畫 1 顆，只有 5 顆）')] },
-    { tip: '因為「畫星星」會把方向改成 90 度，所以要用變數「方向」記住前進方向：畫完星星後「面朝 (方向)」再移動 50 點；每畫完一邊，方向改變 −72（360 ÷ 5 = 72）。',
-      good: MAINS[3], bad: [rp(5), rp(3, 1), callB('畫星星', 2), mv(50, 2), tr(72, 1), lbl('（畫完星星方向已變成 90，右轉 72 沒有用）')] }
-  ],
-  4: [
     { tip: '重複 18 次，每次畫一顆星星，共 18 顆。',
-      good: MAINS[4], bad: [rp(12), callB('畫星星', 1), lbl('（只有 12 顆）')] },
-    { tip: '用變數「方向」記住前進方向：畫完星星後「面朝 (方向)」、移動 48 點，再把方向改變 −20。18 × 20 = 360，剛好繞一圈回到起點。',
-      good: MAINS[4], bad: [rp(18), callB('畫星星', 1), mv(48, 1), chgV('方向', -20, 1), lbl('（沒有面朝 (方向)，星星會排成一直線）')] }
+      good: MAINS[3], bad: [rp(12), callB('畫星星', 1), lbl('（只有 12 顆）')] },
+    { tip: '「畫星星」第一行是「面朝 90 度」，畫完每顆星角色都會轉回朝右，原本要往哪走就忘了。所以用變數「方向」記住前進方向：畫完星星後「面朝 (方向)」、移動 48 點，再把方向改變 −20（數字變小 = 往左轉）。18 × 20 = 360，剛好繞一圈回到起點。',
+      good: MAINS[3], bad: [rp(18), callB('畫星星', 1), mv(48, 1), chgV('方向', -20, 1), lbl('（沒有面朝 (方向)，星星會排成一直線）')] }
   ]
 };
 const getHint = (id, i) => i < 3 ? HINT_COMMON[i](id) : HINT_TASK[id][i - 3];
@@ -589,6 +574,7 @@ function selectTask(id) {
   $('taskRules').innerHTML = ['新建專案，背景與角色可自選。', ...COMMON_RULES, ...tx.rules].map(r => `<li>${r}</li>`).join('');
   $('taskPic').innerHTML = patternSVG(id);
   $('taskPicCap').innerText = tx.cap;
+  $('ptsEach').innerText = t.pts;
   refresh();
   if (S().scene) play(); else draw(0);
 }
@@ -601,7 +587,7 @@ function renderTabs() {
     return `<button onclick="selectTask(${t.id})" class="text-left rounded-2xl border-2 px-3 py-2.5 transition ${base}">
       <div class="text-[11px] font-bold ${on ? 'text-sky-100' : 'text-slate-400'}">第 ${t.id} 題 · ${state}</div>
       <div class="flex justify-between items-end gap-1"><span class="font-extrabold text-sm">${t.icon} ${t.title}</span>
-      <span class="font-black text-sm whitespace-nowrap">${sc}<span class="text-[10px] font-bold opacity-70">/${TASK_MAX}</span></span></div></button>`;
+      <span class="font-black text-sm whitespace-nowrap">${sc}<span class="text-[10px] font-bold opacity-70">/${taskMax(t.id)}</span></span></div></button>`;
   }).join('');
 }
 
@@ -680,15 +666,15 @@ function renderChecklist() {
   $('checklist').innerHTML = task().criteria.map((c, i) => {
     let icon = '○', cls = 'bg-slate-50 border-slate-200', tag = '待檢測';
     if (p) {
-      if (p.checks[i]) { icon = '✔'; cls = 'bg-emerald-50 border-emerald-200 text-emerald-900'; tag = '+5 分'; }
+      if (p.checks[i]) { icon = '✔'; cls = 'bg-emerald-50 border-emerald-200 text-emerald-900'; tag = `+${task().pts} 分`; }
       else { icon = '✕'; cls = 'bg-rose-50 border-rose-200 text-rose-900'; tag = '未符合'; }
     }
     return `<div onclick="showHint(${i})" class="p-3 rounded-xl border flex justify-between items-center gap-2 text-xs font-semibold cursor-pointer hover:shadow-md transition ${cls}">
       <span>${icon} ${c}</span>
       <span class="whitespace-nowrap">${tag} <span class="ml-1 inline-block text-[11px] font-bold text-blue-600 bg-white/80 border border-blue-200 rounded-full px-2.5 py-0.5">ⓘ 看說明</span></span></div>`;
   }).join('');
-  if (st.submitted) { feedback(`✅ 第 ${cur} 題已繳交：${st.serverScore} / ${TASK_MAX} 分`, '以伺服器評分為準。可以切換到其他題繼續繳交。'); return; }
-  if (p) feedback(`第 ${cur} 題得分：${p.score} / ${TASK_MAX} 分（通過 ${p.passed}/${p.total} 項）`,
+  if (st.submitted) { feedback(`✅ 第 ${cur} 題已繳交：${st.serverScore} / ${taskMax(cur)} 分`, '以伺服器評分為準。可以切換到其他題繼續繳交。'); return; }
+  if (p) feedback(`第 ${cur} 題得分：${p.score} / ${taskMax(cur)} 分（通過 ${p.passed}/${p.total} 項）`,
     p.passed === p.total ? '全部通過，可以繳交了！' : '點選未符合的項目，可以看到修正範例。');
   else feedback('準備就緒', `請上傳第 ${cur} 題的 .sb3 檔案。`);
 }
@@ -898,8 +884,8 @@ async function submitTask() {
     st.submitted = true; st.serverScore = out.score;
     busy = false; if (cur === id) refresh(); else renderTabs();
     const left = TASKS.filter(t => !ST[t.id].submitted).map(t => t.id);
-    alert(`✅ 第 ${id} 題成績送出！\n\n${stu.className} 班 ${stu.seatNo} 號 ${stu.studentName}\n得 ${out.score} / ${TASK_MAX} 分（通過 ${out.passed}/${out.total} 項）` +
-      (left.length ? `\n\n還沒繳交：第 ${left.join('、')} 題` : '\n\n四題都繳交完成了！'));
+    alert(`✅ 第 ${id} 題成績送出！\n\n${stu.className} 班 ${stu.seatNo} 號 ${stu.studentName}\n得 ${out.score} / ${taskMax(id)} 分（通過 ${out.passed}/${out.total} 項）` +
+      (left.length ? `\n\n還沒繳交：第 ${left.join('、')} 題` : '\n\n三題都繳交完成了！'));
   } catch (e) {
     busy = false; if (cur === id) refresh();
     feedback('傳送失敗', (e.message || '') + '　請檢查網路後再按一次繳交。');
@@ -912,7 +898,7 @@ async function submitTask() {
    ===================================================================== */
 let tPw = '', tRows = [], tTimer = null;
 const tFmtTime = ts => ts ? new Date(ts).toLocaleString('zh-TW', { hour12: false }) : '-';
-const tScore = r => isFinite(Number(r.score)) && r.score !== '' ? Number(r.score) : Number(r.passed || 0) * PTS_PER_CHECK;
+const tScore = r => isFinite(Number(r.score)) && r.score !== '' ? Number(r.score) : Number(r.passed || 0) * (tTask(r) || TASKS[0]).pts;
 const tTask = r => TASKS.find(t => t.id === Number(r.taskId));
 const tChecks = r => { const t = tTask(r) || TASKS[0]; return /^[OX]{5}$/.test(r.checks || '') ? r.checks.split('').map(c => c === 'O') : t.criteria.map(c => !String(r.failed || '').includes(c)); };
 
@@ -944,11 +930,11 @@ async function teacherUnlock(auto) {
     const data = await tFetch(pw);
     if (!data.ok) {
       if (!auto) alert('密碼錯誤！');
-      try { sessionStorage.removeItem('stars4_tpw'); } catch (e) {}
+      try { sessionStorage.removeItem('stars3_tpw'); } catch (e) {}
       return;
     }
     tPw = pw;
-    try { sessionStorage.setItem('stars4_tpw', pw); } catch (e) {}
+    try { sessionStorage.setItem('stars3_tpw', pw); } catch (e) {}
     tRows = tList(data.list);
     $('t-auth').classList.add('hidden');
     teacherRender(); tIndicator(true);
@@ -979,7 +965,7 @@ function teacherRender() {
   const totals = keys.map(totalOf);
   $('t-stat').innerText = keys.length;
   $('t-avg').innerText = totals.length ? (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(1) : '-';
-  $('t-full').innerText = totals.filter(s => s === TASK_MAX * TASKS.length).length;
+  $('t-full').innerText = totals.filter(s => s === TOTAL_MAX).length;
 
   const taskStat = TASKS.map(t => {
     const got = keys.filter(k => latest[k][t.id]);
@@ -995,13 +981,13 @@ function teacherRender() {
   const shown = keys.filter(k => `${info[k].cls} ${info[k].seat} ${info[k].nm}`.toLowerCase().includes(kw));
   const cell = (r, t) => {
     if (!r) return '<td class="py-2.5 px-3 text-center text-slate-600">—</td>';
-    const sc = tScore(r), ch = tChecks(r), full = sc === TASK_MAX;
+    const sc = tScore(r), ch = tChecks(r), full = sc === taskMax(t.id);
     return `<td class="py-2.5 px-3 text-center">
       <span class="inline-block px-2 py-0.5 rounded-lg font-bold ${full ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'}">${sc}</span>
       <div class="mt-1 tracking-wider text-[10px] whitespace-nowrap">${ch.map((ok, i) => `<span class="${ok ? 'text-emerald-400' : 'text-rose-400'}" title="${esc(t.criteria[i])}">${ok ? '✔' : '✕'}</span>`).join('')}</div></td>`;
   };
   $('t-tbody').innerHTML = shown.length ? shown.map(k => {
-    const tot = totalOf(k), full = tot === TASK_MAX * TASKS.length;
+    const tot = totalOf(k), full = tot === TOTAL_MAX;
     return `<tr class="hover:bg-slate-800/40 transition">
       <td class="py-2.5 px-3 text-slate-300">${esc(info[k].cls)}</td>
       <td class="py-2.5 px-3 text-slate-300">${esc(info[k].seat)}</td>
@@ -1022,7 +1008,7 @@ function teacherRender() {
       <td class="py-2.5 px-4 font-bold text-white">${esc(r.studentName) || '未填寫'}</td>
       <td class="py-2.5 px-4 text-slate-300 whitespace-nowrap">第 ${t.id} 題 ${t.title}</td>
       <td class="py-2.5 px-4 text-slate-400">${esc(r.fileName) || '-'}</td>
-      <td class="py-2.5 px-4 font-bold whitespace-nowrap ${sc === TASK_MAX ? 'text-emerald-400' : 'text-amber-400'}">${sc} / ${TASK_MAX}（${Number(r.passed)}/${Number(r.total)} 項）</td>
+      <td class="py-2.5 px-4 font-bold whitespace-nowrap ${sc === taskMax(t.id) ? 'text-emerald-400' : 'text-amber-400'}">${sc} / ${taskMax(t.id)}（${Number(r.passed)}/${Number(r.total)} 項）</td>
       <td class="py-2.5 px-4 text-slate-400">${esc(r.failed) || '—'}</td></tr>`;
   }).join('') : '<tr><td colspan="8" class="py-6 text-center text-slate-500">尚無紀錄</td></tr>';
 }
@@ -1037,7 +1023,7 @@ function route() {
     if (!tPw) {
       $('t-auth').classList.remove('hidden');
       let saved = '';
-      try { saved = sessionStorage.getItem('stars4_tpw') || ''; } catch (e) {}
+      try { saved = sessionStorage.getItem('stars3_tpw') || ''; } catch (e) {}
       if (saved) teacherUnlock(saved); else setTimeout(() => $('t-pass').focus(), 50);
     } else if (!tTimer) {
       teacherRefresh(); tTimer = setInterval(teacherRefresh, 15000);
