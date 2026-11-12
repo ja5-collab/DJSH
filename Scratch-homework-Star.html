@@ -191,9 +191,9 @@ const TASKS = [
   { id: 1, title: '直角三角形星星', icon: '◣',
     criteria: [C_HIDE, C_FUNC, C_STAR, '共 6 列 21 顆星星（1、2、3、4、5、6 顆）', '排成直角三角形：第 n 列有 n 顆，間距 50 點、靠左對齊'],
     short: ['隱藏', '函式', '星星', '21 顆', '三角形'] },
-  { id: 2, title: '金字塔星星', icon: '▲',
-    criteria: [C_HIDE, C_FUNC, C_STAR, '共 5 層 25 顆星星（1、3、5、7、9 顆）', '排成置中的金字塔：間距 50 點、每層往下 50 點'],
-    short: ['隱藏', '函式', '星星', '25 顆', '金字塔'] },
+  { id: 2, title: '倒三角形星星', icon: '◤',
+    criteria: [C_HIDE, C_FUNC, C_STAR, '共 6 列 21 顆星星（6、5、4、3、2、1 顆）', '排成倒三角形：第 n 列有 7 − n 顆，間距 50 點、靠左對齊'],
+    short: ['隱藏', '函式', '星星', '21 顆', '倒三角形'] },
   { id: 3, title: '五邊形星星', icon: '⬟',
     criteria: [C_HIDE, C_FUNC, C_STAR, '共 15 顆星星', '排成正五邊形：每邊 3 段、每段 50 點、轉 72 度'],
     short: ['隱藏', '函式', '星星', '15 顆', '五邊形'] },
@@ -396,7 +396,7 @@ function findStars(segs) {
 
 // 預期的星星位置
 function triPts(n) { const p = []; for (let r = 0; r < n; r++) for (let c = 0; c <= r; c++) p.push({ x: 50 * c, y: -50 * r }); return p; }
-function pyrPts() { const p = []; for (let r = 0; r < 5; r++) for (let c = 0; c <= 2 * r; c++) p.push({ x: -50 * r + 50 * c, y: -50 * r }); return p; }
+function invTriPts(n) { const p = []; for (let r = 0; r < n; r++) for (let c = 0; c < n - r; c++) p.push({ x: 50 * c, y: -50 * r }); return p; }
 function polyPts(sides, per, step, turn) {
   const p = []; let x = 0, y = 0, d = 90;
   for (let s = 0; s < sides; s++) {
@@ -405,8 +405,8 @@ function polyPts(sides, per, step, turn) {
   }
   return p;
 }
-const EXPECT = { 1: triPts(6), 2: pyrPts(), 3: polyPts(5, 3, 50, 72), 4: polyPts(18, 1, 48, 20) };
-// 平移後一一對上（方向要對：三角形、金字塔用）
+const EXPECT = { 1: triPts(6), 2: invTriPts(6), 3: polyPts(5, 3, 50, 72), 4: polyPts(18, 1, 48, 20) };
+// 平移後一一對上（方向要對：三角形、倒三角形用）
 function matchShift(A, E, tol) {
   tol = tol || 2;
   if (!A.length || A.length !== E.length) return false;
@@ -440,7 +440,7 @@ function gradeProject(project, taskId) {
   ];
   const E = EXPECT[task.id], expectN = E.length;
   checks.push(n === E.length);
-  checks.push(task.id <= 2 ? matchShift(P, E) : matchShape(P, E));  // 三角形、金字塔方向要對；五邊形、圓形可旋轉
+  checks.push(task.id <= 2 ? matchShift(P, E) : matchShape(P, E));  // 三角形、倒三角形方向要對；五邊形、圓形可旋轉
   const passed = checks.filter(Boolean).length;
   return {
     taskId: task.id, checks, passed, total: task.criteria.length, score: passed * PTS_PER_CHECK,
@@ -463,11 +463,12 @@ const TASK_TEXT = {
                '每列都從同一個 x 開始（靠左對齊），提示：從 x = −200、y = 140 開始。',
                '同一列的星星間距 <b>50</b> 點，每畫完一列往下 <b>50</b> 點。'],
        cap: '6 列直角三角形', pts: () => EXPECT[1] },
-  2: { intro: '用星星堆出一座 5 層的金字塔！',
-       rules: ['共 <b>5</b> 層，第 n 層有 <b>2n − 1</b> 顆（1、3、5、7、9 顆，共 25 顆）。',
-               '每一層都置中對齊；星星間距 <b>50</b> 點，每層往下 <b>50</b> 點。',
-               '提示：每層的起點 x = 30 − 50 × 列次。'],
-       cap: '5 層金字塔', pts: () => EXPECT[2] },
+  2: { intro: '把第 1 題的三角形倒過來，排出 6 列的倒三角形！',
+       rules: ['共 <b>6</b> 列：第 1 列 6 顆、第 2 列 5 顆……第 6 列 1 顆（共 21 顆）。',
+               '每列都從同一個 x 開始（靠左對齊），提示：從 x = −200、y = 140 開始。',
+               '同一列的星星間距 <b>50</b> 點，每畫完一列往下 <b>50</b> 點。',
+               '提示：變數「列次」從 6 開始，每畫完一列改變 −1。'],
+       cap: '6 列倒三角形', pts: () => EXPECT[2] },
   3: { intro: '讓星星沿著正五邊形的邊排排站！',
        rules: ['正五邊形共 <b>5</b> 邊，每邊畫 <b>3</b> 顆星星（共 15 顆）。',
                '每畫一顆就移動 <b>50</b> 點；畫完一邊，前進方向轉 <b>72</b> 度。',
@@ -509,8 +510,8 @@ const STAR_DEF = [defB('畫星星'), face(90), PD(), rp(5), mv(40, 1), tr(144, 1
 const MAINS = {
   1: [flagB(), hideB(), go(-200, 140), clrB(), setV('列次', 1), rp(6),
       ['motion', 'x 設為 -200', 1], rp('(列次)', 1), callB('畫星星', 2), mv(50, 2), ['motion', 'y 改變 -50', 1], chgV('列次', 1, 1)],
-  2: [flagB(), hideB(), go(-200, 140), clrB(), setV('列次', 1), rp(5),
-      ['motion', 'x 設為 (30 − (50 × 列次))', 1], rp('((2 × 列次) − 1)', 1), callB('畫星星', 2), mv(50, 2), ['motion', 'y 改變 -50', 1], chgV('列次', 1, 1)],
+  2: [flagB(), hideB(), go(-200, 140), clrB(), setV('列次', 6), rp(6),
+      ['motion', 'x 設為 -200', 1], rp('(列次)', 1), callB('畫星星', 2), mv(50, 2), ['motion', 'y 改變 -50', 1], chgV('列次', -1, 1)],
   3: [flagB(), hideB(), go(-95, -97), clrB(), setV('方向', 90), rp(5), rp(3, 1), callB('畫星星', 2), face('(方向)', 2), mv(50, 2), chgV('方向', -72, 1)],
   4: [flagB(), hideB(), go(-44, -130), clrB(), setV('方向', 90), rp(18), callB('畫星星', 1), face('(方向)', 1), mv(48, 1), chgV('方向', -20, 1)]
 };
@@ -531,10 +532,10 @@ const HINT_TASK = {
       good: MAINS[1], bad: [rp(6), rp('(列次)', 1), callB('畫星星', 2), mv(50, 2), ['motion', 'y 改變 -50', 1], lbl('（沒有 x 設為 -200，每列會越來越往右）')] }
   ],
   2: [
-    { tip: '外層重複 5 次 = 5 層；第 n 層要畫 2n − 1 顆，所以內層用「重複 ((2 × 列次) − 1) 次」，總共 1 + 3 + 5 + 7 + 9 = 25 顆。',
-      good: MAINS[2], bad: [rp(5), rp('(列次)', 1), lbl('（每層只有 n 顆，會變成直角三角形）')] },
-    { tip: '要置中，每多一層就要往左多退 50 點：起點 x = 30 − 50 × 列次（第 1 層 −20、第 2 層 −70……）。每層畫完「y 改變 -50」往下。',
-      good: MAINS[2], bad: [rp(5), ['motion', 'x 設為 -200', 1], lbl('（每層都從同一個 x 開始，金字塔會歪一邊）')] }
+    { tip: '外層「重複 6 次」= 6 列；變數「列次」一開始設為 6，內層「重複 (列次) 次」，每畫完一列「列次」改變 −1，就會一列比一列少一顆，總共 6 + 5 + 4 + 3 + 2 + 1 = 21 顆。',
+      good: MAINS[2], bad: [setV('列次', 1), rp(6), rp('(列次)', 1), lbl('…'), chgV('列次', 1, 1), lbl('（列次從 1 開始、每列加 1，會變成第 1 題的正三角形）')] },
+    { tip: '每一列開始前用「x 設為 -200」回到最左邊，畫完一列「y 改變 -50」往下一列，再把「列次」改變 −1。同一列的星星之間「移動 50 點」。',
+      good: MAINS[2], bad: [setV('列次', 6), rp(6), rp('(列次)', 1), callB('畫星星', 2), mv(50, 2), ['motion', 'y 改變 -50', 1], chgV('列次', -1, 1), lbl('（沒有 x 設為 -200，每列會接在上一列後面，排成斜的）')] }
   ],
   3: [
     { tip: '外層重複 5 次 = 5 個邊，內層重複 3 次 = 每邊 3 顆，5 × 3 = 15 顆。',
