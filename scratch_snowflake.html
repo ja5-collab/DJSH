@@ -214,11 +214,13 @@ const $ = id => document.getElementById(id);
 const CRITERIA = [
   '舞台背景使用範例背景 Light',
   '隱藏角色，只顯示畫筆軌跡',
-  '使用函式（自訂積木）畫分支，並在主程式呼叫',
-  '分支每段長度皆為 30 點、旋轉角度為 45 或 60 度',
-  '畫出 6 支分支的雪花（旋轉 60° 後與原圖重合）'
+  '使用函式（自訂積木）畫分支（小枝要在函式裡畫），並在主程式呼叫',
+  '分支每段長度皆為 30 點、小枝與主幹夾角為 45 或 60 度',
+  '畫出雪花：中心長出 6 支主幹，每支主幹上有左右對稱的小枝（旋轉 60° 後與原圖重合）'
 ];
-const SEG_LEN = 30;   // 分支角度可為 45 或 60 度，由 branchAngle() 從畫出的線判斷
+const SEG_LEN = 30;
+const MIN_TRUNK = 60;   // 每支主幹至少多長（參考答案是 3 段 × 30 = 90）
+const MIN_PAIRS = 2;    // 每支主幹上至少幾組左右對稱的小枝（參考答案是 3 組）   // 分支角度可為 45 或 60 度，由 branchAngle() 從畫出的線判斷
 const MC_COUNT = 4, MC_PTS = 5, SNOW_PTS = 100 - MC_COUNT * MC_PTS;   // 選擇題 4 × 5 = 20 分，實作 80 分（5 項，每項 16 分）
 const LIGHT_RE = /light|燈光/i;
 const isBlk = b => !!b && typeof b === 'object' && !Array.isArray(b) && !!b.opcode;
@@ -303,7 +305,7 @@ function runDrawer(tg) {
   const sub = (b, k) => { const s = b.inputs && b.inputs[k]; return s && typeof s[1] === 'string' ? s[1] : null; };
   function lineTo(nx, ny) {
     if (S.pen && (Math.abs(nx - S.x) > 1e-9 || Math.abs(ny - S.y) > 1e-9) && S.segs.length < 5000)
-      S.segs.push({ x1: S.x, y1: S.y, x2: nx, y2: ny, c: S.color, w: S.size });
+      S.segs.push({ x1: S.x, y1: S.y, x2: nx, y2: ny, c: S.color, w: S.size, p: frames.length > 1 });
     S.x = nx; S.y = ny;
   }
   function exec(id) {
@@ -368,7 +370,7 @@ function uniqueSegs(segs) {
   segs.forEach(g => {
     const a = [Math.round(g.x1 * 2) / 2, Math.round(g.y1 * 2) / 2], b = [Math.round(g.x2 * 2) / 2, Math.round(g.y2 * 2) / 2];
     const k = (a[0] < b[0] || (a[0] === b[0] && a[1] <= b[1])) ? a.concat(b).join(',') : b.concat(a).join(',');
-    if (!seen[k]) { seen[k] = 1; out.push(g); }
+    if (!seen[k]) { seen[k] = out.length + 1; out.push(Object.assign({}, g)); } else if (g.p) out[seen[k] - 1].p = true;
   });
   return out;
 }
@@ -408,6 +410,76 @@ function sixFold(s) {
     dist(cx + (x - cx) * c - (y - cy) * sn, cy + (x - cx) * sn + (y - cy) * c) <= 1.5));
 }
 
+// 依參考答案的結構檢查雪花：把線拆成「點」與「邊」，
+// 中心點要剛好長出 6 支主幹；沿每支主幹往外走，主幹要夠長，
+// 而且主幹上的點要有左右對稱（+角度與 −角度）的小枝。
+// 六邊形、花形（一圈六邊形）這類只有外框、沒有主幹與小枝的圖形不會通過。
+function flakeShape(s) {
+  const R = { ok: false, twigs: false, arms: 0, trunk: 0, pairs: 0, angle: 0, procTwig: false, leaves: 0 };
+  if (s.length < 6 || s.length > 3000) return R;
+  const key = (x, y) => Math.round(x * 2) / 2 + ',' + Math.round(y * 2) / 2;
+  const P = {};
+  s.forEach(g => { P[key(g.x1, g.y1)] = [g.x1, g.y1]; P[key(g.x2, g.y2)] = [g.x2, g.y2]; });
+  const pts = Object.keys(P), adj = {}, eproc = {};
+  const link = (a, b, pr) => {
+    if (a === b) return;
+    (adj[a] = adj[a] || {})[b] = 1; (adj[b] = adj[b] || {})[a] = 1;
+    const k = a < b ? a + '|' + b : b + '|' + a; eproc[k] = eproc[k] || pr;
+  };
+  s.forEach(g => {   // 線段中間若經過其他線的端點，就在那裡切開
+    const dx = g.x2 - g.x1, dy = g.y2 - g.y1, l2 = dx * dx + dy * dy;
+    const on = [[0, key(g.x1, g.y1)], [1, key(g.x2, g.y2)]];
+    pts.forEach(k => {
+      const [px, py] = P[k], t = ((px - g.x1) * dx + (py - g.y1) * dy) / l2;
+      if (t > 1e-6 && t < 1 - 1e-6 && Math.hypot(px - g.x1 - t * dx, py - g.y1 - t * dy) < 0.75) on.push([t, k]);
+    });
+    on.sort((a, b) => a[0] - b[0]);
+    for (let i = 1; i < on.length; i++) link(on[i - 1][1], on[i][1], !!g.p);
+  });
+  const nb = k => Object.keys(adj[k] || {});
+  R.leaves = Object.keys(adj).filter(k => nb(k).length === 1).length;
+  // 中心：所有線（依長度加權）的重心附近的點
+  let W = 0, cx = 0, cy = 0;
+  s.forEach(g => { const l = Math.hypot(g.x2 - g.x1, g.y2 - g.y1); W += l; cx += l * (g.x1 + g.x2) / 2; cy += l * (g.y1 + g.y2) / 2; });
+  cx /= W; cy /= W;
+  let c = null, cd = 2;
+  Object.keys(adj).forEach(k => { const d = Math.hypot(P[k][0] - cx, P[k][1] - cy); if (d < cd) { cd = d; c = k; } });
+  if (!c) return R;
+  const ang = (a, b) => Math.atan2(P[b][1] - P[a][1], P[b][0] - P[a][0]) * 180 / Math.PI;
+  const dA = (a, b) => { const d = Math.abs(((a - b) % 360 + 540) % 360 - 180); return d; };
+  const arms = nb(c);
+  R.arms = arms.length;
+  if (arms.length !== 6) return R;
+  let minTrunk = 1e9, minPairs = 1e9, angles = {}, procTwig = false;
+  for (const first of arms) {
+    const u = ang(c, first);
+    let cur = first, len = Math.hypot(P[first][0] - P[c][0], P[first][1] - P[c][1]), prev = c, pairs = 0;
+    while (cur) {
+      const out = nb(cur).filter(k => k !== prev);
+      // 這個點的小枝：方向在主幹 +a 與 −a（a = 45 或 60）
+      [45, 60].forEach(a => {
+        const L = out.find(k => dA(ang(cur, k), u + a) < 2), Rr = out.find(k => dA(ang(cur, k), u - a) < 2);
+        if (L && Rr) {
+          pairs++; angles[a] = 1;
+          [L, Rr].forEach(k => { const e = cur < k ? cur + '|' + k : k + '|' + cur; if (eproc[e]) procTwig = true; });
+        }
+      });
+      const nxt = out.find(k => dA(ang(cur, k), u) < 2);   // 主幹繼續往外直走
+      if (!nxt) break;
+      len += Math.hypot(P[nxt][0] - P[cur][0], P[nxt][1] - P[cur][1]);
+      prev = cur; cur = nxt;
+      if (len > 5000) break;
+    }
+    minTrunk = Math.min(minTrunk, len); minPairs = Math.min(minPairs, pairs);
+  }
+  const as = Object.keys(angles).map(Number);
+  R.trunk = Math.round(minTrunk); R.pairs = minPairs; R.angle = as.length === 1 ? as[0] : 0; R.procTwig = procTwig;
+  // twigs：6 支主幹都至少有 1 組小枝，而且圖上有「末端點」（真的分岔出去的小枝；只有外框的圖形沒有末端點）
+  R.twigs = minPairs >= 1 && R.angle > 0 && R.leaves >= 6;
+  R.ok = R.twigs && minTrunk >= MIN_TRUNK - 0.5 && minPairs >= MIN_PAIRS && R.leaves >= 12;
+  return R;
+}
+
 function gradeProject(project) {
   const T = (project && Array.isArray(project.targets)) ? project.targets : [];
   const stage = T.find(t => t.isStage) || {};
@@ -418,19 +490,20 @@ function gradeProject(project) {
   const down = run.moves.filter(m => m.down && Math.abs(m.len) > 1e-9);
   const lenOk = m => { const k = Math.abs(m.len) / SEG_LEN; return Math.abs(k - Math.round(k)) * SEG_LEN <= 0.5 && Math.round(k) >= 1; };
   const uniq = uniqueSegs(run.segs);
+  const shape = flakeShape(uniq);
   const checks = [
     LIGHT_RE.test(backdrop),
     !!tg && !run.visible,
-    run.procs > 0 && run.calls > 0 && run.procMoves > 0,
+    run.procs > 0 && run.calls > 0 && run.procMoves > 0 && shape.twigs && shape.procTwig,
     down.length > 0 && down.every(lenOk) && down.some(m => Math.abs(Math.abs(m.len) - SEG_LEN) <= 0.5)
-      && uniq.length >= 24 && branchAngle(uniq) > 0,
-    uniq.length >= 24 && sixFold(uniq)
+      && uniq.length >= 24 && branchAngle(uniq) > 0 && shape.twigs && shape.angle === branchAngle(uniq),
+    uniq.length >= 24 && sixFold(uniq) && shape.ok
   ];
   const passed = checks.filter(Boolean).length;
   return {
     checks, passed, total: CRITERIA.length, score: Math.round(SNOW_PTS * passed / CRITERIA.length),   // score = 實作分數（滿分 SNOW_PTS）
     failed: CRITERIA.filter((c, i) => !checks[i]).join('、'),
-    run, backdrop, drawer: tg ? tg.name : null, segCount: uniq.length, angle: branchAngle(uniq),
+    run, backdrop, drawer: tg ? tg.name : null, segCount: uniq.length, angle: branchAngle(uniq), shape,
     badLens: down.filter(m => !lenOk(m)).map(m => m.len).slice(0, 5)
   };
 }
