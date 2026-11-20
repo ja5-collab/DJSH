@@ -746,6 +746,14 @@ async function processFile(file) {
   } catch (e) {
     busy = false;
     if (/時間已結束/.test(e.message || '')) { feedback('已結束作答', e.message); pendingEnd = pendingEnd || 'time'; }
+    if (/已經繳交過/.test(e.message || '')) {   // 伺服器說這題交過了（例如清掉瀏覽器資料後再交）→ 直接鎖住
+      const r = res[taskId]; r.submitted = true; r.fileName = r.fileName || '（先前已繳交）';
+      exam.done[taskId] = r.fileName; saveExam(); refresh();
+      feedback(`第 ${taskId} 題先前已繳交`, '每題只能上傳一次，已鎖定無法再修改。');
+      alert(`第 ${taskId} 題先前已經繳交過了，無法再繳交。`);
+      if (pendingEnd) { const pe = pendingEnd; pendingEnd = false; endExam(pe); }
+      return;
+    }
     refresh();
     feedback('傳送失敗，本題尚未繳交', (e.message || '') + '　請檢查網路後，再按一次「上傳並繳交本題」。');
     alert('❌ 送出失敗，本題尚未繳交\n\n' + (e.message || '') + '\n請檢查網路後再上傳一次。');
