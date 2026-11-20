@@ -45,15 +45,16 @@
   </section>
 </div>
 
-<!-- ===== 結束畫面：時間到或按「結束作答」 ===== -->
-<div id="ended" class="hidden fixed inset-0 z-[65] bg-slate-900/85 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center space-y-3 shadow-2xl">
-    <div id="endIcon" class="text-5xl">⏰</div>
-    <h2 id="endT" class="text-2xl font-extrabold">作答時間到</h2>
-    <p id="endWho" class="text-sm text-slate-600"></p>
-    <p id="endSum" class="text-base font-bold text-slate-800"></p>
-    <p class="text-xs text-slate-500">請安靜等待老師的指示。</p>
+<!-- ===== 考試結束畫面：時間到自動跳轉，或按「結束作答」 ===== -->
+<div id="ended" class="hidden fixed inset-0 z-[65] bg-slate-900 text-white flex flex-col items-center justify-center p-8 text-center">
+  <div id="endIcon" class="text-7xl mb-6">⏰</div>
+  <h2 class="text-6xl sm:text-7xl font-black tracking-widest">考試結束</h2>
+  <p id="endT" class="text-2xl text-slate-300 mt-5">作答時間已到</p>
+  <div class="mt-10 bg-white/10 rounded-2xl px-10 py-6 space-y-2">
+    <p id="endWho" class="text-xl font-bold"></p>
+    <p id="endSum" class="text-lg text-slate-300"></p>
   </div>
+  <p class="text-lg text-slate-400 mt-10">請停止操作，安靜等待老師的指示。</p>
 </div>
 
 <header class="bg-orange-500 text-white shadow sticky top-0 z-50">
@@ -398,7 +399,9 @@ function endExam(reason) {
   if (!exam.ended) { exam.ended = true; exam.endReason = reason; saveExam(); }
   const n = TASK_IDS.filter(id => res[id].submitted).length;
   $('endIcon').innerText = reason === 'manual' ? '✅' : '⏰';
-  $('endT').innerText = reason === 'manual' ? '已結束作答' : '作答時間到';
+  $('endT').innerText = reason === 'manual' ? '你已提早結束作答' : '作答時間已到';
+  document.querySelectorAll('#student-view > header, #student-view > main').forEach(el => el.classList.add('hidden'));   // 直接換成結束畫面，看不到題目
+  document.title = '考試結束';
   $('endWho').innerText = `${STU.className} 班 ${STU.seatNo} 號 ${STU.studentName}`;
   $('endSum').innerText = `共繳交 ${n} / ${TASK_IDS.length} 題`;
   $('ended').classList.remove('hidden');
