@@ -30,7 +30,6 @@
   </section>
   <section class="flex-1 flex items-center justify-center px-8 sm:px-16 py-12 bg-slate-50">
     <div class="w-full max-w-lg space-y-6">
-      <h2 class="text-3xl font-extrabold text-slate-800">請輸入你的資料</h2>
       <div class="grid grid-cols-2 gap-4">
         <label class="block text-lg font-bold text-slate-600">班級
           <input id="cls" placeholder="例如 101" maxlength="3" inputmode="numeric" autocomplete="off" class="mt-2 w-full bg-white border-2 border-slate-200 rounded-2xl px-4 py-4 text-2xl font-bold focus:outline-none focus:border-orange-400"></label>
@@ -50,9 +49,8 @@
   <div id="endIcon" class="text-7xl mb-6">⏰</div>
   <h2 class="text-6xl sm:text-7xl font-black tracking-widest">考試結束</h2>
   <p id="endT" class="text-2xl text-slate-300 mt-5">作答時間已到</p>
-  <div class="mt-10 bg-white/10 rounded-2xl px-10 py-6 space-y-2">
+  <div class="mt-10 bg-white/10 rounded-2xl px-10 py-6">
     <p id="endWho" class="text-xl font-bold"></p>
-    <p id="endSum" class="text-lg text-slate-300"></p>
   </div>
   <p class="text-lg text-slate-400 mt-10">請停止操作，安靜等待老師的指示。</p>
 </div>
@@ -397,14 +395,11 @@ function endExam(reason) {
   if (busy) { pendingEnd = reason || 'time'; return; }   // 正在送出的那一題先讓它送完
   clearInterval(examTimer);
   if (!exam.ended) { exam.ended = true; exam.endReason = reason; saveExam(); }
-  const n = TASK_IDS.filter(id => res[id].submitted).length;
-  $('endIcon').innerText = reason === 'manual' ? '✅' : '⏰';
+  $('endIcon').classList.toggle('hidden', reason === 'manual');   // 提早結束不顯示圖示；時間到才顯示 ⏰
   $('endT').innerText = reason === 'manual' ? '你已提早結束作答' : '作答時間已到';
   document.querySelectorAll('#student-view > header, #student-view > main').forEach(el => el.classList.add('hidden'));   // 直接換成結束畫面，看不到題目
   document.title = '考試結束';
-  $('endWho').innerText = `${STU.className} 班 ${STU.seatNo} 號 ${STU.studentName}`;
-  $('endSum').innerText = `共繳交 ${n} / ${TASK_IDS.length} 題`;
-  $('ended').classList.remove('hidden');
+  $('endWho').innerText = `${STU.className} 班 ${STU.seatNo} 號 ${STU.studentName}`;  $('ended').classList.remove('hidden');
   refresh();
 }
 
