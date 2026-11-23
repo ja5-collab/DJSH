@@ -233,7 +233,7 @@ TASK_IDS.forEach(id => res[id] = { fileName: '', submitted: false });
 const $ = id => document.getElementById(id);
 const FIELDS = ['cls', 'seat', 'name'];
 const FIELD_LABEL = { cls: '班級', seat: '座號', name: '姓名' };
-const CLASS_RE = /^[1-9]\d\d$/;   // 班級：三位數字，例如 101、215、308
+const CLASS_RE = /^1\d\d$/;   // 班級：一年級，1 開頭的三位數字，例如 101、115
 const SEAT_MAX = 99;          // 座號：1 到 SEAT_MAX（要改上限只改這裡；Apps Script 裡也有同一個設定）
 
 let STU = null;        // 登入後固定的身分
@@ -257,7 +257,7 @@ function idError() {
   const miss = FIELDS.filter(f => !$(f).value.trim());
   if (miss.length) return [miss[0], `請填寫：${miss.map(f => FIELD_LABEL[f]).join('、')}`];
   const c = $('cls').value.trim(), s = $('seat').value.trim();
-  if (!CLASS_RE.test(c)) return ['cls', '班級請輸入三位數字，例如 101、215。'];
+  if (!CLASS_RE.test(c)) return ['cls', '班級請輸入 1 開頭的三位數字，例如 101、115。'];
   if (!/^\d{1,2}$/.test(s) || Number(s) < 1 || Number(s) > SEAT_MAX) return ['seat', `座號請輸入 1 到 ${SEAT_MAX} 的數字。`];
   return null;
 }
