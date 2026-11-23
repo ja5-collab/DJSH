@@ -32,7 +32,7 @@
     <div class="w-full max-w-lg space-y-6">
       <div class="grid grid-cols-2 gap-4">
         <label class="block text-lg font-bold text-slate-600">班級
-          <input id="cls" placeholder="例如 101" maxlength="3" inputmode="numeric" autocomplete="off" class="mt-2 w-full bg-white border-2 border-slate-200 rounded-2xl px-4 py-4 text-2xl font-bold focus:outline-none focus:border-orange-400"></label>
+          <input id="cls" placeholder="例如 201" maxlength="3" inputmode="numeric" autocomplete="off" class="mt-2 w-full bg-white border-2 border-slate-200 rounded-2xl px-4 py-4 text-2xl font-bold focus:outline-none focus:border-orange-400"></label>
         <label class="block text-lg font-bold text-slate-600">座號
           <input id="seat" placeholder="例如 5" maxlength="2" inputmode="numeric" autocomplete="off" class="mt-2 w-full bg-white border-2 border-slate-200 rounded-2xl px-4 py-4 text-2xl font-bold focus:outline-none focus:border-orange-400"></label>
       </div>
@@ -171,319 +171,13 @@ const ASSIGNMENT = 'polygon';
 let cur = 1, busy = false;
 const $ = id => document.getElementById(id);
 
-/* =====================================================================
-   評分核心（網頁與 Apps Script 共用，兩邊內容要保持一模一樣）
-   把畫圖角色的程式真的跑一遍（含詢問、變數、自訂積木參數、如果、迴圈、畫筆），
-   代入測試資料後，把「實際畫出的線」和「正確答案應該畫出的線」逐條比對。
-   ===================================================================== */
+// ---------- 題目設定（只留畫面說明會用到的數字；評分全部在 Apps Script） ----------
 const TASK_IDS = [1, 2, 3, 4];
 const POINTS = { 1: 20, 2: 20, 3: 30, 4: 30 };   // 合計 100 分
-const SIDE = 30, GAP = 40, PER_ROW = 3, MAX_ROW = 6, LEN4 = 80, COPIES4 = 36, TURN4 = 10;
-const STEP_K = 11;   // 第 1～3 題：圖形左右、上下間距 = 邊數 × STEP_K
-const stepOf = (id, N) => STEP_K * Math.round(toN(N));
-
-// 測試資料（依序回答「詢問」）。要改測試數字，改這裡
-const TESTS = {
-  1: [{ a: [4, 3] }, { a: [3, 5] }, { a: [6, 2] }],                         // 邊數、個數
-  2: [{ a: [4, 6] }, { a: [3, 7] }, { a: [5, 4] }],                         // 邊數、個數（每列 3 個）
-  3: [{ a: [4, 7, 3] }, { a: [3, 10, 9, 5], over: true }, { a: [6, 8, 6] }], // 邊數、個數、每列幾個（第 2 組先輸入 9 → 太多 → 再輸入 5）
-  4: [{ a: [] }]
-};
-const CRITERIA = {
-  1: ['用函式（自訂積木）畫正 N 邊形，邊數用參數傳入',
-      '用「詢問並等待」取得邊數與個數',
-      '用「重複」積木畫出「個數」個圖形（次數由變數決定）',
-      `圖形正確：正 N 邊形（邊長 ${SIDE}）排成一排，每個往右移「邊數 × ${STEP_K}」點（3 組測試）`],
-  2: ['用函式（自訂積木）畫正 N 邊形，邊數用參數傳入',
-      '用「詢問並等待」取得邊數與個數',
-      `用「如果…那麼…否則」判斷：每畫滿 ${PER_ROW} 個就換下一列`,
-      `圖形正確：每列 ${PER_ROW} 個，左右、上下間距都是「邊數 × ${STEP_K}」點，換列回到最左邊（3 組測試）`],
-  3: ['用函式（自訂積木）畫正 N 邊形，邊數用參數傳入',
-      '用「詢問並等待」取得邊數、個數與每列幾個',
-      `每列超過 ${MAX_ROW} 個時，說「太多了」並重新詢問`,
-      `圖形正確：依「每列幾個」排列，左右、上下間距都是「邊數 × ${STEP_K}」點（3 組測試）`],
-  4: ['用函式（自訂積木）畫正多邊形，邊數用參數傳入',
-      `邊長用變數「長度」（設為 ${LEN4}）`,
-      `重複 ${COPIES4} 次，每次右轉 ${TURN4} 度`,
-      `畫出 ${COPIES4} 個正方形旋轉 ${TURN4}° 排成的圖案`]
-};
-
-const isBlk = b => !!b && typeof b === 'object' && !Array.isArray(b) && !!b.opcode;
+const SIDE = 30, PER_ROW = 3, MAX_ROW = 6, LEN4 = 80, COPIES4 = 36, TURN4 = 10, STEP_K = 11;
 const toN = x => { if (x === true) return 1; const n = Number(x); return (x === '' || x == null || isNaN(n)) ? 0 : n; };
-const isNumLike = x => typeof x === 'number' || (typeof x === 'string' && x.trim() !== '' && !isNaN(Number(x)));
-const truthy = v => typeof v === 'boolean' ? v : typeof v === 'string' ? !(v === '' || v === '0' || v.toLowerCase() === 'false') : !!v;
-const jsonList = s => { try { const v = JSON.parse(s || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
-const isLit = inp => !!inp && Array.isArray(inp[1]) && inp[1][0] !== 12 && inp[1][0] !== 13;
 
-// 找出負責畫圖的角色：畫筆、動作、自訂積木最多的那一個
-function pickDrawer(T) {
-  let best = null, bestN = -1;
-  T.filter(t => !t.isStage).forEach(t => {
-    const B = t.blocks || {};
-    const n = Object.keys(B).filter(id => isBlk(B[id]) && /^(pen_|motion_|procedures_)/.test(B[id].opcode)).length;
-    if (n > bestN) { best = t; bestN = n; }
-  });
-  return best;
-}
-
-function runProg(T, answers) {
-  const tg = pickDrawer(T);
-  const S = { segs: [], moves: [], turns: [], loops: [], says: [], sayAtAsk: [], asks: 0, answer: '',
-    calls: 0, argCalls: 0, procMoves: 0, ifRan: false, steps: 0, timedOut: false,
-    x: toN(tg && tg.x), y: toN(tg && tg.y), dir: tg && tg.direction != null ? toN(tg.direction) : 90,
-    pen: false, color: '#4C97FF', size: 2, vars: {}, drawer: tg ? tg.name : null };
-  if (!tg) return S;
-  const B = tg.blocks || {};
-  T.forEach(t => Object.keys(t.variables || {}).forEach(k => { const v = t.variables[k]; if (Array.isArray(v)) S.vars[k] = v[1]; }));
-  const STOP = {}, LIMIT = 200000;
-  const procs = {};
-  Object.keys(B).forEach(id => {
-    const b = B[id];
-    if (!isBlk(b) || b.opcode !== 'procedures_definition') return;
-    const pin = b.inputs && b.inputs.custom_block, pr = pin && B[pin[1]];
-    if (pr && pr.mutation) procs[pr.mutation.proccode] = { id, ids: jsonList(pr.mutation.argumentids), names: jsonList(pr.mutation.argumentnames) };
-  });
-  const frames = [{}];
-  const varKey = b => { const f = b.fields && b.fields.VARIABLE; return f ? (f[1] || f[0]) : '?'; };
-  const gv = k => k in S.vars ? S.vars[k] : 0;
-
-  function ev(inp) {
-    if (!inp) return 0;
-    const v = inp[1];
-    if (Array.isArray(v)) return v[0] === 12 ? gv(v[2] || v[1]) : v[0] === 13 ? 0 : (v[1] == null ? '' : v[1]);
-    if (typeof v === 'string' && isBlk(B[v])) return evb(B[v]);
-    return Array.isArray(inp[2]) ? inp[2][1] : 0;
-  }
-  function evb(b) {
-    const i = b.inputs || {}, n1 = () => toN(ev(i.NUM1)), n2 = () => toN(ev(i.NUM2));
-    const cmp = f => { const a = ev(i.OPERAND1), c = ev(i.OPERAND2); return (isNumLike(a) && isNumLike(c)) ? f(toN(a), toN(c)) : f(String(a).toLowerCase(), String(c).toLowerCase()); };
-    switch (b.opcode) {
-      case 'operator_add': return n1() + n2();
-      case 'operator_subtract': return n1() - n2();
-      case 'operator_multiply': return n1() * n2();
-      case 'operator_divide': return n1() / n2();
-      case 'operator_mod': { const a = n1(), m = n2(); let r = a % m; if (r / m < 0) r += m; return r; }
-      case 'operator_round': return Math.round(toN(ev(i.NUM)));
-      case 'operator_mathop': {
-        const x = toN(ev(i.NUM)), f = b.fields && b.fields.OPERATOR && b.fields.OPERATOR[0];
-        const r = { abs: Math.abs(x), floor: Math.floor(x), ceiling: Math.ceil(x), sqrt: Math.sqrt(x) }[f];
-        return r === undefined ? 0 : r;
-      }
-      case 'operator_random': return (toN(ev(i.FROM)) + toN(ev(i.TO))) / 2;
-      case 'operator_join': return String(ev(i.STRING1)) + String(ev(i.STRING2));
-      case 'operator_gt': return cmp((a, c) => a > c);
-      case 'operator_lt': return cmp((a, c) => a < c);
-      case 'operator_equals': return cmp((a, c) => a === c);
-      case 'operator_and': return truthy(ev(i.OPERAND1)) && truthy(ev(i.OPERAND2));
-      case 'operator_or': return truthy(ev(i.OPERAND1)) || truthy(ev(i.OPERAND2));
-      case 'operator_not': return !truthy(ev(i.OPERAND));
-      case 'data_variable': return gv(varKey(b));
-      case 'sensing_answer': return S.answer;
-      case 'motion_xposition': return S.x;
-      case 'motion_yposition': return S.y;
-      case 'motion_direction': return S.dir;
-      case 'argument_reporter_string_number': case 'argument_reporter_boolean': {
-        const n = b.fields && b.fields.VALUE && b.fields.VALUE[0], f = frames[frames.length - 1];
-        return n in f ? f[n] : 0;
-      }
-      default: return 0;
-    }
-  }
-  const tick = () => { if (++S.steps > LIMIT) { S.timedOut = true; throw STOP; } };
-  const sub = (b, k) => { const s = b.inputs && b.inputs[k]; return s && typeof s[1] === 'string' ? s[1] : null; };
-  function lineTo(nx, ny) {
-    if (S.pen && (Math.abs(nx - S.x) > 1e-9 || Math.abs(ny - S.y) > 1e-9) && S.segs.length < 5000)
-      S.segs.push({ x1: S.x, y1: S.y, x2: nx, y2: ny, c: S.color, w: S.size });
-    S.x = nx; S.y = ny;
-  }
-  function exec(id) {
-    while (id && isBlk(B[id])) {
-      const b = B[id], i = b.inputs || {};
-      tick();
-      switch (b.opcode) {
-        case 'control_repeat': {
-          const n = Math.max(0, Math.round(toN(ev(i.TIMES))));
-          if (S.loops.length < 3000) S.loops.push({ n, literal: isLit(i.TIMES) });
-          for (let c = 0; c < n; c++) { tick(); exec(sub(b, 'SUBSTACK')); }
-          break;
-        }
-        case 'control_repeat_until': while (!truthy(ev(i.CONDITION))) { tick(); exec(sub(b, 'SUBSTACK')); } break;
-        case 'control_forever': while (true) { tick(); exec(sub(b, 'SUBSTACK')); }
-        case 'control_if': S.ifRan = true; if (truthy(ev(i.CONDITION))) exec(sub(b, 'SUBSTACK')); break;
-        case 'control_if_else': S.ifRan = true; exec(truthy(ev(i.CONDITION)) ? sub(b, 'SUBSTACK') : sub(b, 'SUBSTACK2')); break;
-        case 'control_stop': throw STOP;
-        case 'data_setvariableto': S.vars[varKey(b)] = ev(i.VALUE); break;
-        case 'data_changevariableby': { const k = varKey(b); S.vars[k] = toN(gv(k)) + toN(ev(i.VALUE)); break; }
-        case 'sensing_askandwait': {
-          S.sayAtAsk.push(S.says.length);
-          S.asks++;
-          if (S.asks > 30) throw STOP;
-          const a = answers[S.asks - 1];
-          S.answer = a == null ? '' : String(a);
-          break;
-        }
-        case 'looks_say': case 'looks_sayforsecs': S.says.push(String(ev(i.MESSAGE))); break;
-        case 'procedures_call': {
-          const p = procs[b.mutation && b.mutation.proccode];
-          if (!p) break;
-          S.calls++;
-          if (p.ids.length) S.argCalls++;
-          if (frames.length > 40) break;
-          const args = {};
-          p.ids.forEach((aid, k) => { args[p.names[k]] = i[aid] ? ev(i[aid]) : ''; });
-          frames.push(args);
-          try { exec(B[p.id].next); } finally { frames.pop(); }
-          break;
-        }
-        case 'pen_penDown': S.pen = true; break;
-        case 'pen_penUp': S.pen = false; break;
-        case 'pen_clear': S.segs = []; break;
-        case 'pen_setPenColorToColor': { const c = String(ev(i.COLOR)); if (/^#[0-9a-f]{6}$/i.test(c)) S.color = c; break; }
-        case 'pen_setPenSizeTo': S.size = Math.max(1, Math.min(50, toN(ev(i.SIZE)))); break;
-        case 'motion_movesteps': {
-          const d = toN(ev(i.STEPS)), r = (90 - S.dir) * Math.PI / 180;
-          S.moves.push({ len: d, down: S.pen, lit: isLit(i.STEPS) });
-          if (frames.length > 1 && S.pen) S.procMoves++;
-          lineTo(S.x + d * Math.cos(r), S.y + d * Math.sin(r));
-          break;
-        }
-        case 'motion_turnright': { const d = toN(ev(i.DEGREES)); S.dir += d; S.turns.push(d); break; }
-        case 'motion_turnleft': { const d = toN(ev(i.DEGREES)); S.dir -= d; S.turns.push(-d); break; }
-        case 'motion_pointindirection': S.dir = toN(ev(i.DIRECTION)); break;
-        case 'motion_gotoxy': case 'motion_glidesecstoxy': lineTo(toN(ev(i.X)), toN(ev(i.Y))); break;
-        case 'motion_changexby': lineTo(S.x + toN(ev(i.DX)), S.y); break;
-        case 'motion_changeyby': lineTo(S.x, S.y + toN(ev(i.DY))); break;
-        case 'motion_setx': lineTo(toN(ev(i.X)), S.y); break;
-        case 'motion_sety': lineTo(S.x, toN(ev(i.Y))); break;
-      }
-      id = b.next;
-    }
-  }
-  const hats = Object.keys(B).filter(id => isBlk(B[id]) && B[id].topLevel && B[id].opcode === 'event_whenflagclicked');
-  hats.forEach(h => { try { exec(B[h].next); } catch (e) { if (e !== STOP) throw e; } });
-  return S;
-}
-
-// ---------- 幾何比對 ----------
-function uniqueSegs(segs) {
-  const seen = {}, out = [];
-  segs.forEach(g => {
-    const a = [Math.round(g.x1 * 2) / 2, Math.round(g.y1 * 2) / 2], b = [Math.round(g.x2 * 2) / 2, Math.round(g.y2 * 2) / 2];
-    if (a[0] === b[0] && a[1] === b[1]) return;
-    const k = (a[0] < b[0] || (a[0] === b[0] && a[1] <= b[1])) ? a.concat(b).join(',') : b.concat(a).join(',');
-    if (!seen[k]) { seen[k] = 1; out.push(g); }
-  });
-  return out;
-}
-function segDist(px, py, g) {
-  const dx = g.x2 - g.x1, dy = g.y2 - g.y1, l2 = dx * dx + dy * dy;
-  let t = l2 ? ((px - g.x1) * dx + (py - g.y1) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t));
-  return Math.hypot(px - (g.x1 + t * dx), py - (g.y1 + t * dy));
-}
-const samplePts = g => [0, 0.25, 0.5, 0.75, 1].map(t => [g.x1 + t * (g.x2 - g.x1), g.y1 + t * (g.y2 - g.y1)]);
-const covers = (A, B, tol) => A.every(g => samplePts(g).every(([x, y]) => B.some(h => segDist(x, y, h) <= tol)));
-function shiftToOrigin(u) {
-  let mx = Infinity, my = Infinity;
-  u.forEach(g => { mx = Math.min(mx, g.x1, g.x2); my = Math.min(my, g.y1, g.y2); });
-  return u.map(g => ({ x1: g.x1 - mx, y1: g.y1 - my, x2: g.x2 - mx, y2: g.y2 - my }));
-}
-// 兩張圖平移後完全重疊（起點位置不同沒關係）
-function sameDrawing(drawn, expect) {
-  const a = uniqueSegs(drawn), b = uniqueSegs(expect);
-  if (!a.length || !b.length || a.length > 2500) return false;
-  const A = shiftToOrigin(a), Bx = shiftToOrigin(b);
-  return covers(A, Bx, 0.8) && covers(Bx, A, 0.8);
-}
-// 正確答案：cnt 個正 N 邊形（邊長 SIDE），每列 perRow 個，左右間隔 step、上下間隔 step
-function polySegs(N, cnt, perRow, sign, step) {
-  const out = [];
-  N = Math.round(toN(N)); cnt = Math.round(toN(cnt));
-  if (!(N >= 3 && N <= 20 && cnt >= 1 && cnt <= 80 && perRow >= 1)) return out;
-  for (let k = 0; k < cnt; k++) {
-    let x = step * (k % perRow), y = -step * Math.floor(k / perRow), h = 0;
-    for (let s = 0; s < N; s++) {
-      const r = h * Math.PI / 180, nx = x + SIDE * Math.cos(r), ny = y + SIDE * Math.sin(r);
-      out.push({ x1: x, y1: y, x2: nx, y2: ny }); x = nx; y = ny; h -= sign * 360 / N;
-    }
-  }
-  return out;
-}
-// 整張圖繞中心轉 deg 度後，每個點仍落在原本畫過的線上
-function rotFold(s, deg) {
-  if (s.length < 4 || s.length > 1500) return false;
-  let W = 0, cx = 0, cy = 0;
-  s.forEach(g => { const l = Math.hypot(g.x2 - g.x1, g.y2 - g.y1); W += l; cx += l * (g.x1 + g.x2) / 2; cy += l * (g.y1 + g.y2) / 2; });
-  if (W < 50) return false;
-  cx /= W; cy /= W;
-  const c = Math.cos(deg * Math.PI / 180), sn = Math.sin(deg * Math.PI / 180);
-  return s.every(g => [[g.x1, g.y1], [g.x2, g.y2], [(g.x1 + g.x2) / 2, (g.y1 + g.y2) / 2]].every(([x, y]) => {
-    const px = cx + (x - cx) * c - (y - cy) * sn, py = cy + (x - cx) * sn + (y - cy) * c;
-    return s.some(h => segDist(px, py, h) <= 1.5);
-  }));
-}
-
-// 第 4 題正確答案：COPIES4 個邊長 LEN4 的正方形，每畫完一個右轉 TURN4 度
-function flowerSegs() {
-  const out = []; let x = 0, y = 0, h = 0;
-  for (let k = 0; k < COPIES4; k++) {
-    for (let s = 0; s < 4; s++) {
-      const r = h * Math.PI / 180, nx = x + LEN4 * Math.cos(r), ny = y + LEN4 * Math.sin(r);
-      out.push({ x1: x, y1: y, x2: nx, y2: ny }); x = nx; y = ny; h -= 90;
-    }
-    h -= TURN4;
-  }
-  return out;
-}
-
-// ---------- 各題評分 ----------
-function gradeTask(id, project) {
-  const T = (project && Array.isArray(project.targets)) ? project.targets : [];
-  const runs = TESTS[id].map(t => runProg(T, t.a));
-  const r0 = runs[0];
-  const fnOk = r => r.argCalls > 0 && r.procMoves > 0;
-  const tests = TESTS[id].map((t, n) => {
-    const r = runs[n], drawn = uniqueSegs(r.segs).length;
-    if (id === 4) {
-      const down = r.moves.filter(m => m.down && Math.abs(m.len) > 1e-9);
-      const want = uniqueSegs(flowerSegs()).length;   // 正方形從中心伸出的邊會互相重疊，不重複的線比 36×4 少
-      const ok = down.length > 0 && down.every(m => Math.abs(Math.abs(m.len) - LEN4) <= 0.5) && Math.abs(drawn - want) <= 2 && rotFold(uniqueSegs(r.segs), TURN4);
-      return { title: '執行結果', ok, run: r, expect: flowerSegs(), lines: [`畫出 ${drawn} 條不重複的線（應該 ${want} 條，每條長 ${LEN4}）`, `每段移動長度：${[...new Set(down.map(m => Math.round(m.len * 100) / 100))].slice(0, 5).join('、') || '（沒有畫線）'}`] };
-    }
-    const N = t.a[0], cnt = t.a[1], perRow = id === 1 ? Infinity : id === 2 ? PER_ROW : t.a[t.a.length - 1];
-    const step = stepOf(id, N);
-    const expect = polySegs(N, cnt, perRow, 1, step), alt = polySegs(N, cnt, perRow, -1, step);
-    let ok = sameDrawing(r.segs, expect) || sameDrawing(r.segs, alt);
-    if (id === 3 && ok) ok = r.asks === t.a.length;
-    const inLine = id === 3
-      ? `輸入：邊數 ${N}、個數 ${cnt}、每列 ${t.over ? t.a[2] + '（太多）→ 再輸入 ' + t.a[3] : t.a[2]}`
-      : `輸入：邊數 ${N}、個數 ${cnt}（間距應為 ${N} × ${STEP_K} = ${step} 點）`;
-    return { title: `測試 ${n + 1}`, ok, run: r, expect,
-      lines: [inLine, `畫出 ${drawn} 條線（應該 ${N * cnt} 條）`, `詢問了 ${r.asks} 次${r.says.length ? '，說了「' + r.says.join('」「').slice(0, 30) + '」' : ''}`] };
-  });
-  const allOk = tests.every(x => x.ok);
-  let checks;
-  if (id === 1) checks = [fnOk(r0), r0.asks >= 2, runs[1].loops.some(l => !l.literal && l.n === TESTS[1][1].a[1]), allOk];
-  else if (id === 2) checks = [fnOk(r0), r0.asks >= 2, r0.ifRan, allOk];
-  else if (id === 3) {
-    const ro = runs[1];
-    checks = [fnOk(r0), r0.asks >= 3, ro.asks >= 4 && ro.sayAtAsk[3] > ro.sayAtAsk[2] && tests[1].ok, allOk];
-  } else {
-    const down = r0.moves.filter(m => m.down && Math.abs(m.len) > 1e-9);
-    checks = [fnOk(r0),
-      down.length > 0 && down.every(m => !m.lit && Math.abs(Math.abs(m.len) - LEN4) <= 0.5),
-      r0.loops.some(l => l.n === COPIES4) && r0.turns.some(t => Math.abs(Math.abs(t) - TURN4) <= 0.01),
-      allOk];
-  }
-  checks = checks.map(Boolean);
-  const passed = checks.filter(Boolean).length;
-  return {
-    checks, passed, total: checks.length, score: Math.round(POINTS[id] * passed / checks.length),
-    failed: CRITERIA[id].filter((c, i) => !checks[i]).join('、'), tests, drawer: r0.drawer, timedOut: runs.some(r => r.timedOut)
-  };
-}
-/* ===================== 評分核心結束 ===================== */
-
-// ---------- 題目說明（要改文字，改這裡；評分用的數字在上面評分核心裡） ----------
+// ---------- 題目說明（要改文字，改這裡） ----------
 const TASKS = {
   1: { short: '正 N 邊形排一排', title: `第 1 題｜正 N 邊形排一排（${POINTS[1]} 分）`,
     desc: `<p class="mb-1 font-bold">輸入要畫正幾邊形、畫幾個，把這些正多邊形由左到右排成一排。</p>
@@ -521,7 +215,7 @@ const NO = id => id;   // 二年級題號就是畫面題號
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const FIELDS = ['cls', 'seat', 'name'];
 const FIELD_LABEL = { cls: '班級', seat: '座號', name: '姓名' };
-const CLASS_RE = /^[1-9]\d\d$/;   // 班級：三位數字，例如 101、215、308
+const CLASS_RE = /^2\d\d$/;   // 班級：二年級，2 開頭的三位數字，例如 201、215
 const SEAT_MAX = 99;          // 座號：1 到 SEAT_MAX（要改上限只改這裡；Apps Script 裡也有同一個設定）
 
 let STU = null;        // 登入後固定的身分
@@ -545,7 +239,7 @@ function idError() {
   const miss = FIELDS.filter(f => !$(f).value.trim());
   if (miss.length) return [miss[0], `請填寫：${miss.map(f => FIELD_LABEL[f]).join('、')}`];
   const c = $('cls').value.trim(), s = $('seat').value.trim();
-  if (!CLASS_RE.test(c)) return ['cls', '班級請輸入三位數字，例如 101、215。'];
+  if (!CLASS_RE.test(c)) return ['cls', '班級請輸入 2 開頭的三位數字，例如 201、215。'];
   if (!/^\d{1,2}$/.test(s) || Number(s) < 1 || Number(s) > SEAT_MAX) return ['seat', `座號請輸入 1 到 ${SEAT_MAX} 的數字。`];
   return null;
 }
@@ -632,7 +326,7 @@ function endExam(reason) {
   if (busy) { pendingEnd = reason || 'time'; return; }   // 正在送出的那一題先讓它送完
   clearInterval(examTimer);
   if (!exam.ended) { exam.ended = true; exam.endReason = reason; saveExam(); }
-  $('endIcon').classList.toggle('hidden', reason === 'manual');   // 提早結束不顯示圖示；時間到才顯示 ⏰
+  $('endIcon').style.display = reason === 'manual' ? 'none' : '';   // 提早結束不顯示圖示；時間到才顯示 ⏰
   $('endT').innerText = reason === 'manual' ? '你已提早結束作答' : '作答時間已到';
   document.querySelectorAll('#student-view > header, #student-view > main').forEach(el => el.classList.add('hidden'));   // 直接換成結束畫面，看不到題目
   document.title = '考試結束';
