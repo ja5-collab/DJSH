@@ -14,13 +14,13 @@
 
 <!-- ===== 登入畫面：填好身分後按「開始作答」才開始計時 ===== -->
 <div id="login" class="fixed inset-0 z-[60] bg-white flex flex-col lg:flex-row overflow-auto">
-  <section class="lg:w-1/2 bg-gradient-to-br from-teal-600 to-emerald-500 text-white flex flex-col justify-center px-8 sm:px-16 py-12">
-    <div class="text-6xl mb-6">⬡</div>
+  <section class="lg:w-1/2 bg-gradient-to-br from-orange-500 to-amber-500 text-white flex flex-col justify-center px-8 sm:px-16 py-12">
+    <div class="text-6xl mb-6">📝</div>
     <h1 class="text-4xl sm:text-5xl font-black tracking-wide">二年級第二次定期評量</h1>
-    <p class="text-xl mt-3 text-teal-50">Scratch 程式設計</p>
+    <p class="text-xl mt-3 text-orange-50">Scratch 程式設計</p>
     <div class="mt-10 grid grid-cols-2 gap-4 max-w-md">
-      <div class="bg-white/15 rounded-2xl p-5"><div class="text-sm text-teal-50">作答時間</div><div class="text-3xl font-black"><span id="lblMin">35</span> 分鐘</div></div>
-      <div class="bg-white/15 rounded-2xl p-5"><div class="text-sm text-teal-50">題數</div><div class="text-3xl font-black"><span id="lblCnt">6</span> 題</div></div>
+      <div class="bg-white/15 rounded-2xl p-5"><div class="text-sm text-orange-50">作答時間</div><div class="text-3xl font-black"><span id="lblMin">35</span> 分鐘</div></div>
+      <div class="bg-white/15 rounded-2xl p-5"><div class="text-sm text-orange-50">題數</div><div class="text-3xl font-black"><span id="lblCnt">6</span> 題</div></div>
     </div>
     <ul class="mt-8 space-y-3 text-lg">
       <li>⏱ 按下「開始作答」後立即開始計時</li>
@@ -30,17 +30,16 @@
   </section>
   <section class="flex-1 flex items-center justify-center px-8 sm:px-16 py-12 bg-slate-50">
     <div class="w-full max-w-lg space-y-6">
-      <h2 class="text-3xl font-extrabold text-slate-800">請輸入你的資料</h2>
       <div class="grid grid-cols-2 gap-4">
         <label class="block text-lg font-bold text-slate-600">班級
-          <input id="cls" placeholder="例如 101" maxlength="3" inputmode="numeric" autocomplete="off" class="mt-2 w-full bg-white border-2 border-slate-200 rounded-2xl px-4 py-4 text-2xl font-bold focus:outline-none focus:border-teal-400"></label>
+          <input id="cls" placeholder="例如 101" maxlength="3" inputmode="numeric" autocomplete="off" class="mt-2 w-full bg-white border-2 border-slate-200 rounded-2xl px-4 py-4 text-2xl font-bold focus:outline-none focus:border-orange-400"></label>
         <label class="block text-lg font-bold text-slate-600">座號
-          <input id="seat" placeholder="例如 5" maxlength="2" inputmode="numeric" autocomplete="off" class="mt-2 w-full bg-white border-2 border-slate-200 rounded-2xl px-4 py-4 text-2xl font-bold focus:outline-none focus:border-teal-400"></label>
+          <input id="seat" placeholder="例如 5" maxlength="2" inputmode="numeric" autocomplete="off" class="mt-2 w-full bg-white border-2 border-slate-200 rounded-2xl px-4 py-4 text-2xl font-bold focus:outline-none focus:border-orange-400"></label>
       </div>
       <label class="block text-lg font-bold text-slate-600">姓名
-        <input id="name" placeholder="請輸入姓名" maxlength="20" autocomplete="off" class="mt-2 w-full bg-white border-2 border-slate-200 rounded-2xl px-4 py-4 text-2xl font-bold focus:outline-none focus:border-teal-400"></label>
+        <input id="name" placeholder="請輸入姓名" maxlength="20" autocomplete="off" class="mt-2 w-full bg-white border-2 border-slate-200 rounded-2xl px-4 py-4 text-2xl font-bold focus:outline-none focus:border-orange-400"></label>
       <p id="loginErr" class="text-base text-rose-500 font-bold min-h-[1.5rem]"></p>
-      <button id="startBtn" onclick="startExam()" class="w-full bg-teal-500 hover:bg-teal-600 text-white text-2xl font-extrabold py-5 rounded-2xl shadow-lg">開始作答</button>
+      <button id="startBtn" onclick="startExam()" class="w-full bg-orange-500 hover:bg-orange-600 text-white text-2xl font-extrabold py-5 rounded-2xl shadow-lg">開始作答</button>
     </div>
   </section>
 </div>
@@ -50,21 +49,20 @@
   <div id="endIcon" class="text-7xl mb-6">⏰</div>
   <h2 class="text-6xl sm:text-7xl font-black tracking-widest">考試結束</h2>
   <p id="endT" class="text-2xl text-slate-300 mt-5">作答時間已到</p>
-  <div class="mt-10 bg-white/10 rounded-2xl px-10 py-6 space-y-2">
+  <div class="mt-10 bg-white/10 rounded-2xl px-10 py-6">
     <p id="endWho" class="text-xl font-bold"></p>
-    <p id="endSum" class="text-lg text-slate-300"></p>
   </div>
   <p class="text-lg text-slate-400 mt-10">請停止操作，安靜等待老師的指示。</p>
 </div>
 
-<header class="bg-teal-500 text-white shadow sticky top-0 z-50">
+<header class="bg-orange-500 text-white shadow sticky top-0 z-50">
   <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
     <div>
-      <h1 class="text-xl font-extrabold leading-tight">⬡ 二年級第二次定期評量</h1>
-      <p id="who" class="text-xs text-teal-100"></p>
+      <h1 class="text-xl font-extrabold leading-tight">二年級第二次定期評量</h1>
+      <p id="who" class="text-xs text-orange-100"></p>
     </div>
     <div class="flex items-center gap-3">
-      <div id="timerBox" class="bg-white text-teal-600 rounded-xl px-4 py-1.5 font-bold flex items-center gap-2">
+      <div id="timerBox" class="bg-white text-orange-600 rounded-xl px-4 py-1.5 font-bold flex items-center gap-2">
         <span class="text-xs">剩餘時間</span><span id="timer" class="text-2xl font-black tabular-nums">35:00</span>
       </div>
       <button onclick="finishEarly()" class="bg-white/20 hover:bg-white/30 text-white text-sm font-bold px-4 py-2 rounded-xl">結束作答</button>
@@ -634,13 +632,11 @@ function endExam(reason) {
   if (busy) { pendingEnd = reason || 'time'; return; }   // 正在送出的那一題先讓它送完
   clearInterval(examTimer);
   if (!exam.ended) { exam.ended = true; exam.endReason = reason; saveExam(); }
-  const n = TASK_IDS.filter(id => res[id].submitted).length;
-  $('endIcon').innerText = reason === 'manual' ? '✅' : '⏰';
+  $('endIcon').classList.toggle('hidden', reason === 'manual');   // 提早結束不顯示圖示；時間到才顯示 ⏰
   $('endT').innerText = reason === 'manual' ? '你已提早結束作答' : '作答時間已到';
   document.querySelectorAll('#student-view > header, #student-view > main').forEach(el => el.classList.add('hidden'));   // 直接換成結束畫面，看不到題目
   document.title = '考試結束';
   $('endWho').innerText = `${STU.className} 班 ${STU.seatNo} 號 ${STU.studentName}`;
-  $('endSum').innerText = `共繳交 ${n} / ${TASK_IDS.length} 題`;
   $('ended').classList.remove('hidden');
   refresh();
 }
@@ -655,7 +651,7 @@ function finishEarly() {
 function switchTask(id) {
   cur = id;
   TASK_IDS.forEach(t => {
-    $('tab' + t).classList.toggle('border-teal-500', t === id);
+    $('tab' + t).classList.toggle('border-orange-500', t === id);
     $('tab' + t).classList.toggle('border-transparent', t !== id);
   });
   $('ttitle').innerText = TASKS[id].title;
