@@ -20,7 +20,7 @@
     <p class="text-xl mt-3 text-orange-50">Scratch 程式設計</p>
     <div class="mt-10 grid grid-cols-2 gap-4 max-w-md">
       <div class="bg-white/15 rounded-2xl p-5"><div class="text-sm text-orange-50">作答時間</div><div class="text-3xl font-black"><span id="lblMin">42</span> 分鐘</div></div>
-      <div class="bg-white/15 rounded-2xl p-5"><div class="text-sm text-orange-50">題數</div><div class="text-3xl font-black"><span id="lblCnt">6</span> 題</div></div>
+      <div class="bg-white/15 rounded-2xl p-5"><div class="text-sm text-orange-50">題數</div><div class="text-3xl font-black"><span id="lblCnt">5</span> 題</div></div>
     </div>
     <ul class="mt-8 space-y-3 text-lg">
       <li>⏱ 按下「開始作答」後立即開始計時</li>
@@ -136,7 +136,7 @@
         <h2 class="text-sm font-bold text-slate-200">各題繳交狀況與得分（每人每題取最新一次繳交）</h2>
         <input id="t-filter" type="text" placeholder="搜尋班級、座號或姓名" class="bg-slate-950 border border-slate-800 text-xs text-white px-3 py-1.5 rounded-lg focus:outline-none focus:border-amber-500 w-44" oninput="teacherRender()">
       </div>
-      <p class="text-[11px] text-slate-500 mb-3">共 8 題、100 分，各題依檢測項目通過比例給分。綠色 = 該題滿分；黃色 = 已繳交但未滿分（滑鼠移上去看未通過項目）；— = 尚未繳交。「繳交人數」以全班已有紀錄的學生為基準，不受搜尋影響。學生以「班級＋座號＋姓名」辨識。</p>
+      <p class="text-[11px] text-slate-500 mb-3">共 5 題、100 分，各題依檢測項目通過比例給分。綠色 = 該題滿分；黃色 = 已繳交但未滿分（滑鼠移上去看未通過項目）；— = 尚未繳交。「繳交人數」以全班已有紀錄的學生為基準，不受搜尋影響。學生以「班級＋座號＋姓名」辨識。</p>
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs text-slate-200">
           <thead id="t-thead" class="bg-slate-950 text-slate-400 text-[11px] border-b border-slate-800"></thead>
@@ -165,8 +165,8 @@
 </div><!-- /teacher-view -->
 
 <script>
-const TASK_IDS = [1, 2, 3, 4, 5, 7];   // 原第 6 題（階梯）、第 8 題（雪花）已拿掉；題號 7 為「五角星」，畫面上顯示為第 6 題
-const POINTS = { 1: 15, 2: 15, 3: 17, 4: 17, 5: 17, 7: 19 };   // 合計 100 分
+const TASK_IDS = [1, 2, 3, 5, 7];   // 原第 4 題（存款）、第 6 題（階梯）、第 8 題（雪花）已拿掉；內部題號 5、7 在畫面上顯示為第 4、5 題
+const POINTS = { 1: 18, 2: 18, 3: 20, 5: 20, 7: 24 };   // 合計 100 分
 const NO = id => TASK_IDS.indexOf(id) + 1;   // 畫面上顯示的題號
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyYdl_lnUt25QtjApGbl9TAZA9KDDAAe9ioTnH78x6R5v2V3HhmWGrudiTtqgqT6EWR/exec";
 let cur = 1, busy = false;
@@ -174,7 +174,6 @@ let cur = 1, busy = false;
 // ===== 題目參數與評分設定（要改題目數字，改這裡） =====
 const DRINK = 35;                          // 第 1 題：每杯飲料價格
 const TICKET_FULL = 200, TICKET_STU = 120; // 第 2 題：全票、學生票
-const SAVE_START = 100, SAVE_WEEK = 50;    // 第 4 題：目前存款、每週存入
 
 
 const tasks = {
@@ -201,16 +200,9 @@ const tasks = {
       <li>例：3 天共 60 下</li>
       <li>須使用迴圈完成，結果請用「說」積木顯示</li></ul>`
   },
-  4: {
-    short: '存款目標挑戰',
-    title: '第 4 題｜存款目標挑戰',
-    desc: `<p class="mb-1 font-bold">目前有 ${SAVE_START} 元，每週存入 ${SAVE_WEEK} 元。輸入目標金額，算出幾週後存款會達到目標（剛好等於也算達成）。</p>
-      <ul class="list-disc list-inside space-y-1 text-xs">
-      <li>須使用迴圈完成，結果請用「說」積木顯示</li></ul>`
-  },
   5: {
     short: '猜數字遊戲',
-    title: '第 5 題｜猜數字遊戲',
+    title: '第 4 題｜猜數字遊戲',
     desc: `<p class="mb-1 font-bold">製作猜數字遊戲：讓使用者一直猜，直到猜中秘密數字為止。</p>
       <ul class="list-disc list-inside space-y-1 text-xs">
       <li>秘密數字要存在變數裡</li>
@@ -218,7 +210,7 @@ const tasks = {
   },
   7: {
     short: '五角星',
-    title: '第 6 題｜五角星',
+    title: '第 5 題｜五角星',
     desc: `<p class="mb-1 font-bold">用「重複執行 5 次」畫出一顆五角星。</p>
       <ul class="list-disc list-inside space-y-1 text-xs">
       <li>5 條線一樣長，畫完要回到起點，圍成封閉的星形</li></ul>`
@@ -239,7 +231,7 @@ const SEAT_MAX = 99;          // 座號：1 到 SEAT_MAX（要改上限只改這
 let STU = null;        // 登入後固定的身分
 let exam = null;       // { start, ended, done: { taskId: fileName } }，存在這台電腦的瀏覽器裡
 let examTimer = null, pendingEnd = false;
-const examKey = () => `exam2_${STU.className}_${STU.seatNo}_${STU.studentName}`;
+const examKey = () => `exam2v5_${STU.className}_${STU.seatNo}_${STU.studentName}`;
 const saveExam = () => { try { localStorage.setItem(examKey(), JSON.stringify(exam)); } catch (e) {} };
 const examActive = () => !!(STU && exam && !exam.ended && Date.now() < exam.start + EXAM_MS);
 
