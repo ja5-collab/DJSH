@@ -26,6 +26,7 @@
       <li>⏱ 按下「開始作答」後立即開始計時</li>
       <li>🔒 每題只能上傳一次，繳交後就無法修改</li>
       <li>⛔ 時間到後就無法再繳交</li>
+      <li>🕒 開始作答滿 <span id="lblEarly">15</span> 分鐘後，才可以提早交卷</li>
     </ul>
   </section>
   <section class="flex-1 flex items-center justify-center px-8 sm:px-16 py-12 bg-slate-50">
@@ -65,7 +66,7 @@
       <div id="timerBox" class="bg-white text-orange-600 rounded-xl px-4 py-1.5 font-bold flex items-center gap-2">
         <span class="text-xs">剩餘時間</span><span id="timer" class="text-2xl font-black tabular-nums">40:00</span>
       </div>
-      <button onclick="finishEarly()" class="bg-white/20 hover:bg-white/30 text-white text-sm font-bold px-4 py-2 rounded-xl">結束作答</button>
+      <button id="endBtn" onclick="finishEarly()" class="bg-white/20 hover:bg-white/30 text-white text-sm font-bold px-4 py-2 rounded-xl">結束作答</button>
     </div>
   </div>
 </header>
@@ -208,6 +209,10 @@ const TASKS = {
 
 const EXAM_MIN = 40;                       // 作答時間（分鐘）。Apps Script 裡的 EXAM_MIN 要設成一樣
 const EXAM_MS = EXAM_MIN * 60 * 1000;
+const EARLY_MIN = 15;                      // 開始作答滿幾分鐘後，才可以提早交卷
+// 距離可以提早交卷還有幾秒（0 表示已開放）
+const earlyWait = () => Math.max(0, Math.ceil((exam.start + EARLY_MIN * 60 * 1000 - Date.now()) / 1000));
+const mmss = sec => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
 const res = {};
 TASK_IDS.forEach(id => res[id] = { fileName: '', submitted: false });
 
@@ -262,7 +267,7 @@ window.addEventListener('DOMContentLoaded', () => {
   d.addEventListener('dragover', e => { e.preventDefault(); d.classList.add('bg-blue-50'); });
   d.addEventListener('dragleave', () => d.classList.remove('bg-blue-50'));
   d.addEventListener('drop', e => { e.preventDefault(); d.classList.remove('bg-blue-50'); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); });
-  $('lblMin').innerText = EXAM_MIN; $('lblCnt').innerText = TASK_IDS.length;
+  $('lblMin').innerText = EXAM_MIN; $('lblCnt').innerText = TASK_IDS.length; $('lblEarly').innerText = EARLY_MIN;
   buildTabs();
   switchTask(1);
   if (location.hash.replace('#', '').toUpperCase() !== 'TEACHER') setTimeout(() => $('cls').focus(), 50);
@@ -319,6 +324,10 @@ function tickTimer() {
   $('timer').innerText = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
   const warn = sec <= 5 * 60;
   $('timerBox').className = 'rounded-xl px-4 py-1.5 font-bold flex items-center gap-2 ' + (warn ? 'bg-rose-600 text-white animate-pulse' : 'bg-white text-orange-600');
+  const wait = earlyWait(), eb = $('endBtn');
+  eb.innerText = wait ? `結束作答（${mmss(wait)} 後開放）` : '結束作答';
+  eb.classList.toggle('opacity-50', wait > 0);
+  eb.classList.toggle('cursor-not-allowed', wait > 0);
   if (exam.ended || left <= 0) endExam(exam.ended ? exam.endReason : 'time');
 }
 
@@ -337,6 +346,8 @@ function endExam(reason) {
 
 function finishEarly() {
   if (!examActive() || busy) return;
+  const wait = earlyWait();
+  if (wait) { alert(`開始作答滿 ${EARLY_MIN} 分鐘後才可以提早交卷。\n\n還要等 ${mmss(wait)}。`); return; }
   const left = TASK_IDS.filter(id => !res[id].submitted).map(id => `第 ${NO(id)} 題`);
   const msg = left.length ? `還有 ${left.length} 題沒有繳交：${left.join('、')}\n\n` : '';
   if (confirm(`${msg}確定要結束作答嗎？結束後就不能再繳交任何一題。`)) endExam('manual');
