@@ -20,7 +20,7 @@
     <p class="text-xl mt-3 text-orange-50">Scratch 程式設計</p>
     <div class="mt-10 grid grid-cols-2 gap-4 max-w-md">
       <div class="bg-white/15 rounded-2xl p-5"><div class="text-sm text-orange-50">作答時間</div><div class="text-3xl font-black"><span id="lblMin">30</span> 分鐘</div></div>
-      <div class="bg-white/15 rounded-2xl p-5"><div class="text-sm text-orange-50">題數</div><div class="text-3xl font-black"><span id="lblCnt">6</span> 題</div></div>
+      <div class="bg-white/15 rounded-2xl p-5"><div class="text-sm text-orange-50">題數</div><div class="text-3xl font-black"><span id="lblCnt">3</span> 題</div></div>
     </div>
     <ul class="mt-8 space-y-3 text-lg">
       <li>⏱ 按下「開始作答」後立即開始計時</li>
@@ -71,7 +71,7 @@
 </header>
 
 <main class="max-w-6xl mx-auto px-4 mt-5">
-  <div id="tabs" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5"></div>
+  <div id="tabs" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5"></div>
 
   <div class="max-w-3xl mx-auto">
       <div class="bg-white rounded-2xl p-5 shadow-sm border">
@@ -136,7 +136,7 @@
         <h2 class="text-sm font-bold text-slate-200">各題繳交狀況與得分（每人每題取最新一次繳交）</h2>
         <input id="t-filter" type="text" placeholder="搜尋班級、座號或姓名" class="bg-slate-950 border border-slate-800 text-xs text-white px-3 py-1.5 rounded-lg focus:outline-none focus:border-amber-500 w-44" oninput="teacherRender()">
       </div>
-      <p class="text-[11px] text-slate-500 mb-3">共 4 題、100 分（20、20、30、30），各題依檢測項目通過比例給分。綠色 = 該題滿分；黃色 = 已繳交但未滿分（滑鼠移上去看未通過項目）；— = 尚未繳交。「繳交人數」以全班已有紀錄的學生為基準，不受搜尋影響。學生以「班級＋座號＋姓名」辨識。</p>
+      <p class="text-[11px] text-slate-500 mb-3">共 3 題、100 分（20、35、45），各題依檢測項目通過比例給分。綠色 = 該題滿分；黃色 = 已繳交但未滿分（滑鼠移上去看未通過項目）；— = 尚未繳交。「繳交人數」以全班已有紀錄的學生為基準，不受搜尋影響。學生以「班級＋座號＋姓名」辨識。</p>
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs text-slate-200">
           <thead id="t-thead" class="bg-slate-950 text-slate-400 text-[11px] border-b border-slate-800"></thead>
@@ -172,9 +172,9 @@ let cur = 1, busy = false;
 const $ = id => document.getElementById(id);
 
 // ---------- 題目設定（只留畫面說明會用到的數字；評分全部在 Apps Script） ----------
-const TASK_IDS = [1, 2, 3, 4];
-const POINTS = { 1: 20, 2: 20, 3: 30, 4: 30 };   // 合計 100 分
-const SIDE = 30, PER_ROW = 3, MAX_ROW = 6, LEN4 = 80, COPIES4 = 36, TURN4 = 10, STEP_K = 11;
+const TASK_IDS = [1, 2, 3];
+const POINTS = { 1: 20, 2: 35, 3: 45 };   // 合計 100 分
+const SIDE = 30, PER_ROW = 3, MAX_ROW = 6, STEP_K = 11;
 const toN = x => { if (x === true) return 1; const n = Number(x); return (x === '' || x == null || isNaN(n)) ? 0 : n; };
 
 // ---------- 題目說明（要改文字，改這裡） ----------
@@ -197,13 +197,7 @@ const TASKS = {
       <ul class="list-disc list-inside space-y-1 text-xs">
       <li>用「詢問並等待」依序詢問：①要畫正幾邊形？②要畫幾個？③每列幾個？</li>
       <li>如果每列超過 ${MAX_ROW} 個，先說「太多了」，再重新詢問每列幾個</li>
-      <li>函式與間距同第 2 題</li></ul>` },
-  4: { short: '旋轉方塊花', title: `第 4 題｜旋轉方塊花（${POINTS[4]} 分）`,
-    desc: `<p class="mb-1 font-bold">用函式畫正方形，一邊旋轉一邊重複畫，組成一朵花。</p>
-      <ul class="list-disc list-inside space-y-1 text-xs">
-      <li>函式（自訂積木）要用參數傳入邊數</li>
-      <li>邊長用變數「長度」，設為 ${LEN4}</li>
-      <li>共畫 ${COPIES4} 個正方形，每畫完一個右轉 ${TURN4} 度</li></ul>` }
+      <li>函式與間距同第 2 題</li></ul>` }
 };
 
 const EXAM_MIN = 30;                       // 作答時間（分鐘）。Apps Script 裡的 EXAM_MIN 要設成一樣
