@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>二年級第二次實作評量</title>
+<title>二年級第二次定期評量</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
@@ -17,7 +17,7 @@
   <section class="lg:w-1/2 bg-gradient-to-br from-orange-500 to-amber-500 text-white flex flex-col justify-center px-8 sm:px-16 py-12">
     <div class="text-6xl mb-6">📝</div>
     <h1 class="text-4xl sm:text-5xl font-black tracking-wide">二年級第二次定期評量</h1>
-    <p class="text-xl mt-3 text-orange-50">Scratch 程式設計</p>
+    <p class="text-xl mt-3 text-orange-50">Scratch 程式設計：星星排排站</p>
     <div class="mt-10 grid grid-cols-2 gap-4 max-w-md">
       <div class="bg-white/15 rounded-2xl p-5"><div class="text-sm text-orange-50">作答時間</div><div class="text-3xl font-black"><span id="lblMin">30</span> 分鐘</div></div>
       <div class="bg-white/15 rounded-2xl p-5"><div class="text-sm text-orange-50">題數</div><div class="text-3xl font-black"><span id="lblCnt">3</span> 題</div></div>
@@ -136,7 +136,7 @@
         <h2 class="text-sm font-bold text-slate-200">各題繳交狀況與得分（每人每題取最新一次繳交）</h2>
         <input id="t-filter" type="text" placeholder="搜尋班級、座號或姓名" class="bg-slate-950 border border-slate-800 text-xs text-white px-3 py-1.5 rounded-lg focus:outline-none focus:border-amber-500 w-44" oninput="teacherRender()">
       </div>
-      <p class="text-[11px] text-slate-500 mb-3">共 3 題、100 分（20、35、45），各題依檢測項目通過比例給分。綠色 = 該題滿分；黃色 = 已繳交但未滿分（滑鼠移上去看未通過項目）；— = 尚未繳交。「繳交人數」以全班已有紀錄的學生為基準，不受搜尋影響。學生以「班級＋座號＋姓名」辨識。</p>
+      <p class="text-[11px] text-slate-500 mb-3">共 3 題、100 分（25、30、45），各題依檢測項目通過比例給分。綠色 = 該題滿分；黃色 = 已繳交但未滿分（滑鼠移上去看未通過項目）；— = 尚未繳交。「繳交人數」以全班已有紀錄的學生為基準，不受搜尋影響。學生以「班級＋座號＋姓名」辨識。</p>
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs text-slate-200">
           <thead id="t-thead" class="bg-slate-950 text-slate-400 text-[11px] border-b border-slate-800"></thead>
@@ -166,38 +166,56 @@
 
 <script>
 // ★ 部署好新的 Apps Script 後，把網址（…/exec）貼在這裡
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbznXLGg36DUZ-_FK7sA1YDTWHUhjDp8yW_GnvtbdkXpFXL57EhesYtFKbeHlFwzqjq--g/exec";
-const ASSIGNMENT = 'polygon';
+const SHEET_API_URL = "請貼上新部署的_exec_網址";
+const ASSIGNMENT = 'star';
 let cur = 1, busy = false;
 const $ = id => document.getElementById(id);
 
 // ---------- 題目設定（只留畫面說明會用到的數字；評分全部在 Apps Script） ----------
 const TASK_IDS = [1, 2, 3];
-const POINTS = { 1: 20, 2: 35, 3: 45 };   // 合計 100 分
-const SIDE = 30, PER_ROW = 3, MAX_ROW = 6, STEP_K = 11;
+const POINTS = { 1: 25, 2: 30, 3: 45 };   // 合計 100 分
+const SIDE = 40, GAP_X = 50, GAP_Y = 43, MIN_K = 2, MAX_K = 4;
 const toN = x => { if (x === true) return 1; const n = Number(x); return (x === '' || x == null || isNaN(n)) ? 0 : n; };
 
 // ---------- 題目說明（要改文字，改這裡） ----------
 const TASKS = {
-  1: { short: '正 N 邊形排一排', title: `第 1 題｜正 N 邊形排一排（${POINTS[1]} 分）`,
-    desc: `<p class="mb-1 font-bold">輸入要畫正幾邊形、畫幾個，把這些正多邊形由左到右排成一排。</p>
+  1: { short: '上正三角形', title: `第 1 題｜星星排成上正三角形（${POINTS[1]} 分）`,
+    desc: `<p class="mb-1 font-bold">輸入層數，把星星排成尖端朝上的正三角形。（下圖為 4 層）</p>
+      <pre class="text-center text-red-600 leading-tight my-2">   ★
+  ★ ★
+ ★ ★ ★
+★ ★ ★ ★</pre>
       <ul class="list-disc list-inside space-y-1 text-xs">
-      <li>用函式（自訂積木）畫正多邊形，邊數用參數傳入，邊長 ${SIDE} 點</li>
-      <li>用「詢問並等待」依序詢問：①要畫正幾邊形？②要畫幾個？</li>
-      <li>每個圖形往右間隔「邊數 × ${STEP_K}」點，圖形之間不能有多餘的線</li>
-      <li>須使用迴圈完成；建議從舞台左邊（x:-200）開始畫，圖形才不會超出舞台</li></ul>` },
-  2: { short: `每列 ${PER_ROW} 個`, title: `第 2 題｜每列 ${PER_ROW} 個（${POINTS[2]} 分）`,
-    desc: `<p class="mb-1 font-bold">延續第 1 題，但每列只放 ${PER_ROW} 個，放滿就換到下一列，從最左邊重新開始。</p>
+      <li>用函式（自訂積木）「畫星星」畫五角星：邊長 ${SIDE} 點，每次右轉 144 度</li>
+      <li>用「詢問並等待」詢問：要排幾層？</li>
+      <li>第 1 層 1 顆，每往下一層多 1 顆</li>
+      <li>同一列星星左右間隔 ${GAP_X} 點，上下列間隔 ${GAP_Y} 點，每一列都要置中對齊</li>
+      <li>星星之間不能有多餘的線；使用紅色、筆寬 3</li>
+      <li>須使用兩層「重複」，次數由變數決定；建議從 x:-20 y:140 開始畫（層數 6 以內不會超出舞台）</li></ul>` },
+  2: { short: '倒正三角形', title: `第 2 題｜星星排成倒正三角形（${POINTS[2]} 分）`,
+    desc: `<p class="mb-1 font-bold">輸入層數，把星星排成尖端朝下的正三角形。（下圖為 4 層）</p>
+      <pre class="text-center text-red-600 leading-tight my-2">★ ★ ★ ★
+ ★ ★ ★
+  ★ ★
+   ★</pre>
       <ul class="list-disc list-inside space-y-1 text-xs">
-      <li>函式與詢問方式同第 1 題</li>
-      <li>左右、上下間距都是「邊數 × ${STEP_K}」點</li>
-      <li>須使用「如果…那麼…否則」判斷是否換列；建議從舞台左上方（x:-200 y:100）開始畫</li></ul>` },
-  3: { short: '自訂每列個數', title: `第 3 題｜自訂每列個數（${POINTS[3]} 分）`,
-    desc: `<p class="mb-1 font-bold">每列放幾個改由使用者輸入，但最多只能 ${MAX_ROW} 個。</p>
+      <li>用函式（自訂積木）「畫星星」畫五角星：邊長 ${SIDE} 點，每次右轉 144 度</li>
+      <li>用「詢問並等待」詢問：要排幾層？</li>
+      <li>第 1 層的顆數等於層數，每往下一層少 1 顆，最後一層 1 顆</li>
+      <li>同一列星星左右間隔 ${GAP_X} 點，上下列間隔 ${GAP_Y} 點，每一列都要置中對齊</li>
+      <li>星星之間不能有多餘的線；使用紅色、筆寬 3</li>
+      <li>須使用兩層「重複」，次數由變數決定；建議第 1 層第一顆的位置：x 是「-20 −（層數 − 1）× 25」，y:140</li></ul>` },
+  3: { short: '圍成六邊形', title: `第 3 題｜星星圍成六邊形（${POINTS[3]} 分）`,
+    desc: `<p class="mb-1 font-bold">輸入每邊幾顆星，用星星圍出正六邊形的外框，中間是空的。（下圖為每邊 3 顆）</p>
+      <pre class="text-center text-red-600 leading-tight my-2">  ★ ★ ★\n ★     ★\n★       ★\n ★     ★\n  ★ ★ ★</pre>
       <ul class="list-disc list-inside space-y-1 text-xs">
-      <li>用「詢問並等待」依序詢問：①要畫正幾邊形？②要畫幾個？③每列幾個？</li>
-      <li>如果每列超過 ${MAX_ROW} 個，先說「太多了」，再重新詢問每列幾個</li>
-      <li>函式與間距同第 2 題</li></ul>` }
+      <li>用函式（自訂積木）「畫星星」畫五角星：邊長 ${SIDE} 點，每次右轉 144 度</li>
+      <li>用「詢問並等待」詢問：每邊幾顆星？（${MIN_K} 到 ${MAX_K} 顆）</li>
+      <li>如果超過 ${MAX_K} 顆，先說「太多了」，再重新詢問，直到不超過為止</li>
+      <li>相鄰兩顆星相距 ${GAP_X} 點，上下邊為水平線；轉角的星星由兩邊共用</li>
+      <li>星星之間不能有多餘的線；使用紅色、筆寬 3</li>
+      <li>提示：「畫星星」一開始會面向 90 度，移到下一顆前要重新設定前進方向</li>
+      <li>建議第一顆（左上角）的位置：x 是「-20 −（每邊顆數 − 1）× 25」，y:140</li></ul>` }
 };
 
 const EXAM_MIN = 30;                       // 作答時間（分鐘）。Apps Script 裡的 EXAM_MIN 要設成一樣
@@ -215,7 +233,7 @@ const SEAT_MAX = 99;          // 座號：1 到 SEAT_MAX（要改上限只改這
 let STU = null;        // 登入後固定的身分
 let exam = null;       // { start, ended, done: { taskId: fileName } }，存在這台電腦的瀏覽器裡
 let examTimer = null, pendingEnd = false;
-const examKey = () => `poly_exam_${STU.className}_${STU.seatNo}_${STU.studentName}`;
+const examKey = () => `star_exam_${STU.className}_${STU.seatNo}_${STU.studentName}`;
 const saveExam = () => { try { localStorage.setItem(examKey(), JSON.stringify(exam)); } catch (e) {} };
 const examActive = () => !!(STU && exam && !exam.ended && Date.now() < exam.start + EXAM_MS);
 
@@ -483,11 +501,11 @@ async function teacherUnlock(auto) {
     const data = await tFetch(pw);
     if (!data.ok) {
       if (!auto) alert('密碼錯誤！');
-      try { sessionStorage.removeItem('poly_tpw'); } catch (e) {}
+      try { sessionStorage.removeItem('star_tpw'); } catch (e) {}
       return;
     }
     tPw = pw;
-    try { sessionStorage.setItem('poly_tpw', pw); } catch (e) {}
+    try { sessionStorage.setItem('star_tpw', pw); } catch (e) {}
     tRows = tList(data.list);
     $('t-auth').classList.add('hidden');
     teacherRender(); tIndicator(true);
@@ -587,7 +605,7 @@ function route() {
     if (!tPw) {
       $('t-auth').classList.remove('hidden');
       let saved = '';
-      try { saved = sessionStorage.getItem('poly_tpw') || ''; } catch (e) {}
+      try { saved = sessionStorage.getItem('star_tpw') || ''; } catch (e) {}
       if (saved) teacherUnlock(saved); else setTimeout(() => $('t-pass').focus(), 50);
     } else if (!tTimer) {
       teacherRefresh(); tTimer = setInterval(teacherRefresh, 15000);
