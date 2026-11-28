@@ -180,42 +180,20 @@ const toN = x => { if (x === true) return 1; const n = Number(x); return (x === 
 // ---------- 題目說明（要改文字，改這裡） ----------
 const TASKS = {
   1: { short: '上正三角形', title: `第 1 題｜星星排成上正三角形（${POINTS[1]} 分）`,
-    desc: `<p class="mb-1 font-bold">輸入層數，把星星排成尖端朝上的正三角形。（下圖為 4 層）</p>
+    desc: `<p class="mb-1 font-bold">把星星排成尖端朝上的正三角形。（下圖為 4 層）</p>
       <pre class="text-center text-red-600 leading-tight my-2">   ★
   ★ ★
  ★ ★ ★
-★ ★ ★ ★</pre>
-      <ul class="list-disc list-inside space-y-1 text-xs">
-      <li>用函式（自訂積木）「畫星星」畫五角星：邊長 ${SIDE} 點，每次右轉 144 度</li>
-      <li>用「詢問並等待」詢問：要排幾層？</li>
-      <li>第 1 層 1 顆，每往下一層多 1 顆</li>
-      <li>同一列星星左右間隔 ${GAP_X} 點，上下列間隔 ${GAP_Y} 點，每一列都要置中對齊</li>
-      <li>星星之間不能有多餘的線；使用紅色、筆寬 3</li>
-      <li>須使用兩層「重複」，次數由變數決定；建議從 x:-20 y:140 開始畫（層數 6 以內不會超出舞台）</li></ul>` },
+★ ★ ★ ★</pre>` },
   2: { short: '倒正三角形', title: `第 2 題｜星星排成倒正三角形（${POINTS[2]} 分）`,
-    desc: `<p class="mb-1 font-bold">輸入層數，把星星排成尖端朝下的正三角形。（下圖為 4 層）</p>
+    desc: `<p class="mb-1 font-bold">把星星排成尖端朝下的正三角形。（下圖為 4 層）</p>
       <pre class="text-center text-red-600 leading-tight my-2">★ ★ ★ ★
  ★ ★ ★
   ★ ★
-   ★</pre>
-      <ul class="list-disc list-inside space-y-1 text-xs">
-      <li>用函式（自訂積木）「畫星星」畫五角星：邊長 ${SIDE} 點，每次右轉 144 度</li>
-      <li>用「詢問並等待」詢問：要排幾層？</li>
-      <li>第 1 層的顆數等於層數，每往下一層少 1 顆，最後一層 1 顆</li>
-      <li>同一列星星左右間隔 ${GAP_X} 點，上下列間隔 ${GAP_Y} 點，每一列都要置中對齊</li>
-      <li>星星之間不能有多餘的線；使用紅色、筆寬 3</li>
-      <li>須使用兩層「重複」，次數由變數決定；建議第 1 層第一顆的位置：x 是「-20 −（層數 − 1）× 25」，y:140</li></ul>` },
+   ★</pre>` },
   3: { short: '圍成六邊形', title: `第 3 題｜星星圍成六邊形（${POINTS[3]} 分）`,
-    desc: `<p class="mb-1 font-bold">輸入每邊幾顆星，用星星圍出正六邊形的外框，中間是空的。（下圖為每邊 3 顆）</p>
-      <pre class="text-center text-red-600 leading-tight my-2">  ★ ★ ★\n ★     ★\n★       ★\n ★     ★\n  ★ ★ ★</pre>
-      <ul class="list-disc list-inside space-y-1 text-xs">
-      <li>用函式（自訂積木）「畫星星」畫五角星：邊長 ${SIDE} 點，每次右轉 144 度</li>
-      <li>用「詢問並等待」詢問：每邊幾顆星？（${MIN_K} 到 ${MAX_K} 顆）</li>
-      <li>如果超過 ${MAX_K} 顆，先說「太多了」，再重新詢問，直到不超過為止</li>
-      <li>相鄰兩顆星相距 ${GAP_X} 點，上下邊為水平線；轉角的星星由兩邊共用</li>
-      <li>星星之間不能有多餘的線；使用紅色、筆寬 3</li>
-      <li>提示：「畫星星」一開始會面向 90 度，移到下一顆前要重新設定前進方向</li>
-      <li>建議第一顆（左上角）的位置：x 是「-20 −（每邊顆數 − 1）× 25」，y:140</li></ul>` }
+    desc: `<p class="mb-1 font-bold">用星星圍出正六邊形的外框，中間是空的。（下圖為每邊 3 顆）</p>
+      <pre class="text-center text-red-600 leading-tight my-2">  ★ ★ ★\n ★     ★\n★       ★\n ★     ★\n  ★ ★ ★</pre>` }
 };
 
 const EXAM_MIN = 30;                       // 作答時間（分鐘）。Apps Script 裡的 EXAM_MIN 要設成一樣
