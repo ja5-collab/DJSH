@@ -287,7 +287,11 @@ async function startExam() {
   exam = saved && saved.start ? saved : { start: Date.now(), ended: false, done: {} };
   if (out && out.ok && out.start) {
     // 換算成這台電腦的時鐘（電腦時間不準也沒關係）
-    exam.start = Number(out.start) - (Number(out.now) - Date.now());
+    const serverStart = Number(out.start) - (Number(out.now) - Date.now());
+    // 伺服器的開始時間和這台電腦記住的不一樣 → 老師已在試算表刪掉開始時間、讓學生重考
+    // → 丟掉這台電腦舊的「已結束／已繳交」紀錄，以伺服器為準重新開始
+    if (saved && Math.abs(Number(saved.start) - serverStart) > 60000) exam = { start: serverStart, ended: false, done: {} };
+    exam.start = serverStart;
     if (out.ended) { exam.ended = true; exam.endReason = exam.endReason || 'time'; }
   } else if (out && !out.ok && out.error && !/題號/.test(out.error)) {
     STU = null; $('loginErr').innerText = out.error; return;   // 伺服器拒絕（例如身分格式錯誤）
